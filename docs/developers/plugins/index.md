@@ -1,5 +1,10 @@
 ---
-title: "App Connect Plugins"
+type: contract
+title: App Connect Plugins
+description: Lifecycle, manifest, execution, OAuth, licensing, and configuration guidance for App Connect plugins.
+owner: RingCentral
+status: proposed
+tags: [app-connect, plugins]
 ---
 
 # App Connect Plugins
@@ -18,6 +23,8 @@ npx @app-connect/cli init my-plugin --template plugin
 ```
 
 The template route wiring lives in `packages/plugin-template/src/app.ts`. It shows the endpoints App Connect expects a plugin server to expose.
+
+Implementing the server in another programming language? Use the [Plugin server API reference](../plugin-server-api.md) as the language-neutral contract for requests, responses, authentication, and async callbacks.
 
 ## Registration Flow
 
@@ -134,7 +141,7 @@ Request body:
     "logInfo": {}
   },
   "config": {
-    "ignoredLetters": {
+    "ignoreLetters": {
       "value": "abc"
     }
   }
@@ -148,6 +155,8 @@ Use synchronous plugins for deterministic, fast payload transformations.
 ## Asynchronous Plugins
 
 Async plugins are currently callback-enabled for call-log create and update flows. App Connect creates a one-week task cache, saves the task id, and sends that task id to the plugin. The task id embedded in the callback URL is the callback validation method. SMS and fax async plugins remain fire-and-forget and do not receive this callback contract yet.
+
+The JavaScript template's `/plugin/async` handler currently requires the call callback fields. If your manifest declares asynchronous SMS or fax support, adapt that handler to accept the fire-and-forget request variant documented in the [Plugin server API reference](../plugin-server-api.md).
 
 Request body:
 

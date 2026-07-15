@@ -38,11 +38,17 @@ jobs:
         run: |
           test -f site/developers/server-api/index.html
           test -f site/developers/crm-server-openapi-public.json
+          test -f site/developers/plugin-server-api/index.html
+          test -f site/developers/plugin-server-openapi.json
           test ! -f site/developers/crm-server-openapi.json
           test -f site/assets/swagger-ui/oauth2-redirect.html
           grep -q 'swagger-ui-iframe' site/developers/server-api/index.html
+          grep -q 'swagger-ui-iframe' site/developers/plugin-server-api/index.html
           grep -q 'var url = "../crm-server-openapi-public.json"' site/developers/server-api/swagger-*.html
+          grep -q 'var url = "../plugin-server-openapi.json"' site/developers/plugin-server-api/swagger-*.html
           grep -q '"supportedSubmitMethods": \[\]' site/developers/server-api/swagger-*.html
+          grep -q '"supportedSubmitMethods": \[\]' site/developers/plugin-server-api/swagger-*.html
+          grep -q 'href="../plugin-server-api/"' site/developers/plugins/index.html
           ! grep -q '"name": "MCP"' site/developers/crm-server-openapi-public.json
           ! grep -q '"name": "Google Integrations"' site/developers/crm-server-openapi-public.json
           ! grep -q '"name": "Pipedrive"' site/developers/crm-server-openapi-public.json

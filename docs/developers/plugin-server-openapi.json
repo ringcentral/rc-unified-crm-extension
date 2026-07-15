@@ -1,0 +1,1281 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "App Connect Plugin Server API",
+    "version": "1.7.38",
+    "description": "HTTP/JSON contract implemented by a remotely hosted App Connect plugin server. The paths in this document follow the App Connect JavaScript template and are reference conventions; the full URLs configured in the plugin manifest are authoritative. Production endpoints must use HTTPS. Registration requests contain a short-lived RingCentral administrator access token, and invocation payloads can contain contact and communications data. Implementations must treat credentials as secrets, avoid logging them, and retain payload data only when required for plugin behavior.",
+    "contact": {
+      "name": "RingCentral Labs",
+      "url": "https://github.com/ringcentral/rc-unified-crm-extension"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/license/mit"
+    }
+  },
+  "externalDocs": {
+    "description": "App Connect plugin developer guide",
+    "url": "https://appconnect.labs.ringcentral.com/developers/plugins/"
+  },
+  "servers": [
+    {
+      "url": "https://{pluginHost}",
+      "description": "Developer-hosted plugin server",
+      "variables": {
+        "pluginHost": {
+          "default": "plugins.example.com",
+          "description": "Hostname of the deployed plugin server. Manifest endpoint URLs remain authoritative."
+        }
+      }
+    },
+    {
+      "url": "http://localhost:6066",
+      "description": "Local plugin development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Optional plugin-server liveness checks."
+    },
+    {
+      "name": "Registration",
+      "description": "Account registration and plugin-issued credential bootstrap."
+    },
+    {
+      "name": "Token lifecycle",
+      "description": "Plugin credential validation and rotation before asynchronous dispatch."
+    },
+    {
+      "name": "Invocation",
+      "description": "Synchronous transformations, asynchronous work, and completion callbacks."
+    },
+    {
+      "name": "Licensing",
+      "description": "Optional plugin entitlement checks."
+    },
+    {
+      "name": "OAuth",
+      "description": "Optional browser-facing authorization, state, logout, and provider callback endpoints."
+    }
+  ],
+  "security": [],
+  "paths": {
+    "/isAlive": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Check plugin-server liveness",
+        "description": "Optional convention implemented by the JavaScript template. App Connect does not currently call this endpoint as part of plugin execution.",
+        "operationId": "getPluginServerIsAlive",
+        "security": [],
+        "x-app-connect-required": false,
+        "responses": {
+          "200": {
+            "description": "The plugin server is running.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": "OK"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/register": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "summary": "Register a RingCentral account",
+        "description": "Reference path for the manifest userRegisterEndpointUrl. App Connect sends the RingCentral administrator access token and the account being registered. The request body does not contain pluginId, so a host serving multiple plugins must bind plugin identity from the configured endpoint URL or trusted server-side configuration, never from untrusted request input. The plugin server must validate the token with RingCentral, verify that it belongs to rcAccountId, and return an account-scoped plugin credential. App Connect treats the returned credential as an opaque bearer token and stores it for later plugin requests. The registration token must not be logged or retained.",
+        "operationId": "registerPluginAccount",
+        "security": [],
+        "x-app-connect-endpoint-source": "userRegisterEndpointUrl",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/PluginRegistration"
+        },
+        "responses": {
+          "200": {
+            "description": "The account was validated and registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginRegistrationResponse"
+                },
+                "examples": {
+                  "registered": {
+                    "summary": "Plugin credential issued",
+                    "value": {
+                      "jwtToken": "eyJhbGciOi...plugin-account-token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The registration request or RingCentral identity could not be validated.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextError"
+                },
+                "example": "Plugin registration failed"
+              }
+            }
+          },
+          "403": {
+            "description": "The validated RingCentral identity does not belong to rcAccountId.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextError"
+                },
+                "example": "rcAccountId mismatch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/token/sync": {
+      "post": {
+        "tags": [
+          "Token lifecycle"
+        ],
+        "summary": "Validate or rotate the plugin credential",
+        "description": "Reference path for tokenSyncUrl. Async plugins must expose this operation because App Connect calls it before asynchronous dispatch. The request body is an empty JSON object. Return a replacement account-scoped credential in X-Refreshed-JWT-Token when rotation is required; otherwise omit the header. Rotation for async plugins must happen here because App Connect does not consume token-refresh headers from the async processor response.",
+        "operationId": "syncPluginToken",
+        "security": [
+          {
+            "pluginBearer": []
+          }
+        ],
+        "x-app-connect-endpoint-source": "tokenSyncUrl",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/EmptyJsonObject"
+        },
+        "responses": {
+          "200": {
+            "description": "The existing credential is valid or a replacement was issued.",
+            "headers": {
+              "X-Refreshed-JWT-Token": {
+                "$ref": "#/components/headers/RefreshedPluginJwt"
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": "OK"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/PluginBearerUnauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/PluginBearerForbidden"
+          },
+          "500": {
+            "description": "The plugin server could not validate or rotate the credential.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextError"
+                },
+                "example": "Token sync failed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plugin/sync": {
+      "post": {
+        "tags": [
+          "Invocation"
+        ],
+        "summary": "Process a logging payload synchronously",
+        "description": "Reference path for endpointUrl when isAsync is false or omitted. App Connect calls the plugin before the connector saves the activity and replaces the current logging payload with this response. The plugin may transform fields but must preserve every field the remaining logging flow requires. Payload details vary by call, SMS, and fax workflows, so the stable contract is the outer envelope plus an extensible data object.",
+        "operationId": "invokeSynchronousPlugin",
+        "security": [
+          {
+            "pluginBearer": []
+          }
+        ],
+        "x-app-connect-endpoint-source": "endpointUrl",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/PluginInvocation"
+        },
+        "responses": {
+          "200": {
+            "description": "The transformed logging payload. This is the data object itself, not an outer envelope.",
+            "headers": {
+              "X-Refreshed-JWT-Token": {
+                "$ref": "#/components/headers/RefreshedPluginJwt"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoggingPayload"
+                },
+                "examples": {
+                  "transformedCall": {
+                    "summary": "Call note enriched by the plugin",
+                    "value": {
+                      "logInfo": {
+                        "sessionId": "session-123",
+                        "direction": "Outbound",
+                        "startTime": "2026-07-14T09:30:00.000Z",
+                        "duration": 120,
+                        "result": "Completed",
+                        "from": {
+                          "phoneNumber": "+14155550100"
+                        },
+                        "to": {
+                          "phoneNumber": "+14155550101"
+                        }
+                      },
+                      "contactId": "contact-123",
+                      "contactType": "Contact",
+                      "contactName": "Ada Lovelace",
+                      "note": "FOLLOW UP TOMORROW.",
+                      "additionalSubmission": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/PluginBearerUnauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/PluginBearerForbidden"
+          },
+          "500": {
+            "description": "The plugin failed to process the logging payload.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextError"
+                },
+                "example": "Plugin request failed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plugin/async": {
+      "post": {
+        "tags": [
+          "Invocation"
+        ],
+        "summary": "Start asynchronous plugin processing",
+        "description": "Reference path for endpointUrl when isAsync is true. Call-log create and update requests include asyncTaskId and callbackUrl; the plugin must return promptly and later POST completion to callbackUrl. Async SMS and fax requests are currently fire-and-forget and omit those callback fields. The JavaScript template currently requires callback fields, so developers declaring async SMS or fax support must adapt its handler to accept the fire-and-forget variant. App Connect considers any successful 2xx dispatch accepted and does not use the response body to mutate the primary logging payload.",
+        "operationId": "invokeAsynchronousPlugin",
+        "security": [
+          {
+            "pluginBearer": []
+          }
+        ],
+        "x-app-connect-endpoint-source": "endpointUrl",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/AsyncPluginInvocation"
+        },
+        "callbacks": {
+          "asyncPluginCompletion": {
+            "$ref": "#/components/callbacks/AsyncPluginCompletion"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The plugin accepted the task. App Connect currently ignores this response body after a successful dispatch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncAcceptanceResponse"
+                },
+                "examples": {
+                  "accepted": {
+                    "summary": "Callback-enabled call task accepted",
+                    "value": {
+                      "accepted": true,
+                      "asyncTaskId": "4d3e22d7-2764-42d5-9d1c-dae7b45e40b3"
+                    }
+                  },
+                  "fireAndForgetAccepted": {
+                    "summary": "Fire-and-forget message task accepted",
+                    "value": {
+                      "accepted": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A callback-enabled request omitted asyncTaskId or callbackUrl.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncRejectedResponse"
+                },
+                "example": {
+                  "accepted": false,
+                  "message": "asyncTaskId and callbackUrl are required"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/PluginBearerUnauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/PluginBearerForbidden"
+          },
+          "500": {
+            "description": "The plugin server could not accept the task.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextError"
+                },
+                "example": "Plugin request failed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/license": {
+      "get": {
+        "tags": [
+          "Licensing"
+        ],
+        "summary": "Get plugin license status",
+        "description": "Optional reference path for licenseStatusUrl. App Connect sends the account-scoped plugin credential and expects an entitlement decision. Use tokenSyncUrl, rather than this response, for credential rotation required by async plugins.",
+        "operationId": "getPluginServerLicenseStatus",
+        "security": [
+          {
+            "pluginBearer": []
+          }
+        ],
+        "x-app-connect-endpoint-source": "licenseStatusUrl",
+        "x-app-connect-required": false,
+        "responses": {
+          "200": {
+            "description": "The current plugin entitlement state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginLicenseStatus"
+                },
+                "examples": {
+                  "active": {
+                    "summary": "Active entitlement",
+                    "value": {
+                      "licenseStatus": true,
+                      "licenseStatusDescription": "Active"
+                    }
+                  },
+                  "inactive": {
+                    "summary": "Subscription required",
+                    "value": {
+                      "licenseStatus": false,
+                      "licenseStatusDescription": "Subscription required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/PluginBearerUnauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/PluginBearerForbidden"
+          },
+          "500": {
+            "description": "The plugin server could not determine license status."
+          }
+        }
+      }
+    },
+    "/authUrl": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Create a plugin authorization URL",
+        "description": "Optional reference path for authorizationUrl. The App Connect browser client calls this endpoint directly, so the plugin server must allow the App Connect extension origin. The returned provider URL must use the App Connect extension redirect URI and carry plugin routing data in OAuth state, including from=plugin and redirectTo for the plugin callback.",
+        "operationId": "getPluginAuthorizationUrl",
+        "security": [],
+        "x-app-connect-endpoint-source": "authorizationUrl",
+        "x-app-connect-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/pluginId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A provider authorization URL for the plugin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginAuthUrlResponse"
+                },
+                "example": {
+                  "authUrl": "https://provider.example.com/oauth/authorize?client_id=plugin-client&redirect_uri=https%3A%2F%2Fringcentral.github.io%2Fringcentral-embeddable%2Fredirect.html&state=%7B%22from%22%3A%22plugin%22%2C%22redirectTo%22%3A%22https%3A%2F%2Fplugins.example.com%2Foauth%2Fcallback%22%2C%22nonce%22%3A%22csrf-correlation%22%7D"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The plugin could not create an authorization URL."
+          },
+          "500": {
+            "description": "The plugin authorization provider was unavailable."
+          }
+        }
+      }
+    },
+    "/checkAuth": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Check plugin authorization state",
+        "description": "Optional reference path for authStateUrl. The App Connect browser client calls this endpoint directly and currently sends no plugin bearer token or explicit user identifier. Implementations must not claim an authenticated user unless they have a separate, trusted browser-session mechanism. The plugin server must allow the App Connect extension origin.",
+        "operationId": "getPluginAuthorizationState",
+        "security": [],
+        "x-app-connect-endpoint-source": "authStateUrl",
+        "x-app-connect-required": false,
+        "responses": {
+          "200": {
+            "description": "Whether the current browser context is authorized for the plugin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginAuthStateResponse"
+                },
+                "examples": {
+                  "connected": {
+                    "summary": "Plugin account connected",
+                    "value": {
+                      "successful": true
+                    }
+                  },
+                  "disconnected": {
+                    "summary": "Plugin account not connected",
+                    "value": {
+                      "successful": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The plugin could not determine authorization state."
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Disconnect the plugin user",
+        "description": "Optional reference path for logoutUrl. The App Connect browser client calls this endpoint directly and sends its current App Connect user-session token in the request body when available. Treat that value as opaque unless the plugin has a supported validation path, never log it, and use a separate trusted browser-session mechanism when identity must be established. The plugin server must allow the App Connect extension origin.",
+        "operationId": "logoutPluginUser",
+        "security": [],
+        "x-app-connect-endpoint-source": "logoutUrl",
+        "x-app-connect-required": false,
+        "requestBody": {
+          "$ref": "#/components/requestBodies/PluginLogout"
+        },
+        "responses": {
+          "200": {
+            "description": "The plugin disconnected the browser user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginAuthStateResponse"
+                },
+                "example": {
+                  "successful": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The logout request could not be processed."
+          },
+          "500": {
+            "description": "The plugin could not disconnect the user."
+          }
+        }
+      }
+    },
+    "/oauth/callback": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Complete plugin OAuth authorization",
+        "description": "Optional conventional target for state.redirectTo; the callback path itself is chosen by the plugin. After the OAuth provider redirects to the App Connect extension redirect URI, the App Connect browser client calls redirectTo with hashedExtensionId and callbackUri. The plugin extracts the provider code and state from callbackUri, validates state, exchanges the code, and stores provider credentials. For compatibility with current clients, implementations should tolerate provider callback query fields arriving alongside callbackUri when reserved characters were not encoded. The plugin server must allow the App Connect extension origin.",
+        "operationId": "completePluginOAuth",
+        "security": [],
+        "x-app-connect-endpoint-source": "state.redirectTo",
+        "x-app-connect-required": false,
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/hashedExtensionId"
+          },
+          {
+            "$ref": "#/components/parameters/callbackUri"
+          },
+          {
+            "$ref": "#/components/parameters/legacyOAuthCode"
+          },
+          {
+            "$ref": "#/components/parameters/legacyOAuthScope"
+          },
+          {
+            "$ref": "#/components/parameters/legacyOAuthState"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The provider authorization code was exchanged and stored. The App Connect browser client uses only the successful HTTP status and ignores the response body."
+          },
+          "400": {
+            "description": "The callback URI, code, or state was invalid."
+          },
+          "500": {
+            "description": "The provider token exchange failed."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "pluginBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Account-scoped credential issued by the plugin server from userRegisterEndpointUrl. App Connect treats the value as opaque and sends it in the Authorization header."
+      }
+    },
+    "headers": {
+      "RefreshedPluginJwt": {
+        "description": "Replacement account-scoped plugin credential. App Connect persists this header from token synchronization and synchronous invocation responses.",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "parameters": {
+      "pluginId": {
+        "name": "pluginId",
+        "in": "query",
+        "required": true,
+        "description": "Plugin identifier assigned by the App Connect Developer Console.",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "example": "plugin.example"
+      },
+      "hashedExtensionId": {
+        "name": "hashedExtensionId",
+        "in": "query",
+        "required": true,
+        "description": "Stable extension identifier supplied by the App Connect client for plugin-owned OAuth state.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "6b5d3fcae1f7"
+      },
+      "callbackUri": {
+        "name": "callbackUri",
+        "in": "query",
+        "required": true,
+        "description": "Full App Connect extension callback URL containing the OAuth provider code and state. Standards-compliant clients percent-encode this query value. Current App Connect clients can flatten some provider fields into the legacy query parameters documented alongside it.",
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        },
+        "example": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html?code=provider-code&state=plugin-state"
+      },
+      "legacyOAuthCode": {
+        "name": "code",
+        "in": "query",
+        "required": false,
+        "deprecated": true,
+        "description": "Provider authorization code flattened from callbackUri by current clients. Prefer the encoded callbackUri value.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "legacyOAuthScope": {
+        "name": "scope",
+        "in": "query",
+        "required": false,
+        "deprecated": true,
+        "description": "Provider scope flattened from callbackUri by current clients. Prefer the encoded callbackUri value.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "legacyOAuthState": {
+        "name": "state",
+        "in": "query",
+        "required": false,
+        "deprecated": true,
+        "description": "OAuth state flattened from callbackUri when provider query ordering exposes it separately. The plugin must still validate it.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "callbacks": {
+      "AsyncPluginCompletion": {
+        "{$request.body#/callbackUrl}": {
+          "post": {
+            "tags": [
+              "Invocation"
+            ],
+            "summary": "Report asynchronous call-plugin completion",
+            "description": "Callback into the App Connect server for asynchronous call-log create and update tasks. The callback URL contains a random task identifier, acts as the callback credential, and expires after one week; no Authorization header is sent. On success, App Connect appends note to the CRM activity. On a reported failure, App Connect marks the task failed and stores message.",
+            "operationId": "postAsyncPluginCompletion",
+            "security": [],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/AsyncPluginCallbackRequest"
+                  },
+                  "examples": {
+                    "completed": {
+                      "summary": "Background work completed",
+                      "value": {
+                        "successful": true,
+                        "message": "Async plugin completed",
+                        "note": "Recording uploaded"
+                      }
+                    },
+                    "failed": {
+                      "summary": "Background work failed",
+                      "value": {
+                        "successful": false,
+                        "message": "Upload failed",
+                        "note": ""
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "The callback was accepted. A plugin-reported failure also receives 200 after App Connect marks the task failed.",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/AsyncPluginCallbackResponse"
+                    },
+                    "example": {
+                      "successful": true
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The callback body omitted the required successful flag.",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/AsyncPluginCallbackResponse"
+                    },
+                    "example": {
+                      "successful": false,
+                      "message": "successful is required"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The callback task was not found or has expired.",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/AsyncPluginCallbackResponse"
+                    },
+                    "example": {
+                      "successful": false,
+                      "message": "Async task not found"
+                    }
+                  }
+                }
+              },
+              "500": {
+                "description": "The callback was valid, but App Connect failed to update the CRM activity.",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/AsyncPluginCallbackResponse"
+                    },
+                    "example": {
+                      "successful": false,
+                      "message": "Async plugin callback failed"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "requestBodies": {
+      "PluginRegistration": {
+        "required": true,
+        "description": "RingCentral administrator identity used to register one account with the plugin.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PluginRegistrationRequest"
+            },
+            "examples": {
+              "accountRegistration": {
+                "summary": "Register an account",
+                "value": {
+                  "rcAccessToken": "ringcentral-admin-access-token",
+                  "rcAccountId": "123456789"
+                }
+              }
+            }
+          }
+        }
+      },
+      "EmptyJsonObject": {
+        "required": true,
+        "description": "App Connect sends an empty JSON object when synchronizing the plugin credential.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyObject"
+            },
+            "example": {}
+          }
+        }
+      },
+      "PluginInvocation": {
+        "required": true,
+        "description": "Stable plugin invocation envelope around a workflow-specific logging payload.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PluginInvocationRequest"
+            },
+            "examples": {
+              "call": {
+                "summary": "Synchronous call plugin",
+                "value": {
+                  "data": {
+                    "logInfo": {
+                      "sessionId": "session-123",
+                      "direction": "Outbound",
+                      "startTime": "2026-07-14T09:30:00.000Z",
+                      "duration": 120,
+                      "result": "Completed",
+                      "from": {
+                        "phoneNumber": "+14155550100"
+                      },
+                      "to": {
+                        "phoneNumber": "+14155550101"
+                      }
+                    },
+                    "contactId": "contact-123",
+                    "contactType": "Contact",
+                    "contactName": "Ada Lovelace",
+                    "note": "Follow up tomorrow.",
+                    "additionalSubmission": {}
+                  },
+                  "config": {
+                    "ignoreLetters": {
+                      "value": "ac"
+                    }
+                  },
+                  "hashedExtensionId": "6b5d3fcae1f7"
+                }
+              },
+              "sms": {
+                "summary": "Synchronous SMS plugin",
+                "value": {
+                  "data": {
+                    "logInfo": {
+                      "messages": [
+                        {
+                          "id": "message-123",
+                          "type": "SMS",
+                          "subject": "Customer reply",
+                          "direction": "Outbound",
+                          "creationTime": "2026-07-14T09:30:00.000Z"
+                        }
+                      ],
+                      "correspondents": [
+                        {
+                          "phoneNumber": "+14155550101"
+                        }
+                      ],
+                      "conversationId": "conversation-123",
+                      "conversationLogId": "conversation-log-123"
+                    },
+                    "contactId": "contact-123",
+                    "contactName": "Ada Lovelace",
+                    "additionalSubmission": {}
+                  },
+                  "config": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "AsyncPluginInvocation": {
+        "required": true,
+        "description": "Callback-enabled call invocation or current fire-and-forget SMS/fax invocation.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/AsyncCallbackInvocationRequest"
+                },
+                {
+                  "$ref": "#/components/schemas/AsyncFireAndForgetInvocationRequest"
+                }
+              ]
+            },
+            "examples": {
+              "callWithCallback": {
+                "summary": "Asynchronous call plugin with completion callback",
+                "value": {
+                  "data": {
+                    "logInfo": {
+                      "sessionId": "session-123",
+                      "direction": "Outbound",
+                      "startTime": "2026-07-14T09:30:00.000Z",
+                      "duration": 120,
+                      "result": "Completed"
+                    },
+                    "note": "Follow up tomorrow.",
+                    "additionalSubmission": {}
+                  },
+                  "config": null,
+                  "asyncTaskId": "4d3e22d7-2764-42d5-9d1c-dae7b45e40b3",
+                  "callbackUrl": "https://app-connect.example.com/plugin/async-callback/4d3e22d7-2764-42d5-9d1c-dae7b45e40b3",
+                  "hashedExtensionId": "6b5d3fcae1f7"
+                }
+              },
+              "callUpdateWithCallback": {
+                "summary": "Asynchronous call-log update with the update payload nested under data.logInfo",
+                "value": {
+                  "data": {
+                    "logInfo": {
+                      "sessionId": "session-123",
+                      "note": "Follow up completed.",
+                      "recordingLink": "https://media.example.com/recordings/call-123",
+                      "result": "Completed"
+                    }
+                  },
+                  "config": null,
+                  "asyncTaskId": "4d3e22d7-2764-42d5-9d1c-dae7b45e40b3",
+                  "callbackUrl": "https://app-connect.example.com/plugin/async-callback/4d3e22d7-2764-42d5-9d1c-dae7b45e40b3",
+                  "hashedExtensionId": "6b5d3fcae1f7"
+                }
+              },
+              "smsFireAndForget": {
+                "summary": "Current asynchronous SMS fire-and-forget payload",
+                "value": {
+                  "data": {
+                    "logInfo": {
+                      "logInfo": {
+                        "messages": [
+                          {
+                            "id": "message-123",
+                            "type": "SMS",
+                            "subject": "Customer reply",
+                            "direction": "Outbound",
+                            "creationTime": "2026-07-14T09:30:00.000Z"
+                          }
+                        ],
+                        "correspondents": [
+                          {
+                            "phoneNumber": "+14155550101"
+                          }
+                        ],
+                        "conversationId": "conversation-123",
+                        "conversationLogId": "conversation-log-123"
+                      },
+                      "contactId": "contact-123",
+                      "contactName": "Ada Lovelace",
+                      "additionalSubmission": {}
+                    }
+                  },
+                  "config": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "PluginLogout": {
+        "required": true,
+        "description": "Current App Connect browser logout payload.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PluginLogoutRequest"
+            },
+            "example": {
+              "jwtToken": "app-connect-user-session-token"
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "PluginBearerUnauthorized": {
+        "description": "The plugin bearer credential is missing or invalid.",
+        "content": {
+          "text/plain": {
+            "schema": {
+              "$ref": "#/components/schemas/TextError"
+            },
+            "examples": {
+              "missing": {
+                "summary": "Missing bearer token",
+                "value": "Bearer token is required"
+              },
+              "invalid": {
+                "summary": "Invalid bearer token",
+                "value": "Invalid bearer token"
+              }
+            }
+          }
+        }
+      },
+      "PluginBearerForbidden": {
+        "description": "The credential is valid but is not authorized for this plugin operation.",
+        "content": {
+          "text/plain": {
+            "schema": {
+              "$ref": "#/components/schemas/TextError"
+            },
+            "example": "Token pluginId does not match route pluginId"
+          }
+        }
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "string",
+        "enum": [
+          "OK"
+        ]
+      },
+      "TextError": {
+        "type": "string"
+      },
+      "PluginRegistrationRequest": {
+        "type": "object",
+        "required": [
+          "rcAccessToken",
+          "rcAccountId"
+        ],
+        "properties": {
+          "rcAccessToken": {
+            "type": "string",
+            "format": "password",
+            "minLength": 1,
+            "writeOnly": true,
+            "description": "Short-lived RingCentral administrator access token. Validate it with RingCentral, compare its account identity with rcAccountId, and never log or retain it."
+          },
+          "rcAccountId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "RingCentral account being registered. App Connect sends this value as a string."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PluginRegistrationResponse": {
+        "type": "object",
+        "required": [
+          "jwtToken"
+        ],
+        "properties": {
+          "jwtToken": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Sensitive account-scoped plugin credential. It may be a JWT or another opaque bearer value understood by the plugin server."
+          }
+        },
+        "additionalProperties": false
+      },
+      "EmptyObject": {
+        "type": "object",
+        "maxProperties": 0,
+        "additionalProperties": false
+      },
+      "LoggingPayload": {
+        "type": "object",
+        "description": "Workflow- and connector-dependent call, SMS, or fax logging payload. The object can contain contact and communications data and may contain sensitive tokens in nested fields. Preserve fields that downstream connector logging still requires.",
+        "additionalProperties": true
+      },
+      "PluginConfig": {
+        "type": "object",
+        "nullable": true,
+        "description": "Plugin configuration saved in App Connect user settings. Null means that the user has no saved plugin configuration.",
+        "additionalProperties": true
+      },
+      "PluginInvocationRequest": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LoggingPayload"
+          },
+          "config": {
+            "$ref": "#/components/schemas/PluginConfig"
+          },
+          "hashedExtensionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stable hashed extension identifier when available. Current call flows send this field; SMS and fax flows may omit it."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AsyncCallbackInvocationRequest": {
+        "type": "object",
+        "required": [
+          "data",
+          "asyncTaskId",
+          "callbackUrl"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LoggingPayload"
+          },
+          "config": {
+            "$ref": "#/components/schemas/PluginConfig"
+          },
+          "asyncTaskId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "App Connect task identifier for callback-enabled asynchronous call processing."
+          },
+          "callbackUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "App Connect completion URL. Treat the embedded task identifier as a secret bearer capability."
+          },
+          "hashedExtensionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stable hashed extension identifier when available."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AsyncFireAndForgetInvocationRequest": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LoggingPayload"
+          },
+          "config": {
+            "$ref": "#/components/schemas/PluginConfig"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AsyncAcceptanceResponse": {
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "asyncTaskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AsyncRejectedResponse": {
+        "type": "object",
+        "required": [
+          "accepted",
+          "message"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AsyncPluginCallbackRequest": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "AsyncPluginCallbackResponse": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "PluginLicenseStatus": {
+        "type": "object",
+        "required": [
+          "licenseStatus"
+        ],
+        "properties": {
+          "licenseStatus": {
+            "type": "boolean"
+          },
+          "licenseStatusDescription": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "PluginAuthUrlResponse": {
+        "type": "object",
+        "required": [
+          "authUrl"
+        ],
+        "properties": {
+          "authUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PluginAuthStateResponse": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "returnMessage": {
+            "$ref": "#/components/schemas/ReturnMessage"
+          }
+        },
+        "additionalProperties": true
+      },
+      "PluginLogoutRequest": {
+        "type": "object",
+        "properties": {
+          "jwtToken": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "description": "Sensitive App Connect user-session token sent by the current browser client. Treat it as opaque unless a supported validation path exists."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReturnMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "messageType": {
+            "type": "string",
+            "description": "Presentation severity. Common values are success, info, warning, danger, and error."
+          },
+          "ttl": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "format": "int32"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}
