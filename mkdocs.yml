@@ -66,6 +66,8 @@ plugins:
       tryItOutEnabled: false
       supportedSubmitMethods: []
       validatorUrl: none
+      extra_css:
+        - developers/swagger-ui-extra.css
   - print-site:
       exclude:
         - developers/server-api.md
