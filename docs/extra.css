@@ -537,3 +537,18 @@
     }
     .ac-v5-video__copy { flex: none; }
 }
+
+/* ─── CRM ticker — "don't see your CRM?" banner ─────────────── */
+.ac-v5-ticker-cta {
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgba(0,0,0,0.6);
+    margin: 1.25rem 0 0;
+}
+.ac-v5-ticker-cta a {
+    font-weight: 700;
+    color: #FF7A00 !important;
+}
+[data-md-color-scheme="slate"] .ac-v5-ticker-cta {
+    color: rgba(255,255,255,0.6);
+}
