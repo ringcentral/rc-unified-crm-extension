@@ -538,6 +538,55 @@
     .ac-v5-video__copy { flex: none; }
 }
 
+/* ─── Header — Admin / Developer Console login buttons ───────
+   Rendered by overrides/partials/tabs.html on the same row as
+   the horizontal nav tabs, right-aligned, underneath the search box. */
+.md-tabs__grid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.md-tabs__list {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.md-tabs__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.md-tabs__login-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    border: 1.25px solid rgba(255, 255, 255, 0.75);
+    background: transparent;
+    color: #fff !important;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none !important;
+    transition: background 0.15s, transform 0.15s, border-color 0.15s;
+}
+.md-tabs__login-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #fff;
+    transform: translateY(-1px);
+}
+@media screen and (max-width: 76.1875em) {
+    /* Tabs bar (and these buttons) collapse into the drawer menu below
+       the desktop breakpoint, matching the rest of the nav's behavior. */
+    .md-tabs__actions {
+        display: none;
+    }
+}
+
 /* ─── CRM ticker — "don't see your CRM?" banner ─────────────── */
 .ac-v5-ticker-cta {
     text-align: center;
