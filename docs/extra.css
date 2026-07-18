@@ -59,16 +59,72 @@
     text-wrap: nowrap;
 }
 
-.solution-header h3 {
-    font-weight: 1000;
-    margin-top: 0.75rem;
-}
-
+/* ─── Solution hero — Concept 3 (typography-led, gradient rule) ── */
 .solution-header {
-    background-image: url(img/hero-bg-02.png);
-    padding: 1px 30px;
-    border-radius: 20px;
-    font-size: 0.9rem;
+    position: relative;
+    background: #fff;
+    border: 1px solid #ECE9E6;
+    border-radius: 16px;
+    padding: 2.5rem 2.25rem 2rem;
+    font-size: 0.95rem;
+    overflow: hidden;
+}
+.solution-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #FF7A35, #FFB347, #D4A5C9, #A8C8E8);
+}
+.solution-header p.solution-header__eyebrow {
+    display: inline-block;
+    margin: 0 0 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: #FAECE7;
+    color: #993C1D;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.solution-header h3 {
+    margin: 0 0 1rem;
+    font-size: 1.75rem;
+    font-weight: 300;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: #1B2A4A;
+}
+.solution-header h3 .solution-header__punch {
+    font-weight: 800;
+    background: linear-gradient(90deg, #D85A30, #FFB347);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.solution-header p {
+    max-width: 46em;
+    margin: 0;
+    color: #4A4A4A;
+    line-height: 1.6;
+}
+[data-md-color-scheme="slate"] .solution-header {
+    background: #1c1f26;
+    border-color: #2c3038;
+}
+[data-md-color-scheme="slate"] .solution-header p.solution-header__eyebrow {
+    background: rgba(255, 122, 53, 0.15);
+    color: #FFB347;
+}
+[data-md-color-scheme="slate"] .solution-header h3 {
+    color: #F1F5F9;
+}
+[data-md-color-scheme="slate"] .solution-header p {
+    color: #C7CAD1;
 }
 
 .badge {

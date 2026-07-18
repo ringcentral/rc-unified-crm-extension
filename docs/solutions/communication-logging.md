@@ -2,7 +2,7 @@
 
 <div class="solution-header" markdown>
 
-### Never Miss a Detail. Never Manually Log a Call Again. 
+### <span class="solution-header__lead">Never Miss a Detail.</span> <span class="solution-header__punch">Never Manually Log a Call Again.</span>
 
 Your CRM is only as valuable as the data inside it. When reps are forced to manually log every call, text, and note, data gets lost, errors creep in, and productivity stalls. **App Connect** automates the entire documentation process, ensuring that every interaction is captured with 100% accuracy, every time.
 

@@ -2,7 +2,7 @@
 
 <div class="solution-header" markdown>
 
-### The "Toggle Tax" is Over. Work Where You Live.
+### <span class="solution-header__lead">The "Toggle Tax" is Over.</span> <span class="solution-header__punch">Work Where You Live.</span>
 
 Most sales and support professionals lose up to **20% of their day**[^1] switching between browser tabs and standalone communication apps. **App Connect** eliminates this friction by embedding the full power of RingCentral directly into your CRM or web-based application.
 

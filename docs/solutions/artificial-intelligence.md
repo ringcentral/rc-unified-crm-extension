@@ -2,7 +2,7 @@
 
 <div class="solution-header" markdown>
 
-### Turn Every Conversation Into a Strategic Asset
+### <span class="solution-header__lead">Turn Every Conversation Into a</span> <span class="solution-header__punch">Strategic Asset.</span>
 
 Most communication data is "dark data"—it disappears the moment the call ends. App Connect 2.0 uses RingCentral’s native AI to illuminate these conversations, automatically extracting meaning, sentiment, and action items so your team can move faster and smarter.
 

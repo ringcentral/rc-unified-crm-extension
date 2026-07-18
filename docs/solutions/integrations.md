@@ -2,7 +2,7 @@
 
 <div class="solution-header" markdown>
 
-### If It Has a URL, We Can Integrate With It.
+### <span class="solution-header__lead">If It Has a URL,</span> <span class="solution-header__punch">We Can Integrate With It.</span>
 
 The biggest challenge in communication technology is the "integration gap"—the specialized or proprietary software your company relies on that doesn't have a native plug-in. App Connect closes this gap with a developer-friendly framework that brings RingCentral to any web-based application in minutes.
 

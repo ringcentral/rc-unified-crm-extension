@@ -2,7 +2,9 @@
 
 <div class="solution-header" markdown>
 
-### One Extension. Infinite Possibilities.
+<p class="solution-header__eyebrow">Solutions overview</p>
+
+### <span class="solution-header__lead">One Extension.</span> <span class="solution-header__punch">Infinite Possibilities.</span>
 
 RingCentral App Connect isn't just a dialer; it is a high-performance integration framework designed to bridge the gap between your conversations and your business data. Whether you are looking to accelerate sales, automate data entry, or gain deep AI insights, we have a solution built for your workflow.
 

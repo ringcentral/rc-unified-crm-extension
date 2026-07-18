@@ -2,7 +2,7 @@
 
 <div class="solution-header" markdown>
 
-### More Conversations. Less Downtime. Faster Revenue.
+### <span class="solution-header__lead">More Conversations. Less Downtime.</span> <span class="solution-header__punch">Faster Revenue.</span>
 
 In sales, time is your most valuable asset. If your reps are manually clicking records, searching for phone numbers, or waiting for dialers to connect, you are losing velocity. **App Connect** supercharges your outbound engine, allowing your team to move through lead lists with surgical precision and unmatched speed.
 

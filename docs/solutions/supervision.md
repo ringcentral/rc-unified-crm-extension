@@ -2,7 +2,7 @@
 
 <div class="solution-header" markdown>
 
-### Real-Time Visibility. Proactive Coaching. Scalable Excellence.
+### <span class="solution-header__lead">Real-Time Visibility. Proactive Coaching.</span> <span class="solution-header__punch">Scalable Excellence.</span>
 
 High-performing teams aren't built on guesswork; they are built on data and active leadership. **App Connect 2.0** provides managers with a powerful command center to monitor live activity, coach reps in the moment, and analyze team-wide trends—all without leaving the browser.
 
