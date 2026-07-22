@@ -1,0 +1,6 @@
+/* Hide the servers dropdown and Authorize button on API reference pages.
+   Request submission is disabled on these pages, so there is no server to
+   pick or credential to provide; only the API info should show. */
+.scheme-container {
+    display: none;
+}
