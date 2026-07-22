@@ -65,6 +65,7 @@ We recommend using the "RingCentral App Connect" role created for you when you i
 | Setup        | Log in using OAuth 2.0 Access Tokens | Full                        |
 | Setup        | REST Web Services                    | Full                        |
 | Setup        | User Access Tokens                   | Full                        |
+| Setup        | Customer Status                      | Full  (required for lead)                      |
 | Transactions | Sales Order                          | Full                        |
 | Transactions | Opportunity                          | Full                        |
 | Transactions | Find Transaction                     | View                        |
