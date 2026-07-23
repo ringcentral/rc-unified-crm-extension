@@ -207,6 +207,29 @@ describe('User Handler', () => {
     expect(result.successful).toBe(true);
   });
 
+  test('refreshUserInfo no-ops when the connector does not implement it', async () => {
+    const user = {
+      id: 'user-1',
+      accessToken: 'api-key',
+      platformAdditionalInfo: {}
+    };
+    const platformModule = {
+      getAuthType: jest.fn().mockResolvedValue('apiKey'),
+      getBasicAuth: jest.fn(() => 'encoded-key')
+      // no refreshUserInfo implementation (e.g. netsuite)
+    };
+    UserModel.findOne.mockResolvedValue(user);
+    connectorRegistry.getConnector.mockReturnValue(platformModule);
+
+    const result = await userHandler.refreshUserInfo({
+      platform: 'netsuite',
+      userId: 'user-1'
+    });
+
+    // No-ops instead of throwing "refreshUserInfo is not a function".
+    expect(result).toEqual({ successful: true });
+  });
+
   test('refreshUserInfo maps unexpected errors through API error handler', async () => {
     UserModel.findOne.mockRejectedValueOnce(new Error('database unavailable'));
 

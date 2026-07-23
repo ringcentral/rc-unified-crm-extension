@@ -146,7 +146,8 @@ describe('TypeScript model definitions', () => {
     const modules: Array<[string, string, string, string[]]> = [
       ['../../models/adminConfigModel.ts', 'AdminConfigModel', 'adminConfigs', ['id', 'userSettings', 'adminAccessToken']],
       ['../../models/llmSessionModel.ts', 'LlmSessionModel', 'llmSessions', ['id', 'jwtToken', 'expiry']],
-      ['../../models/messageLogModel.ts', 'MessageLogModel', 'messageLogs', ['id', 'conversationId', 'conversationLogId']]
+      ['../../models/messageLogModel.ts', 'MessageLogModel', 'messageLogs', ['id', 'conversationId', 'conversationLogId']],
+      ['../../models/messageLogAssociationModel.ts', 'MessageLogAssociationModel', 'messageLogAssociations', ['messageId', 'conversationId', 'conversationLogId', 'thirdPartyLogId', 'rcAccountId']]
     ];
 
     for (const [modulePath, exportName, modelName, expectedFields] of modules) {
