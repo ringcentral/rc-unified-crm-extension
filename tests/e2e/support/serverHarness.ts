@@ -5,9 +5,11 @@ const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { CallLogModel } = require('@app-connect/core/models/callLogModel');
 const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
+const { MessageLogAssociationModel } = require('@app-connect/core/models/messageLogAssociationModel');
 
 async function startServer() {
   await AccountDataModel.sync();
+  await MessageLogAssociationModel.sync();
   const server = getServer().listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   const { port } = server.address();
