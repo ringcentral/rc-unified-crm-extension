@@ -5,6 +5,8 @@ const { CallLogModel: RawCallLogModel } = require('../models/callLogModel');
 const CallLogModel = /** @type {any} */ (RawCallLogModel);
 const { MessageLogModel: RawMessageLogModel } = require('../models/messageLogModel');
 const MessageLogModel = /** @type {any} */ (RawMessageLogModel);
+const { MessageLogAssociationModel: RawMessageLogAssociationModel } = require('../models/messageLogAssociationModel');
+const MessageLogAssociationModel = /** @type {any} */ (RawMessageLogAssociationModel);
 const { UserModel: RawUserModel } = require('../models/userModel');
 const UserModel = /** @type {any} */ (RawUserModel);
 const { CacheModel: RawCacheModel } = require('../models/cacheModel');
@@ -1113,6 +1115,31 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
             }
         }
 
+        // Case: selective message logging.
+        // The client explicitly selects a set of messages that should be logged
+        // as a single CRM entry (as opposed to the per-day bucketing used by the
+        // auto/daily-digest path below). This path records one association row per
+        // message in `message_log_association` and returns a per-message mapping,
+        // leaving the existing `messageLogs` table and daily-digest flow untouched.
+        const selectedMessageIds = incomingData.selectedMessageIds ?? incomingData.logInfo?.selectedMessageIds;
+        if (Array.isArray(selectedMessageIds) && selectedMessageIds.length > 0) {
+            return await logSelectedMessagesAsSingleEntry({
+                platform,
+                userId,
+                user,
+                incomingData,
+                platformModule,
+                contactInfo,
+                assigneeName,
+                ownerName,
+                authHeader,
+                additionalSubmission,
+                proxyConfig,
+                selectedMessageIds,
+                pluginWarnings,
+            });
+        }
+
         let messageIds = [];
         const correspondents = [];
         if (isGroupSMS) {
@@ -1274,6 +1301,260 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
     }
 }
 
+function buildMessageMediaLinks({ message, incomingData }) {
+    let recordingLink = null;
+    if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
+        recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
+    }
+    let faxDocLink = null;
+    let faxDownloadLink = null;
+    if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument') && incomingData.logInfo.rcAccessToken) {
+        faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
+        faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
+    }
+    let imageLink = null;
+    let imageDownloadLink = null;
+    let imageContentType = null;
+    if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/')) && incomingData.logInfo.rcAccessToken) {
+        const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
+        if (imageAttachment) {
+            imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
+            imageDownloadLink = imageAttachment?.uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
+            imageContentType = imageAttachment?.contentType;
+        }
+    }
+    let videoLink = null;
+    if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment')) {
+        const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
+        if (imageAttachment) {
+            imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
+        }
+        const videoAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('video/'));
+        if (videoAttachment) {
+            videoLink = getMediaReaderLinkByPlatformMediaLink(videoAttachment?.uri);
+        }
+    }
+    return { recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink };
+}
+
+// Logs an explicit set of selected messages as a single CRM entry and records a
+// per-message association so the client can render a { messageId: logId } map.
+// The first (oldest) selected message creates the CRM record; the rest are
+// appended to it via updateMessageLog, mirroring the connector contracts used by
+// the daily-digest path but without the per-day bucketing.
+async function logSelectedMessagesAsSingleEntry({
+    platform,
+    userId,
+    user,
+    incomingData,
+    platformModule,
+    contactInfo,
+    assigneeName,
+    ownerName,
+    authHeader,
+    additionalSubmission,
+    proxyConfig,
+    selectedMessageIds,
+    pluginWarnings,
+}) {
+    let returnMessage = null;
+    let extraDataTracking = {};
+
+    const conversationId = incomingData.logInfo.conversationId;
+    const conversationLogId = incomingData.logInfo.conversationLogId ?? null;
+    const rcAccountId = user.rcAccountId;
+
+    const selectedIdSet = new Set(selectedMessageIds.map(id => id.toString()));
+    const selectedMessages = incomingData.logInfo.messages.filter(m => selectedIdSet.has(m.id.toString()));
+    if (selectedMessages.length === 0) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'No selected message to log.',
+                messageType: 'warning',
+                ttl: 3000
+            }
+        };
+    }
+
+    // Resolve group-SMS correspondents the same way the daily-digest path does.
+    const correspondents = [];
+    if (incomingData.logInfo.correspondents.length > 1) {
+        for (let i = 0; i < incomingData.logInfo.correspondents.length; i++) {
+            const correspondentContactInfo = await AccountDataModel.findOne({
+                where: {
+                    rcAccountId: user.rcAccountId,
+                    platformName: platform,
+                    dataKey: `contact-${incomingData.logInfo.correspondents[i].phoneNumber}`
+                }
+            });
+            if (correspondentContactInfo && correspondentContactInfo.data[0]?.name != incomingData.contactName) {
+                correspondents.push(correspondentContactInfo.data);
+            }
+        }
+    }
+
+    let existingAssociations = [];
+    try {
+        existingAssociations = await MessageLogAssociationModel.findAll({
+            where: {
+                userId,
+                platform,
+                messageId: { [Op.in]: [...selectedIdSet] }
+            }
+        });
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error finding existing message associations');
+    }
+    const messageLogs = {};
+    for (const assoc of existingAssociations) {
+        messageLogs[assoc.messageId] = assoc.thirdPartyLogId;
+    }
+    const alreadyLoggedIds = new Set(existingAssociations.map(a => a.messageId));
+
+    const messagesToLog = selectedMessages
+        .filter(m => !alreadyLoggedIds.has(m.id.toString()))
+        // oldest first so the single entry reads chronologically
+        .sort((a, b) => new Date(a.creationTime).getTime() - new Date(b.creationTime).getTime());
+
+    if (messagesToLog.length === 0) {
+        return {
+            successful: true,
+            logIds: Object.values(messageLogs),
+            messageLogs,
+            returnMessage: {
+                message: 'Selected messages already logged.',
+                messageType: 'success',
+                ttl: 2000
+            }
+        };
+    }
+
+    let crmLogId = null;
+    for (const message of messagesToLog) {
+        const media = buildMessageMediaLinks({ message, incomingData });
+        if (!crmLogId) {
+            const createResult = await platformModule.createMessageLog({
+                user,
+                contactInfo,
+                correspondents,
+                assigneeName,
+                ownerName,
+                authHeader,
+                message,
+                additionalSubmission,
+                recordingLink: media.recordingLink,
+                faxDocLink: media.faxDocLink,
+                faxDownloadLink: media.faxDownloadLink,
+                imageLink: media.imageLink,
+                imageDownloadLink: media.imageDownloadLink,
+                imageContentType: media.imageContentType,
+                videoLink: media.videoLink,
+                proxyConfig
+            });
+            crmLogId = createResult?.logId;
+            returnMessage = createResult?.returnMessage;
+            extraDataTracking = createResult?.extraDataTracking;
+        }
+        else {
+            const updateResult = await platformModule.updateMessageLog({
+                user,
+                contactInfo,
+                assigneeName,
+                ownerName,
+                existingMessageLog: { thirdPartyLogId: crmLogId },
+                message,
+                authHeader,
+                additionalSubmission,
+                imageLink: media.imageLink,
+                imageDownloadLink: media.imageDownloadLink,
+                imageContentType: media.imageContentType,
+                videoLink: media.videoLink,
+                proxyConfig
+            });
+            returnMessage = updateResult?.returnMessage;
+            extraDataTracking = updateResult?.extraDataTracking;
+        }
+        if (crmLogId) {
+            const messageId = message.id.toString();
+            try {
+                await MessageLogAssociationModel.upsert({
+                    messageId,
+                    conversationId,
+                    conversationLogId,
+                    thirdPartyLogId: crmLogId,
+                    userId,
+                    rcAccountId,
+                    platform
+                });
+                messageLogs[messageId] = crmLogId;
+            }
+            catch (error) {
+                return handleDatabaseError(error, 'Error creating message association');
+            }
+        }
+    }
+
+    return {
+        successful: true,
+        logIds: Object.values(messageLogs),
+        messageLogs,
+        returnMessage: mergePluginWarnings({ returnMessage, warningMessages: pluginWarnings }),
+        extraDataTracking
+    };
+}
+
+// Returns which of the requested message ids are already logged (via the
+// selective association table) and their CRM log record ids. Mirrors the
+// getCallLog(?sessionIds=) lookup pattern so the client can render logged icons.
+async function getMessageLog({ userId, platform, conversationId, messageIds }) {
+    try {
+        const user = await UserModel.findByPk(userId);
+        if (!user || !user.accessToken) {
+            return { successful: false, message: `Contact not found` };
+        }
+        if (!conversationId && !messageIds) {
+            return { successful: false, message: `No conversationId or messageIds provided` };
+        }
+        const where: any = { userId, platform };
+        if (conversationId) {
+            where.conversationId = conversationId;
+        }
+        let requestedIds: string[] | null = null;
+        if (messageIds) {
+            requestedIds = messageIds.split(',').map(id => id.trim()).filter(Boolean);
+            if (requestedIds.length > 0) {
+                where.messageId = { [Op.in]: requestedIds };
+            }
+        }
+        let associations = [];
+        try {
+            associations = await MessageLogAssociationModel.findAll({ where });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding message associations');
+        }
+        const messageLogs = {};
+        for (const assoc of associations) {
+            messageLogs[assoc.messageId] = assoc.thirdPartyLogId;
+        }
+        let logs;
+        if (requestedIds && requestedIds.length > 0) {
+            logs = requestedIds.map(id => messageLogs[id]
+                ? { messageId: id, matched: true, logId: messageLogs[id] }
+                : { messageId: id, matched: false });
+        }
+        else {
+            logs = associations.map(a => ({ messageId: a.messageId, matched: true, logId: a.thirdPartyLogId }));
+        }
+        return { successful: true, logs, messageLogs };
+    }
+    catch (e) {
+        return handleApiError(e, platform, 'getMessageLog', { userId, conversationId, messageIds });
+    }
+}
+
 async function saveNoteCache({ platform, userId, sessionId, note }) {
     try {
         const now = moment();
@@ -1287,6 +1568,7 @@ async function saveNoteCache({ platform, userId, sessionId, note }) {
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.createMessageLog = createMessageLog;
+exports.getMessageLog = getMessageLog;
 exports.getCallLog = getCallLog;
 exports.saveNoteCache = saveNoteCache;
 exports.handleAsyncPluginCallback = handleAsyncPluginCallback;
