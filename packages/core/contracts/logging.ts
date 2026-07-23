@@ -48,6 +48,9 @@ export const MessageLogResponseSchema = z.looseObject({
   logIds: z.array(EntityIdSchema).describe(
     'RingCentral message or local conversation-mapping identifiers recorded by this request; an empty list can indicate a no-op.',
   ).optional(),
+  messageLogs: z.record(z.string(), EntityIdSchema).describe(
+    'Per-message mapping of RingCentral message id to CRM log record id, returned by the selective single-entry logging path so the client can render logged icons.',
+  ).optional(),
 }).describe('Result of logging an SMS, MMS, fax, voicemail, or message conversation.');
 
 export const CallDispositionRequestSchema = z.looseObject({
