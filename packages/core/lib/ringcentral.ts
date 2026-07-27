@@ -260,6 +260,31 @@ class RingCentral {
         return result;
     }
 
+    // Account-wide call log (requires an admin-scoped token), with view=Detailed so each
+    // record's `legs[].extension.id` gives the real RC extensionId involved in that leg.
+    // Unlike getCallLogData, this doesn't need an extensionId as input - it's the only
+    // reliable way to recover a call's owning extensionId after the fact, since
+    // extensionId is not present on the top-level record, only inside `legs`.
+    async getAccountCallLogData({ token, timeFrom, timeTo }: Omit<RingCentralPaginatedDataParams, 'extensionId'>): Promise<{ records: any[] }> {
+        let pageStart = 1;
+        let isFinalPage = false;
+        let result = { records: [] as any[] };
+        while (!isFinalPage) {
+            const callLogResponse = await this.request({
+                method: 'GET',
+                path: `/restapi/v1.0/account/~/call-log?dateFrom=${timeFrom}&dateTo=${timeTo}&page=${pageStart}&view=Detailed&perPage=1000`
+            }, token);
+            const resultJson = await callLogResponse.json();
+            result.records.push(...resultJson.records);
+            if (resultJson.navigation?.nextPage) {
+                pageStart++;
+            } else {
+                isFinalPage = true;
+            }
+        }
+        return result;
+    }
+
     async getSMSData({ extensionId = '~', token, timeFrom, timeTo }: RingCentralPaginatedDataParams): Promise<{ records: any[] }> {
         let pageStart = 1;
         let isFinalPage = false;
