@@ -12,6 +12,8 @@ not_in_nav: |
   crm/agencyzoom/gate6.md
   crm/agencyzoom/aa.md
   users/calldown-lists.md
+  operations/index.md
+  operations/dependency-security-todo.md
 
 theme:
   name: material
