@@ -1,4 +1,12 @@
 {
+    "1.7.39": {
+        "global": [
+            {
+                "type": "New",
+                "description": "AI notes support different languages"
+            }
+        ]
+    },
     "1.7.38": {
         "global": [
             {

@@ -1,4 +1,12 @@
 {
+    "1.7.39": {
+        "global": [
+            {
+                "type": "New",
+                "description": "AI notes support different languages"
+            }
+        ]
+    },
     "1.7.38": {
         "global": [
             {
@@ -480,6 +488,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.36": {
+        "global": [
+            {
+                "type": "New",
+                "description": "AI notes support different languages"
             }
         ]
     },
