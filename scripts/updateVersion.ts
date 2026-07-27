@@ -22,6 +22,26 @@ const FILES_TO_UPDATE = [
   }
 ];
 
+const OPENAPI_FILES_TO_UPDATE = [
+  {
+    path: 'docs/developers/crm-server-openapi.json',
+    description: 'CRM server OpenAPI'
+  },
+  {
+    path: 'docs/developers/crm-server-openapi-public.json',
+    description: 'Public CRM server OpenAPI'
+  },
+  {
+    path: 'docs/developers/plugin-server-openapi.json',
+    description: 'Plugin server OpenAPI'
+  }
+];
+
+const METADATA_FILE_TO_UPDATE = {
+  path: 'packages/core/contracts/metadata.ts',
+  description: 'Core contract metadata'
+};
+
 /**
  * Validates if a version string follows semantic versioning format
  * @param {string} version - Version string to validate
@@ -112,6 +132,70 @@ function updateCoreDependencyVersion(newVersion) {
   }
 }
 
+function replaceExactVersion(value, oldVersion, newVersion) {
+  if (Array.isArray(value)) {
+    return value.map(item => replaceExactVersion(item, oldVersion, newVersion));
+  }
+  if (value && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value)) {
+      value[key] = replaceExactVersion(child, oldVersion, newVersion);
+    }
+    return value;
+  }
+  return value === oldVersion ? newVersion : value;
+}
+
+function updateOpenApiVersion(filePath, newVersion, description) {
+  try {
+    if (!fs.existsSync(filePath)) {
+      console.error(`❌ File not found: ${filePath}`);
+      return false;
+    }
+
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const jsonData = JSON.parse(fileContent);
+    if (!jsonData.info || typeof jsonData.info.version !== 'string') {
+      console.error(`❌ OpenAPI info.version not found in ${filePath}`);
+      return false;
+    }
+
+    const oldVersion = jsonData.info.version;
+    replaceExactVersion(jsonData, oldVersion, newVersion);
+    fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2) + '\n');
+    console.log(`✅ ${description} (${filePath}): ${oldVersion} → ${newVersion}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error updating ${description} (${filePath}):`, error.message);
+    return false;
+  }
+}
+
+function updateMetadataExampleVersion(filePath, newVersion, description) {
+  try {
+    if (!fs.existsSync(filePath)) {
+      console.error(`❌ File not found: ${filePath}`);
+      return false;
+    }
+
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const versionPattern = /(serverVersionInfoResponseExample\s*=\s*\{\s*version:\s*')([^']+)(',)/;
+    const versionMatch = fileContent.match(versionPattern);
+    if (!versionMatch) {
+      console.error(`❌ Server version example not found in ${filePath}`);
+      return false;
+    }
+
+    const oldVersion = versionMatch[2];
+    const updatedContent = fileContent.replace(versionPattern, `$1${newVersion}$3`);
+    fs.writeFileSync(filePath, updatedContent);
+    console.log(`✅ ${description} (${filePath}): ${oldVersion} → ${newVersion}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error updating ${description} (${filePath}):`, error.message);
+    return false;
+  }
+}
+
 /**
  * Main function to update versions in all configured files
  */
@@ -129,6 +213,10 @@ function main() {
     FILES_TO_UPDATE.forEach(file => {
       console.log(`  • ${file.path} (${file.description})`);
     });
+    OPENAPI_FILES_TO_UPDATE.forEach(file => {
+      console.log(`  • ${file.path} (${file.description})`);
+    });
+    console.log(`  • ${METADATA_FILE_TO_UPDATE.path} (${METADATA_FILE_TO_UPDATE.description})`);
     console.log(`  • packages/template/package.json (@app-connect/core dependency)`);
     process.exit(1);
   }
@@ -160,6 +248,21 @@ function main() {
   if (!coreDependencySuccess) {
     allUpdatesSuccessful = false;
   }
+  for (const file of OPENAPI_FILES_TO_UPDATE) {
+    const success = updateOpenApiVersion(file.path, newVersion, file.description);
+    if (!success) {
+      allUpdatesSuccessful = false;
+    }
+  }
+
+  const metadataSuccess = updateMetadataExampleVersion(
+    METADATA_FILE_TO_UPDATE.path,
+    newVersion,
+    METADATA_FILE_TO_UPDATE.description
+  );
+  if (!metadataSuccess) {
+    allUpdatesSuccessful = false;
+  }
   
   console.log('');
   
@@ -177,8 +280,14 @@ if (require.main === module) {
 }
 
 module.exports = {
+  FILES_TO_UPDATE,
+  OPENAPI_FILES_TO_UPDATE,
+  METADATA_FILE_TO_UPDATE,
   updateVersionInFile,
   updateCoreDependencyVersion,
+  replaceExactVersion,
+  updateOpenApiVersion,
+  updateMetadataExampleVersion,
   isValidVersion
 };
 
