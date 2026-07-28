@@ -64,20 +64,21 @@ A feature of App Connect is to allow a user to open all matched contacts when th
 
 ## Bullhorn and server-side call logging
 
-*Coming in App Connect 1.5.7*
-
 To ensure seamless and continuous server-side logging within the application, even if your direct Bullhorn login session expires, it is essential to configure the appropriate Bullhorn API username and password.
+
+!!! info "What these credentials are"
+    The API username and password refer to the login credentials of a Bullhorn **user account** used for logging calls — not an application's client ID and client secret. This user account is often referred to as a **service user**: a user record intended to be used by a service or integration rather than by a human. Bullhorn may also refer to this type of account as a **partner user** or **partner account**. Whatever it's called, it must be a valid Bullhorn user with a username and password like any other user, so it can log in independently of any individual's interactive session.
 
 These API credentials serve a critical role in allowing the application to authenticate with Bullhorn's services programmatically. This enables the system to maintain a persistent connection for logging purposes, independent of your interactive user session.
 
 ### Required Permissions for the API User
 
-The Bullhorn API user associated with these credentials must be granted specific permissions to ensure all necessary data can be accessed and logged. These permissions include:
+The Bullhorn API user (service/partner user) associated with these credentials must be granted specific permissions to ensure all necessary data can be accessed and logged. These permissions include:
 
 * **Access to all contacts**: This allows the application to retrieve and log information related to all contact records within your Bullhorn instance.
 * **Create/Update/Assign notes**: This permission is vital for logging activities related to notes, including their creation, any modifications, and assignments.
 
-Without these permissions, the server-side logging functionality may be incomplete or fail to capture critical event data. It is recommended to create a dedicated API user in Bullhorn with only the necessary permissions to adhere to the principle of least privilege.
+Without these permissions, the server-side logging functionality may be incomplete or fail to capture critical event data. It is recommended to create a dedicated service/partner user in Bullhorn with only the necessary permissions to adhere to the principle of least privilege.
 
 ![Enabling server-side call logging in Bullhorn](../img/bullhorn-sscl-creds.png){ .mw-300 }
 
