@@ -2443,8 +2443,8 @@ describe('Bullhorn Connector', () => {
             // Call with skipLock = true to avoid lock complexity
             const result = await bullhorn.checkAndRefreshAccessToken({}, userWithToken, 20, true);
 
-            // Should still return the user (with error logged)
-            expect(result).toBeDefined();
+            // A failed refresh must not be treated as a usable Bullhorn session.
+            expect(result).toBeNull();
         });
 
         it('should wait for lock and return refreshed user when lock exists', async () => {
