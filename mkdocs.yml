@@ -260,14 +260,7 @@ nav:
         - 'updateServerLoggingSettings': developers/interfaces/updateServerLoggingSettings.md
         - 'postSaveUserInfo': developers/interfaces/postSaveUserInfo.md
 
-- 'MCP':
-  - 'Available tools': mcp/index.md
-  - 'LLMs':
-    - 'ChatGPT': mcp/chatgpt.md
-    - 'Claude': mcp/claude.md
-    - 'Codex': mcp/codex.md
-    - 'Cursor': mcp/cursor.md
-    - 'Gemini': mcp/gemini.md
+- 'MCP': https://mcp.labs.ringcentral.com/docs/servers/app-connect/
 
 - 'Support':
   - 'Getting help': support.md
