@@ -1,5 +1,5 @@
 describe('dbAccessor', () => {
-  function loadDbAccessor({ queryImpl }) {
+  function loadDbAccessor({ queryImpl, backfillImpl = jest.fn() }) {
     jest.resetModules();
     jest.doMock('@app-connect/core/models/sequelize', () => ({
       sequelize: {
@@ -10,6 +10,9 @@ describe('dbAccessor', () => {
       info: jest.fn(),
       error: jest.fn()
     }));
+    jest.doMock('../src/backfillCallLogAiNotes', () => ({
+      app: backfillImpl
+    }));
 
     return require('../src/dbAccessor');
   }
@@ -17,6 +20,7 @@ describe('dbAccessor', () => {
   afterEach(() => {
     jest.dontMock('@app-connect/core/models/sequelize');
     jest.dontMock('@app-connect/core/lib/logger');
+    jest.dontMock('../src/backfillCallLogAiNotes');
   });
 
   test('executes and logs a database query result', async () => {
@@ -41,6 +45,31 @@ describe('dbAccessor', () => {
 
     await expect(dbAccessor.app({ dbQuery: 'bad sql' })).resolves.toBeUndefined();
     expect(logger.error).toHaveBeenCalledWith('query failed');
+  });
+
+  test.each(['dry-run', 'run'])('routes the %s command without executing SQL', async (mode) => {
+    const result = { mode, wouldPatchCount: 1, patchedCount: mode === 'run' ? 1 : 0 };
+    const backfillImpl = jest.fn().mockResolvedValue(result);
+    const dbAccessor = loadDbAccessor({
+      queryImpl: jest.fn(),
+      backfillImpl
+    });
+    const { sequelize } = require('@app-connect/core/models/sequelize');
+    const input = {
+      dbQuery: mode,
+      dateFrom: '2026-07-24T09:50:00Z',
+      dateTo: '2026-07-28T01:50:00Z',
+      rcAccountId: '485987048'
+    };
+
+    await expect(dbAccessor.app(input)).resolves.toEqual(result);
+    expect(backfillImpl).toHaveBeenCalledWith({
+      mode,
+      dateFrom: input.dateFrom,
+      dateTo: input.dateTo,
+      rcAccountId: input.rcAccountId
+    });
+    expect(sequelize.query).not.toHaveBeenCalled();
   });
 });
 

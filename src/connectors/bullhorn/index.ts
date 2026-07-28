@@ -224,7 +224,14 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, s
         logger.info('Bullhorn token refreshing...')
         let authData;
         try {
-            const refreshTokenResponse = await axios.post(`${user.platformAdditionalInfo.tokenUrl}?grant_type=refresh_token&refresh_token=${user.refreshToken}&client_id=${process.env.BULLHORN_CLIENT_ID}&client_secret=${process.env.BULLHORN_CLIENT_SECRET}`);
+            const refreshTokenResponse = await axios.post(user.platformAdditionalInfo.tokenUrl, null, {
+                params: {
+                    grant_type: 'refresh_token',
+                    refresh_token: user.refreshToken,
+                    client_id: process.env.BULLHORN_CLIENT_ID,
+                    client_secret: process.env.BULLHORN_CLIENT_SECRET
+                }
+            });
             authData = refreshTokenResponse.data;
         } catch (e) {
             const serverLoggingSettings = await getServerLoggingSettings({ user });
@@ -263,6 +270,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, s
         }
         // do not log error message, it will expose password
         logger.error('Bullhorn token refreshing failed', { stack: e.stack });
+        return null;
     }
     return user;
 }
@@ -292,6 +300,9 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20,
         logger.warn('Error checking and refreshing access token', { stack: e.stack });
         // Session expired
         user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, skipLock);
+    }
+    if (!user) {
+        return null;
     }
     try {
         await user.save();

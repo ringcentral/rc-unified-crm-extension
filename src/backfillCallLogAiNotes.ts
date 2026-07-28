@@ -1,9 +1,11 @@
 /* eslint-disable no-param-reassign */
 // @ts-check
 
-// 一次性内部维护 lambda:目前只做 DRY-RUN,不会真正写入 Bullhorn。
+// 一次性内部维护 lambda:
+// - mode=dry-run: 只计算并返回 patch 预览;
+// - mode=run: 将缺失的 AI Note/Transcript 实际写入 Bullhorn。
 // 直接调用(没有 HTTP 路由),入参:
-//   { rcAccountId: string, dateFrom: string (ISO), dateTo: string (ISO) }
+//   { mode: 'dry-run' | 'run', rcAccountId: string, dateFrom: string (ISO), dateTo: string (ISO) }
 // dateFrom/dateTo 是拿去匹配 callLogs.createdAt(UTC)的,即"这条通话记录是什么时候被写进 Bullhorn 的",
 // 不是 RC 那通电话实际发生的时间。
 
@@ -17,6 +19,8 @@ const RingCentral = /** @type {any} */ (RawRingCentral);
 const oauth = /** @type {any} */ (require('@app-connect/core/lib/oauth'));
 const connectorRegistry = /** @type {any} */ (require('@app-connect/core/connector/registry'));
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
+const { upsertAiNote, upsertTranscript } = /** @type {any} */ (require('@app-connect/core/lib/callLogComposer'));
+const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
 
 // 这是个裸 lambda,不会像 src/index.ts 那样把整个 Express app 起起来,
 // 所以 connectorRegistry 里不会自动注册任何 connector——这里只注册我们要用到的 bullhorn,
@@ -24,16 +28,83 @@ const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const bullhornConnector = /** @type {any} */ (require('./connectors/bullhorn'));
 connectorRegistry.registerConnector('bullhorn', bullhornConnector);
 
-const LOG_TAG = '[backfillCallLogAiNotes][dry-run]';
+const LOG_TAG = '[backfillCallLogAiNotes]';
 // 每批并发处理的通话记录数,以及批次之间的间隔,避免同时打爆 RC / Bullhorn 的接口限流。
 const BATCH_CONCURRENCY = 5;
 const BATCH_DELAY_MS = 250;
+// Refresh before the token actually expires so a long paginated request does not start
+// with a token that is only seconds away from becoming invalid.
+const ADMIN_TOKEN_RENEW_HANDICAP_MS = 60 * 1000;
 // dateFrom/dateTo 是拿去过滤 callLogs.createdAt(Bullhorn 写入时间)的,
 // 而 RC account call-log 的 dateFrom/dateTo 过滤的是通话实际发生的 startTime——两者可能因为同步延迟对不上,
 // 所以查 RC 时前后各多留一天缓冲,避免边界上的通话记录漏查。
 const RC_CALL_LOG_DATE_PADDING_MS = 24 * 60 * 60 * 1000;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const replaceAllText = (value, search, replacement) => value.split(search).join(replacement);
+
+// Keep the same AI Notes transformations used by crm-server-side-logging so a
+// maintenance patch produces the same Bullhorn text as the normal logging flow.
+function getAiNoteText(htmlData = '') {
+    let noteHTMLString = htmlData;
+    noteHTMLString = replaceAllText(replaceAllText(noteHTMLString, '<strong>', '**'), '</strong>', '**');
+    if (!noteHTMLString.includes('</p>\n')) noteHTMLString = replaceAllText(noteHTMLString, '</p>', '</p>\n');
+    if (!noteHTMLString.includes('</li>\n')) noteHTMLString = replaceAllText(noteHTMLString, '</li>', '</li>\n');
+    if (!noteHTMLString.includes('<ul>\n')) noteHTMLString = replaceAllText(noteHTMLString, '<ul>', '<ul>\n');
+    if (!noteHTMLString.includes('</ul>\n')) noteHTMLString = replaceAllText(noteHTMLString, '</ul>', '</ul>\n');
+    if (!noteHTMLString.includes('<ol>\n')) noteHTMLString = replaceAllText(noteHTMLString, '<ol>', '<ol>\n');
+    if (!noteHTMLString.includes('</ol>\n')) noteHTMLString = replaceAllText(noteHTMLString, '</ol>', '</ol>\n');
+    return noteHTMLString.replace(/<[^>]+>/g, '').trim();
+}
+
+function getTranscriptText(transcript, call) {
+    if (!transcript?.transcripts || !transcript?.context?.participants) {
+        return '';
+    }
+    const nameMap = {};
+    for (const participant of transcript.context.participants) {
+        nameMap[participant.participantId] = participant.name;
+        if (participant.extensionId && call?.from?.extensionId === participant.extensionId) {
+            nameMap[participant.participantId] = call.from.name || call.from.phoneNumber || call.from.extensionNumber;
+        } else if (participant.extensionId && call?.to?.extensionId === participant.extensionId) {
+            nameMap[participant.participantId] = call.to.name || call.to.phoneNumber || call.to.extensionNumber;
+        }
+    }
+    return transcript.transcripts
+        .map((item) => `${nameMap[item.participantId] || 'Guest'}: ${item.text}`)
+        .join('\n')
+        .trim();
+}
+
+function buildAiPatch({ rcAiNotes, rcRecord, existingBody }) {
+    const aiNote = getAiNoteText(rcAiNotes?.callNote?.content);
+    const transcript = getTranscriptText(rcAiNotes?.callTranscripts, rcRecord);
+    let patchedBody = existingBody;
+    if (aiNote) {
+        patchedBody = upsertAiNote({
+            body: patchedBody,
+            aiNote,
+            logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+        });
+    }
+    if (transcript) {
+        patchedBody = upsertTranscript({
+            body: patchedBody,
+            transcript,
+            logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+        });
+    }
+    return {
+        aiNote,
+        transcript,
+        patchedBody,
+        wouldPatchAiNote: !!aiNote,
+        wouldPatchTranscript: !!transcript,
+        // Patch is driven only by RC data availability. Existing Bullhorn AI sections
+        // are updated by the shared upsert helpers instead of suppressing the write.
+        wouldPatch: !!aiNote || !!transcript
+    };
+}
 
 // 注:一开始想过用 adminConfigModel.userMappings(crmUserId -> rcExtensionId)来反查 extensionId,
 // 但那张映射表只有在 admin 走过 getUserMapping 那个流程时才会被写入,很多账号可能压根没有数据,不可靠。
@@ -67,14 +138,16 @@ function resolveOwnerExtensionIdFromLegs({ rcRecord, extensionNumber }) {
 
 // 拉整个 account 在时间范围内的通话记录(Detailed view),按 telephonySessionId 建索引,
 // 后面处理每条 Bullhorn 通话记录时直接查表,不用逐条去调用 RC(避免 N 次请求)。
-async function fetchRcAccountCallLogBySessionId({ rcSDK, adminAccessToken, dateFrom, dateTo }) {
+async function fetchRcAccountCallLogBySessionId({ rcSDK, adminTokenManager, dateFrom, dateTo }) {
     const paddedFrom = new Date(new Date(dateFrom).getTime() - RC_CALL_LOG_DATE_PADDING_MS).toISOString();
     const paddedTo = new Date(new Date(dateTo).getTime() + RC_CALL_LOG_DATE_PADDING_MS).toISOString();
-    const { records } = await rcSDK.getAccountCallLogData({
-        token: { access_token: adminAccessToken, token_type: 'Bearer' },
-        timeFrom: paddedFrom,
-        timeTo: paddedTo
-    });
+    const { records } = await adminTokenManager.withAccessToken((adminAccessToken) => (
+        rcSDK.getAccountCallLogData({
+            token: { access_token: adminAccessToken, token_type: 'Bearer' },
+            timeFrom: paddedFrom,
+            timeTo: paddedTo
+        })
+    ));
     const bySessionId = new Map();
     for (const record of records) {
         if (record.telephonySessionId) {
@@ -84,33 +157,108 @@ async function fetchRcAccountCallLogBySessionId({ rcSDK, adminAccessToken, dateF
     return bySessionId;
 }
 
-// 按 hash 过的 rcAccountId 去 adminConfigModel 里查 admin token;过期就刷新并落库,
-// 写法完全照抄 admin.ts 里 getAdminReport/getUserReport 的现有逻辑。
-async function getValidAdminAccessToken({ rcSDK, rcAccountId }) {
+// 管理整个 backfill 生命周期里的 RC admin token:
+// 1. 在过期前 60 秒主动刷新;
+// 2. RC 返回 401 时强制刷新并重试一次;
+// 3. 并发请求同时发现 token 失效时只发起一次 refresh 请求。
+async function createAdminTokenManager({ rcSDK, rcAccountId }) {
     const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
-    let adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+    const adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
     if (!adminConfig) {
         throw new Error(`No adminConfig found for rcAccountId ${rcAccountId} (hashed: ${hashedRcAccountId})`);
     }
-    if (adminConfig.adminTokenExpiry < new Date()) {
-        logger.info(`${LOG_TAG} admin token expired, refreshing`, { rcAccountId });
-        const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
-            refresh_token: adminConfig.adminRefreshToken,
-            expires_in: adminConfig.adminTokenExpiry,
-            refresh_token_expires_in: adminConfig.adminTokenExpiry
-        });
-        await AdminConfigModel.update(
-            { adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time },
-            { where: { id: hashedRcAccountId } }
-        );
-        adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+
+    let accessToken = adminConfig.adminAccessToken;
+    let refreshToken = adminConfig.adminRefreshToken;
+    let tokenExpiry = new Date(adminConfig.adminTokenExpiry).getTime();
+    let refreshPromise = null;
+    let tokenVersion = 0;
+    let lastRefreshTime = 0;
+
+    async function refreshAdminToken() {
+        if (!refreshToken) {
+            throw new Error(`No RC admin refresh token found for rcAccountId ${rcAccountId}`);
+        }
+        if (!refreshPromise) {
+            refreshPromise = (async () => {
+                logger.info(`${LOG_TAG} refreshing RC admin token`, { rcAccountId });
+                // refreshToken() expects TTL durations when supplied. adminTokenExpiry is an
+                // absolute timestamp, so only send the refresh token and let RC use app defaults.
+                const refreshedToken = await rcSDK.refreshToken({ refresh_token: refreshToken });
+                if (!refreshedToken.access_token || !refreshedToken.expire_time) {
+                    throw new Error('RC admin token refresh returned an incomplete token');
+                }
+                accessToken = refreshedToken.access_token;
+                refreshToken = refreshedToken.refresh_token || refreshToken;
+                tokenExpiry = refreshedToken.expire_time;
+                tokenVersion++;
+                lastRefreshTime = Date.now();
+                await AdminConfigModel.update(
+                    {
+                        adminAccessToken: accessToken,
+                        adminRefreshToken: refreshToken,
+                        adminTokenExpiry: tokenExpiry
+                    },
+                    { where: { id: hashedRcAccountId } }
+                );
+                return accessToken;
+            })().finally(() => {
+                refreshPromise = null;
+            });
+        }
+        return refreshPromise;
     }
-    return adminConfig;
+
+    async function getAccessToken({ forceRefresh = false } = {}) {
+        const isMissingOrExpiring = !accessToken
+            || !Number.isFinite(tokenExpiry)
+            || tokenExpiry <= Date.now() + ADMIN_TOKEN_RENEW_HANDICAP_MS;
+        if (forceRefresh || isMissingOrExpiring) {
+            return refreshAdminToken();
+        }
+        return accessToken;
+    }
+
+    async function withAccessToken(operation) {
+        const currentAccessToken = await getAccessToken();
+        const requestTokenVersion = tokenVersion;
+        try {
+            return await operation(currentAccessToken);
+        } catch (error) {
+            if (Number(error.response?.status) !== 401) {
+                throw error;
+            }
+
+            // Another concurrent request may already have rotated the token while this
+            // request was in flight. Retry with that token instead of rotating it again.
+            if (tokenVersion !== requestTokenVersion) {
+                logger.warn(`${LOG_TAG} RC request used a stale admin token, retrying with the latest token`, {
+                    rcAccountId
+                });
+                return operation(await getAccessToken());
+            }
+
+            // A token refreshed during this run cannot reasonably have expired within one
+            // minute. A 401 here is usually an API permission/scope rejection, so refreshing
+            // again would rotate a valid refresh token and can cause a refresh storm.
+            if (lastRefreshTime && Date.now() - lastRefreshTime < ADMIN_TOKEN_RENEW_HANDICAP_MS) {
+                logger.warn(`${LOG_TAG} freshly refreshed RC admin token was rejected; not refreshing again`, {
+                    rcAccountId,
+                    status: Number(error.response?.status)
+                });
+                throw error;
+            }
+
+            logger.warn(`${LOG_TAG} RC admin token was rejected, refreshing and retrying once`, { rcAccountId });
+            const refreshedAccessToken = await getAccessToken({ forceRefresh: true });
+            return operation(refreshedAccessToken);
+        }
+    }
+
+    return { getAccessToken, withAccessToken };
 }
 
-// 只读校验:这里不会写任何业务数据。
-// 唯一可能发生的"写"是 Bullhorn session 快过期时自动刷新 accessToken/bhRestToken 并存回 UserModel,
-// 这跟线上 updateCallLog 真正写入前做的事情完全一样,只是维持登录态、不涉及通话记录内容本身。
+// 校验 Bullhorn session;session 快过期时会自动刷新 accessToken/bhRestToken 并存回 UserModel。
 async function verifyBullhornSession({ bullhornUser }) {
     try {
         const platformModule = connectorRegistry.getConnector('bullhorn');
@@ -128,16 +276,38 @@ async function verifyBullhornSession({ bullhornUser }) {
     }
 }
 
+// Patch 是账号级维护操作，不要求使用原始 CallLog.userId 对应的 Bullhorn session。
+// 找到该 RC 账号下第一个可用的 Bullhorn session 后，所有 Bullhorn 读写都复用它。
+async function findBullhornExecutorUser(bullhornUsers) {
+    for (const bullhornUser of bullhornUsers) {
+        const { sessionValid, user } = await verifyBullhornSession({ bullhornUser });
+        if (sessionValid) {
+            logger.info(`${LOG_TAG} selected Bullhorn executor session`, { bullhornExecutorUserId: user.id });
+            return user;
+        }
+        logger.warn(`${LOG_TAG} Bullhorn session unavailable, trying the next account user`, {
+            bullhornUserId: bullhornUser.id
+        });
+    }
+    return null;
+}
+
 // 调用 RC 的 AI notes 接口,按 telephonySessionId 查询。
 // 用 admin token 而不是某个具体用户的 token(跟 getUserReport 里查 call-log 数据用的是同一个 admin token 一致)。
 // 404 视为"这通电话没有 AI notes"这一正常情况,不当错误抛出;其他状态码才当异常处理。
-async function fetchRcAiNotes({ rcSDK, ownerExtensionId, telephonySessionId, adminAccessToken }) {
+async function fetchRcAiNotes({ rcSDK, ownerExtensionId, telephonySessionId, adminTokenManager }) {
     try {
-        const response = await rcSDK.request({
-            method: 'GET',
-            path: `/ai/copilot/v1/accounts/~/extensions/${ownerExtensionId}/ai-notes/${telephonySessionId}`
-        }, { access_token: adminAccessToken, token_type: 'Bearer' });
-        return { found: true, data: await response.json() };
+        const response = await adminTokenManager.withAccessToken((adminAccessToken) => (
+            rcSDK.request({
+                method: 'GET',
+                path: `/ai/copilot/v1/accounts/~/extensions/${ownerExtensionId}/ai-notes/${telephonySessionId}`
+            }, { access_token: adminAccessToken, token_type: 'Bearer' })
+        ));
+        const responseData = await response.json();
+        const data = Array.isArray(responseData?.records)
+            ? responseData.records.find((record) => record.telephonySessionId === telephonySessionId)
+            : responseData;
+        return { found: !!data, data: data ?? null };
     } catch (error) {
         if (error.response?.status === 404) {
             return { found: false, data: null };
@@ -146,27 +316,35 @@ async function fetchRcAiNotes({ rcSDK, ownerExtensionId, telephonySessionId, adm
     }
 }
 
-// 处理单条通话记录,只做数据收集/预览,不调用任何 Bullhorn 写接口(不调 updateCallLog)。
-// 目前还没解析 RC ai-notes 返回体里具体哪个字段是 note 文本、哪个是 transcript 文本——
-// 这部分先原样把整个返回 JSON 记下来(rcAiNotesRaw),等确认字段结构后再补上
-// "组装成最终 Bullhorn note 内容并跟现有内容 diff"的逻辑,现在还不能保证写入内容是对的。
-async function processCallLog({ callLog, rcRecordsBySessionId, rcSDK, adminAccessToken, verifiedUsersById }) {
+// 处理单条通话记录:dry-run 只计算 patch;run 才调用 Bullhorn updateCallLog。
+// RC callNote.content/callTranscripts 使用 server-side logging 的同一套规则转换。
+// 只要 RC 有任一 AI 数据就执行 patch;Bullhorn 已有区块会通过 upsert 更新。
+async function processCallLog({
+    callLog,
+    rcRecordsBySessionId,
+    rcSDK,
+    adminTokenManager,
+    bullhornExecutorUser,
+    mode
+}) {
     const summary = {
         telephonySessionId: callLog.id, // CallLogModel.id 就是 RC 的 telephonySessionId
         bullhornLogId: callLog.thirdPartyLogId,
         bullhornUserId: callLog.userId,
+        bullhornExecutorUserId: bullhornExecutorUser?.id ?? null,
         ownerExtensionId: null,
         ownerExtensionIdIsGuess: null, // true = 没能用 extensionNumber 精确匹配到 leg,是退而求其次猜的,需要人工核对
-        alreadyHasAiNoteMarker: null,
-        alreadyHasTranscriptMarker: null,
         rcAiNotesFound: false,
         rcAiNotesRaw: null,
+        wouldPatchAiNote: false,
+        wouldPatchTranscript: false,
+        wouldPatch: false,
+        patched: false,
         skippedReason: null
     };
     try {
-        const bullhornUser = verifiedUsersById.get(callLog.userId);
-        if (!bullhornUser) {
-            summary.skippedReason = 'Bullhorn session invalid/expired for this user';
+        if (!bullhornExecutorUser) {
+            summary.skippedReason = 'No valid Bullhorn session found for this RC account';
             return summary;
         }
 
@@ -190,7 +368,7 @@ async function processCallLog({ callLog, rcRecordsBySessionId, rcSDK, adminAcces
             rcSDK,
             ownerExtensionId,
             telephonySessionId: callLog.id,
-            adminAccessToken
+            adminTokenManager
         });
         summary.rcAiNotesFound = aiNotesResult.found;
         summary.rcAiNotesRaw = aiNotesResult.data;
@@ -199,14 +377,42 @@ async function processCallLog({ callLog, rcRecordsBySessionId, rcSDK, adminAcces
             return summary;
         }
 
-        // 只读拉取 Bullhorn 现有 note 内容(不会修改),用来判断是不是已经补过数据了。
-        // Bullhorn 的 note 正文格式固定是 HTML(getLogFormatType 恒返回 HTML),
-        // 所以这里直接用生产代码 upsertAiNote/upsertTranscript 用的同一套 HTML marker 正则来判断。
+        // GET 现有 Bullhorn comments 只是为了保留非 AI 内容并生成完整更新体，
+        // 不再检查 Bullhorn 是否已有 AI Note/Transcript，也不参与是否 patch 的判断。
         const platformModule = connectorRegistry.getConnector('bullhorn');
-        const existing = await platformModule.getCallLog({ user: bullhornUser, callLogId: callLog.thirdPartyLogId });
-        const existingBody = existing?.callLogInfo?.fullBody ?? '';
-        summary.alreadyHasAiNoteMarker = /<b>AI Note<\/b>/i.test(existingBody);
-        summary.alreadyHasTranscriptMarker = /<b>Transcript<\/b>/i.test(existingBody);
+        const existing = await platformModule.getCallLog({
+            user: bullhornExecutorUser,
+            callLogId: callLog.thirdPartyLogId
+        });
+        const existingBody = existing?.callLogInfo?.fullBody;
+        if (typeof existingBody !== 'string') {
+            summary.skippedReason = 'Bullhorn call log did not return a comments body';
+            return summary;
+        }
+        const patch = buildAiPatch({
+            rcAiNotes: aiNotesResult.data,
+            rcRecord,
+            existingBody
+        });
+        summary.wouldPatchAiNote = patch.wouldPatchAiNote;
+        summary.wouldPatchTranscript = patch.wouldPatchTranscript;
+        summary.wouldPatch = patch.wouldPatch;
+
+        if (!patch.wouldPatch) {
+            summary.skippedReason = 'RC AI notes response contains no AI note or transcript content';
+            return summary;
+        }
+
+        if (mode === 'run') {
+            await platformModule.updateCallLog({
+                user: bullhornExecutorUser,
+                existingCallLog: callLog,
+                composedLogDetails: patch.patchedBody,
+                existingCallLogDetails: existing?.callLogInfo?.fullLogResponse,
+                isFromSSCL: false
+            });
+            summary.patched = true;
+        }
 
         return summary;
     } catch (error) {
@@ -216,22 +422,25 @@ async function processCallLog({ callLog, rcRecordsBySessionId, rcSDK, adminAcces
     }
 }
 
-async function backfillCallLogAiNotesDryRun(input) {
-    const { rcAccountId, dateFrom, dateTo } = input || {};
+async function backfillCallLogAiNotes(input) {
+    const { rcAccountId, dateFrom, dateTo, mode = 'dry-run' } = input || {};
     if (!rcAccountId || !dateFrom || !dateTo) {
         throw new Error('rcAccountId, dateFrom, dateTo are required');
+    }
+    if (!['dry-run', 'run'].includes(mode)) {
+        throw new Error('mode must be either dry-run or run');
     }
     if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
         throw new Error('Missing RINGCENTRAL_SERVER/RINGCENTRAL_CLIENT_ID/RINGCENTRAL_CLIENT_SECRET env vars');
     }
 
-    logger.info(`${LOG_TAG} starting`, { rcAccountId, dateFrom, dateTo });
+    logger.info(`${LOG_TAG} starting`, { mode, rcAccountId, dateFrom, dateTo });
 
     // 第一步:按 rcAccountId 找出这个账号下所有的 Bullhorn 用户。
     const bullhornUsers = await UserModel.findAll({ where: { rcAccountId, platform: 'bullhorn' } });
     if (!bullhornUsers.length) {
         logger.info(`${LOG_TAG} no Bullhorn users found for this rcAccountId`, { rcAccountId });
-        return { summaries: [], wouldPatchCount: 0 };
+        return { mode, summaries: [], wouldPatchCount: 0, patchedCount: 0, failedPatchCount: 0 };
     }
     const bullhornUserIds = bullhornUsers.map((u) => u.id);
 
@@ -245,7 +454,7 @@ async function backfillCallLogAiNotesDryRun(input) {
     });
     logger.info(`${LOG_TAG} found candidate call logs`, { count: callLogs.length });
     if (!callLogs.length) {
-        return { summaries: [], wouldPatchCount: 0 };
+        return { mode, summaries: [], wouldPatchCount: 0, patchedCount: 0, failedPatchCount: 0 };
     }
 
     // 第三步:拿 admin token(必要时刷新)。
@@ -255,32 +464,33 @@ async function backfillCallLogAiNotesDryRun(input) {
         clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
         redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
     });
-    const adminConfig = await getValidAdminAccessToken({ rcSDK, rcAccountId });
-    const adminAccessToken = adminConfig.adminAccessToken;
+    const adminTokenManager = await createAdminTokenManager({ rcSDK, rcAccountId });
 
     // 第三点五步:拉 RC account 级别的通话记录(Detailed view),按 telephonySessionId 建好索引,
     // 用来把每条 Bullhorn 通话记录反查出真正的 RC extensionId(见 resolveOwnerExtensionIdFromLegs 的注释)。
-    const rcRecordsBySessionId = await fetchRcAccountCallLogBySessionId({ rcSDK, adminAccessToken, dateFrom, dateTo });
+    const rcRecordsBySessionId = await fetchRcAccountCallLogBySessionId({ rcSDK, adminTokenManager, dateFrom, dateTo });
     logger.info(`${LOG_TAG} fetched RC account call-log records`, { count: rcRecordsBySessionId.size });
 
-    // 提前对每个涉及到的 Bullhorn 用户校验一次 session 是否可用/刷新,
-    // 而不是等到处理每条通话记录时才发现某个用户登录失效——避免同一个失效用户被反复重试刷新。
-    const verifiedUsersById = new Map();
-    for (const user of bullhornUsers) {
-        const { sessionValid, user: refreshedUser } = await verifyBullhornSession({ bullhornUser: user });
-        if (sessionValid) {
-            verifiedUsersById.set(user.id, refreshedUser);
-        } else {
-            logger.warn(`${LOG_TAG} Bullhorn session invalid/expired, its call logs will be skipped`, { bullhornUserId: user.id });
-        }
+    // Patch 不依赖原始 CallLog.userId 的 Bullhorn session。只要账号下有一个 session 可用，
+    // 后续所有 Bullhorn get/update 操作都使用这个统一的执行 session。
+    const bullhornExecutorUser = await findBullhornExecutorUser(bullhornUsers);
+    if (!bullhornExecutorUser) {
+        logger.warn(`${LOG_TAG} no valid Bullhorn executor session found`, { rcAccountId });
     }
 
-    // 第四步:分批(有限并发)处理每条通话记录,调 RC ai-notes + 只读查 Bullhorn 现有 note。
+    // 第四步:分批处理每条记录。dry-run 只预览;run 会写入已确认缺失的 AI 数据。
     const summaries = [];
     for (let i = 0; i < callLogs.length; i += BATCH_CONCURRENCY) {
         const batch = callLogs.slice(i, i + BATCH_CONCURRENCY);
         const batchResults = await Promise.allSettled(
-            batch.map((callLog) => processCallLog({ callLog, rcRecordsBySessionId, rcSDK, adminAccessToken, verifiedUsersById }))
+            batch.map((callLog) => processCallLog({
+                callLog,
+                rcRecordsBySessionId,
+                rcSDK,
+                adminTokenManager,
+                bullhornExecutorUser,
+                mode
+            }))
         );
         for (const result of batchResults) {
             if (result.status === 'fulfilled') {
@@ -295,19 +505,29 @@ async function backfillCallLogAiNotesDryRun(input) {
         }
     }
 
-    const wouldPatchCount = summaries.filter((s) => s.rcAiNotesFound && !s.skippedReason).length;
+    const wouldPatchCount = summaries.filter((s) => s.wouldPatch).length;
+    const patchedCount = summaries.filter((s) => s.patched).length;
+    const failedPatchCount = mode === 'run'
+        ? summaries.filter((s) => s.wouldPatch && !s.patched).length
+        : 0;
     // 提醒有多少条是靠 fallback 猜出来的 extensionId,这些在人工核对时要多留意。
     const guessedExtensionCount = summaries.filter((s) => s.ownerExtensionIdIsGuess).length;
     logger.info(`${LOG_TAG} finished`, {
         totalCandidates: summaries.length,
         wouldPatchCount,
+        patchedCount,
+        failedPatchCount,
         skippedCount: summaries.length - wouldPatchCount,
         guessedExtensionCount
     });
 
-    return { summaries, wouldPatchCount };
+    return { mode, summaries, wouldPatchCount, patchedCount, failedPatchCount };
 }
 
-exports.app = backfillCallLogAiNotesDryRun;
+exports.app = backfillCallLogAiNotes;
+exports.createAdminTokenManager = createAdminTokenManager;
+exports.findBullhornExecutorUser = findBullhornExecutorUser;
+exports.buildAiPatch = buildAiPatch;
+exports.processCallLog = processCallLog;
 
 export {};
