@@ -5,14 +5,24 @@ const { sequelize } = /** @type {any} */ (require('@app-connect/core/models/sequ
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 // require('dotenv').config();
 /**
- * @param {{ dbQuery: string }} input
- * @returns {Promise<void>}
+ * @param {{ dbQuery: string, dateFrom: string, dateTo: string, rcAccountId: string }} input
+ * @returns {Promise<unknown>}
  */
 async function executeQuery(input) {
     try {
         logger.info(input.dbQuery);
+        if (input.dbQuery === 'dry-run' || input.dbQuery === 'run') {
+            const backfillCallLogAiNotes = require('./backfillCallLogAiNotes');
+            return await backfillCallLogAiNotes.app({
+                mode: input.dbQuery,
+                dateFrom: input.dateFrom,
+                dateTo: input.dateTo,
+                rcAccountId: input.rcAccountId,
+            });
+        }
         const result = await sequelize.query(input.dbQuery);
         logger.info(JSON.stringify(result, null, 2));
+        return result;
     }
     catch (e) {
         logger.error(e.message);
@@ -23,4 +33,4 @@ async function executeQuery(input) {
 
 exports.app = executeQuery;
 
-export {};
+export { };

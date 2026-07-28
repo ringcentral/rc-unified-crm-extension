@@ -39,6 +39,7 @@ cp(`${buildPath}/src/lambda.js`, `${deployPath}/lambda.js`);
 cp(`${buildPath}/src/index.js`, `${deployPath}/index.js`);
 cp(`${buildPath}/src/server.js`, `${deployPath}/server.js`);
 cp(`${buildPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
+cp(`${buildPath}/src/backfillCallLogAiNotes.js`, `${deployPath}/backfillCallLogAiNotes.js`);
 cp(`${buildPath}/src/releaseNotes.json`, `${deployPath}/releaseNotes.json`);
 mkdir(`${deployPath}/packages`);
 cp('-r', `${buildPath}/packages/core`, `${deployPath}/packages/core`);

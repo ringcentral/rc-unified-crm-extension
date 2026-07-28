@@ -186,6 +186,7 @@ nav:
     - 'Phone number formats': users/phone-number-formats.md
     - 'Preferred device': users/preferred-device.md
     - 'Region': users/region.md
+    - 'Language and localization': users/localization.md
     - 'Appearance': users/appearance-setting.md
     - 'Advanced options':
       - 'Developer options': users/developer-options.md
