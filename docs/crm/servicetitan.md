@@ -41,12 +41,4 @@ Gate6 built this connector for the communication-heavy workflows that define the
 
 ## Setup
 
-Contact Gate6 to get started. Their team will walk you through licensing, installation, and configuration for your ServiceTitan environment.
-
-<div class="bld-cta">
-  <div>
-    <div class="bld-cta__title">Ready to get started?</div>
-    <p class="bld-cta__desc">Reach out to Gate6 to discuss licensing, configuration, and onboarding for the ServiceTitan connector.</p>
-  </div>
-  <a href="https://www.gate6.com/contact-us/" class="bld-cta__btn" target="_blank" rel="noopener">Contact Gate6 →</a>
-</div>
+The ServiceTitan integration is available directly from within App Connect — no need to contact Gate6 first. Open the extension, go to **More > Settings**, select **ServiceTitan** from the list of connectors, and click "Connect." Follow the on-screen instructions to finish setup.

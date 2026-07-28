@@ -41,12 +41,4 @@ Gate6 specializes in enterprise-grade integrations, and their monday.com connect
 
 ## Setup
 
-Contact Gate6 to get started. Their team will walk you through licensing, connector configuration, and mapping call data to your monday.com boards.
-
-<div class="bld-cta">
-  <div>
-    <div class="bld-cta__title">Ready to get started?</div>
-    <p class="bld-cta__desc">Reach out to Gate6 to discuss licensing, configuration, and onboarding for the monday.com connector.</p>
-  </div>
-  <a href="https://www.gate6.com/contact-us/" class="bld-cta__btn" target="_blank" rel="noopener">Contact Gate6 →</a>
-</div>
+The monday.com integration is available directly from within App Connect — no need to contact Gate6 first. Open the extension, go to **More > Settings**, select **monday.com** from the list of connectors, and click "Connect." Follow the on-screen instructions to finish setup.
