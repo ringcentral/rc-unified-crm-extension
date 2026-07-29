@@ -207,7 +207,6 @@ nav:
       - 'Regional services': developers/regional-services.md
       - 'Sample manifest': https://github.com/ringcentral/rc-unified-crm-extension/blob/main/src/connectors/manifest.json
     - 'Server':
-      - 'API reference': developers/crm-server-openapi-public.json
       - 'Build and deployment': developers/deploy.md
       - 'Contact lookup':
         - 'Contact matching': developers/contact-matching.md
@@ -257,6 +256,7 @@ nav:
         - 'getServerLoggingSettings': developers/interfaces/getServerLoggingSettings.md
         - 'updateServerLoggingSettings': developers/interfaces/updateServerLoggingSettings.md
         - 'postSaveUserInfo': developers/interfaces/postSaveUserInfo.md
+    - 'API reference': developers/crm-server-openapi-public.json
 
 - 'MCP': https://mcp.labs.ringcentral.com/docs/servers/app-connect/
 
