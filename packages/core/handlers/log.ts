@@ -1301,47 +1301,11 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
     }
 }
 
-function buildMessageMediaLinks({ message, incomingData }) {
-    let recordingLink = null;
-    if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
-        recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
-    }
-    let faxDocLink = null;
-    let faxDownloadLink = null;
-    if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument') && incomingData.logInfo.rcAccessToken) {
-        faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
-        faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
-    }
-    let imageLink = null;
-    let imageDownloadLink = null;
-    let imageContentType = null;
-    if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/')) && incomingData.logInfo.rcAccessToken) {
-        const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
-        if (imageAttachment) {
-            imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
-            imageDownloadLink = imageAttachment?.uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
-            imageContentType = imageAttachment?.contentType;
-        }
-    }
-    let videoLink = null;
-    if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment')) {
-        const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
-        if (imageAttachment) {
-            imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
-        }
-        const videoAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('video/'));
-        if (videoAttachment) {
-            videoLink = getMediaReaderLinkByPlatformMediaLink(videoAttachment?.uri);
-        }
-    }
-    return { recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink };
-}
-
 // Logs an explicit set of selected messages as a single CRM entry and records a
 // per-message association so the client can render a { messageId: logId } map.
-// The first (oldest) selected message creates the CRM record; the rest are
-// appended to it via updateMessageLog, mirroring the connector contracts used by
-// the daily-digest path but without the per-day bucketing.
+// All selected messages are composed into one note (via the shared-SMS composer)
+// and written with a single createMessageLog call, so they land in one CRM
+// record rather than being created/appended one by one.
 async function logSelectedMessagesAsSingleEntry({
     platform,
     userId,
@@ -1431,68 +1395,83 @@ async function logSelectedMessagesAsSingleEntry({
         };
     }
 
-    let crmLogId = null;
+    // Compose every selected message into one note and write it in a single
+    // createMessageLog call, using the same shared-SMS content mechanism that all
+    // connectors already support. messagesToLog is oldest-first, so the first
+    // message drives the conversation's created date.
+    const logFormat = platformModule.getLogFormatType
+        ? platformModule.getLogFormatType(platform, proxyConfig)
+        : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+    const conversationCreatedDate = messagesToLog[0]?.creationTime;
+    const sharedSMSLogContent = composeSharedSMSLog({
+        logFormat,
+        conversation: {
+            ...incomingData.logInfo,
+            creationTime: conversationCreatedDate,
+            messages: messagesToLog,
+            // Adapt RingCentral message-store records into the entity shape the
+            // shared-SMS composer expects.
+            entities: messagesToLog.map(m => ({
+                recordType: 'AliveMessage',
+                creationTime: m.creationTime,
+                direction: m.direction,
+                from: m.from,
+                author: m.from,
+                subject: m.subject,
+                text: m.subject,
+            })),
+        },
+        contactName: contactInfo.name,
+        timezoneOffset: user.timezoneOffset,
+    });
+    // Connectors that key the CRM record date off the conversation read this.
+    sharedSMSLogContent.conversationCreatedDate = conversationCreatedDate;
+
+    const createResult = await platformModule.createMessageLog({
+        user,
+        contactInfo,
+        correspondents,
+        assigneeName,
+        ownerName,
+        sharedSMSLogContent,
+        authHeader,
+        additionalSubmission,
+        proxyConfig
+    });
+    // Normalize to a string; connectors may return a numeric logId (e.g. clio).
+    const crmLogId = createResult?.logId != null ? String(createResult.logId) : null;
+    returnMessage = createResult?.returnMessage;
+    extraDataTracking = createResult?.extraDataTracking;
+
+    if (!crmLogId) {
+        return {
+            successful: false,
+            returnMessage: returnMessage ?? {
+                message: 'Failed to log selected messages.',
+                messageType: 'warning',
+                ttl: 3000
+            },
+            extraDataTracking
+        };
+    }
+
+    // Point every logged message at the single CRM record.
     for (const message of messagesToLog) {
-        const media = buildMessageMediaLinks({ message, incomingData });
-        if (!crmLogId) {
-            const createResult = await platformModule.createMessageLog({
-                user,
-                contactInfo,
-                correspondents,
-                assigneeName,
-                ownerName,
-                authHeader,
-                message,
-                additionalSubmission,
-                recordingLink: media.recordingLink,
-                faxDocLink: media.faxDocLink,
-                faxDownloadLink: media.faxDownloadLink,
-                imageLink: media.imageLink,
-                imageDownloadLink: media.imageDownloadLink,
-                imageContentType: media.imageContentType,
-                videoLink: media.videoLink,
-                proxyConfig
+        const messageId = message.id.toString();
+        try {
+            await MessageLogAssociationModel.upsert({
+                messageId,
+                conversationId,
+                conversationLogId,
+                thirdPartyLogId: crmLogId,
+                userId,
+                rcAccountId,
+                platform
             });
-            crmLogId = createResult?.logId;
-            returnMessage = createResult?.returnMessage;
-            extraDataTracking = createResult?.extraDataTracking;
+            messageLogs[messageId] = crmLogId;
         }
-        else {
-            const updateResult = await platformModule.updateMessageLog({
-                user,
-                contactInfo,
-                assigneeName,
-                ownerName,
-                existingMessageLog: { thirdPartyLogId: crmLogId },
-                message,
-                authHeader,
-                additionalSubmission,
-                imageLink: media.imageLink,
-                imageDownloadLink: media.imageDownloadLink,
-                imageContentType: media.imageContentType,
-                videoLink: media.videoLink,
-                proxyConfig
-            });
-            returnMessage = updateResult?.returnMessage;
-            extraDataTracking = updateResult?.extraDataTracking;
-        }
-        if (crmLogId) {
-            const messageId = message.id.toString();
-            try {
-                await MessageLogAssociationModel.upsert({
-                    messageId,
-                    conversationId,
-                    conversationLogId,
-                    thirdPartyLogId: crmLogId,
-                    userId,
-                    rcAccountId,
-                    platform
-                });
-                messageLogs[messageId] = crmLogId;
-            }
-            catch (error) {
-                return handleDatabaseError(error, 'Error creating message association');
-            }
+        catch (error) {
+            return handleDatabaseError(error, 'Error creating message association');
         }
     }
 

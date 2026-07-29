@@ -2346,9 +2346,16 @@ describe('Log Handler', () => {
       });
 
       expect(result.successful).toBe(true);
-      // A single CRM entry is created, the rest appended to it.
+      // All selected messages are composed into ONE createMessageLog call.
       expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
-      expect(mockConnector.updateMessageLog).toHaveBeenCalledTimes(1);
+      expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
+      // The composed note is passed as shared-SMS content (subject + body).
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        sharedSMSLogContent: expect.objectContaining({
+          subject: expect.any(String),
+          body: expect.stringContaining('First'),
+        }),
+      }));
       // Per-message mapping points every selected message at the same CRM record.
       expect(result.messageLogs).toEqual({ 'msg-1': 'crm-entry-1', 'msg-3': 'crm-entry-1' });
 
@@ -2359,6 +2366,37 @@ describe('Log Handler', () => {
       // The daily-digest table is left untouched by this path.
       const dailyRows = await MessageLogModel.findAll({ where: { conversationId: 'conv-123' } });
       expect(dailyRows.length).toBe(0);
+    });
+
+    test('normalizes a numeric connector logId to a string', async () => {
+      await seedUser();
+      // Some connectors (e.g. clio) return a numeric logId; downstream callers
+      // and the DB column expect a string.
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 12345,
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 },
+        }),
+        updateMessageLog: jest.fn(),
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1', 'msg-3']),
+      });
+
+      expect(result.successful).toBe(true);
+      // Single composed call; no per-message appends.
+      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
+      expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
+      // Stored/returned as strings.
+      expect(result.messageLogs).toEqual({ 'msg-1': '12345', 'msg-3': '12345' });
+      const associations = await MessageLogAssociationModel.findAll({ where: { conversationId: 'conv-123' } });
+      expect(associations.every((a) => a.thirdPartyLogId === '12345')).toBe(true);
     });
 
     test('skips messages that are already associated and reports a no-op', async () => {
