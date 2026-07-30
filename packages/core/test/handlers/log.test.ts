@@ -2227,7 +2227,7 @@ describe('Log Handler', () => {
           thirdPartyLogId: 'existing-crm-log'
         }),
         sharedSMSLogContent: expect.objectContaining({
-          subject: 'SMS conversation with Shared Contact',
+          subject: 'SMS conversation with Shared Contact - 06/12/2026 10:00 AM',
           body: expect.stringContaining('Conversation summary')
         })
       }));
@@ -2296,6 +2296,7 @@ describe('Log Handler', () => {
         platform: 'testCRM',
         rcAccountId: 'rc-account-1',
         accessToken: 'test-token',
+        timezoneOffset: '+00:00',
         platformAdditionalInfo: {},
       });
     }
@@ -2352,7 +2353,7 @@ describe('Log Handler', () => {
       // The composed note is passed as shared-SMS content (subject + body).
       expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
         sharedSMSLogContent: expect.objectContaining({
-          subject: expect.any(String),
+          subject: 'SMS conversation with Test Contact - 01/01/2024 10:00 AM',
           body: expect.stringContaining('First'),
         }),
       }));
@@ -2676,7 +2677,7 @@ describe('Log Handler', () => {
         if (isShared) {
           expect(connector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
             sharedSMSLogContent: expect.objectContaining({
-              subject: 'SMS conversation with Message Contact',
+              subject: 'SMS conversation with Message Contact - 07/14/2026 03:00 AM',
             }),
           }));
         }

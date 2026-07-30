@@ -33,7 +33,8 @@ function composeSharedSMSLog({
 
     const subject = composeSubject({
         logFormat,
-        contactName
+        contactName,
+        conversationCreatedDate
     });
 
     const body = composeBody({
@@ -61,12 +62,19 @@ function findLatestModifiedTime(messages: SharedSMSMessage[]): any {
 
 function composeSubject({
     logFormat,
-    contactName
+    contactName,
+    conversationCreatedDate
 }: {
     logFormat: SharedSMSLogFormat;
     contactName: string;
+    conversationCreatedDate?: any;
 }): string {
-    const title = `SMS conversation with ${contactName}`;
+    // Include date and time so CRM list views (e.g. Clio communications) show
+    // when the conversation/selected messages occurred, not just the contact name.
+    const dateTimeSuffix = conversationCreatedDate?.isValid?.()
+        ? ` - ${conversationCreatedDate.format('MM/DD/YYYY hh:mm A')}`
+        : '';
+    const title = `SMS conversation with ${contactName}${dateTimeSuffix}`;
 
     switch (logFormat) {
         case LOG_DETAILS_FORMAT_TYPE.HTML:
