@@ -115,6 +115,7 @@ nav:
   - 'Bullhorn': crm/bullhorn.md
   - 'monday.com': crm/monday.md
   - 'Clio': crm/clio.md
+  - 'ConnectWise': crm/connectwise.md
   - 'Freshdesk': crm/freshdesk.md
   - 'GoHighLevel': crm/gohighlevel.md
   - 'Google Sheets': crm/google-sheets.md
