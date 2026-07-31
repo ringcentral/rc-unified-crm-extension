@@ -22,7 +22,7 @@ Gate6 developed their App Connect connector for ServiceNow in direct partnership
 
 ## Connectors
 
-Gate6 offers App Connect connectors for ServiceNow, AgencyZoom, ServiceTitan, and monday.com. [Contact Gate6](#contact-gate6) to discuss licensing or your integration requirements.
+Gate6 offers App Connect connectors for ServiceNow, AgencyZoom, ServiceTitan, and monday.com. ServiceNow, ServiceTitan, and monday.com are available directly from the list of connectors in App Connect — just select the connector and follow the on-screen instructions. For AgencyZoom, [contact Gate6](#contact-gate6) to discuss licensing or your integration requirements.
 
 <div class="crm-mkt__grid">
 

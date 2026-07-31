@@ -59,24 +59,21 @@ plugins:
         - solutions/solutions-footer.md
         - build.md
         - developers/crm-server-openapi.json
-  - swagger-ui-tag:
-      filter_files:
-        - developers/server-api.md
-        - developers/plugin-server-api.md
-      docExpansion: none
-      filter: true
-      tryItOutEnabled: false
-      supportedSubmitMethods: []
-      validatorUrl: none
-      extra_css:
-        - developers/swagger-ui-extra.css
-  - print-site:
-      exclude:
-        - developers/server-api.md
-        - developers/plugin-server-api.md
+  - openapi:
+      suppress_tag_overview: true
+      suppress_method_badges: true
+      specs:
+        server:
+          source: developers/crm-server-openapi-public.json
+          output_dir: developers/server-api
+        plugin-server:
+          source: developers/plugin-server-openapi.json
+          output_dir: developers/plugin-server-api
+  - print-site
 
 hooks:
   - scripts/mkdocs/hooks/shortcodes.py
+  - scripts/mkdocs/hooks/openapi_downloads.py
 
 extra:
   social:
@@ -118,6 +115,7 @@ nav:
   - 'Bullhorn': crm/bullhorn.md
   - 'monday.com': crm/monday.md
   - 'Clio': crm/clio.md
+  - 'ConnectWise': crm/connectwise.md
   - 'Freshdesk': crm/freshdesk.md
   - 'GoHighLevel': crm/gohighlevel.md
   - 'Google Sheets': crm/google-sheets.md
@@ -198,7 +196,7 @@ nav:
   - 'Is your CRM compatible?': developers/proprietary-crm.md
   - 'Plugins':
     - 'Getting started': developers/plugins/index.md
-    - 'API reference': developers/plugin-server-api.md
+    - 'API reference': developers/plugin-server-openapi.json
 
   - 'Connectors': 
     - 'Getting started': developers/getting-started.md
@@ -210,7 +208,6 @@ nav:
       - 'Regional services': developers/regional-services.md
       - 'Sample manifest': https://github.com/ringcentral/rc-unified-crm-extension/blob/main/src/connectors/manifest.json
     - 'Server':
-      - 'API reference': developers/server-api.md
       - 'Build and deployment': developers/deploy.md
       - 'Contact lookup':
         - 'Contact matching': developers/contact-matching.md
@@ -260,15 +257,9 @@ nav:
         - 'getServerLoggingSettings': developers/interfaces/getServerLoggingSettings.md
         - 'updateServerLoggingSettings': developers/interfaces/updateServerLoggingSettings.md
         - 'postSaveUserInfo': developers/interfaces/postSaveUserInfo.md
+    - 'API reference': developers/crm-server-openapi-public.json
 
-- 'MCP':
-  - 'Available tools': mcp/index.md
-  - 'LLMs':
-    - 'ChatGPT': mcp/chatgpt.md
-    - 'Claude': mcp/claude.md
-    - 'Codex': mcp/codex.md
-    - 'Cursor': mcp/cursor.md
-    - 'Gemini': mcp/gemini.md
+- 'MCP': https://mcp.labs.ringcentral.com/docs/servers/app-connect/
 
 - 'Support':
   - 'Getting help': support.md

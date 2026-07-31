@@ -14,7 +14,7 @@ hide:
   </div>
   <div class="crm-mkt__hero-stats">
     <div class="crm-mkt__stat">
-      <span class="crm-mkt__stat-num">18+</span>
+      <span class="crm-mkt__stat-num">19+</span>
       <span class="crm-mkt__stat-label">Integrations</span>
     </div>
     <div class="crm-mkt__stat">
@@ -68,6 +68,19 @@ hide:
     </div>
     <div class="crm-mkt__footer">
       <span class="crm-mkt__by crm-mkt__by--rc">By RingCentral</span>
+      <span class="crm-mkt__cta">View docs →</span>
+    </div>
+  </a>
+
+  <a href="connectwise/" class="crm-mkt__card crm-mkt__card--partner">
+    <div class="crm-mkt__logo"><img src="../img/crm-logo-connectwise.png" alt="ConnectWise"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Professional Services Automation</div>
+      <div class="crm-mkt__name">ConnectWise</div>
+      <p class="crm-mkt__desc">Log RingEX calls against ConnectWise companies, contacts, and tickets — with screen pop and draft time entries for MSP teams.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--partner">By Captivo Labs</span>
       <span class="crm-mkt__cta">View docs →</span>
     </div>
   </a>

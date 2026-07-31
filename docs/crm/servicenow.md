@@ -17,6 +17,4 @@ If you have not already done so, begin by [installing App Connect](../getting-st
 ## Setup App Connect
 
 ![Gate6 Logo](../img/vendor-gate6.png){ .mw-250 .float-right }
-To get and running with ServiceNow using App Connect, please contact Gate6 directly to discuss pricing, licensing, and onboarding procedures. 
-
-[Contact Gate6](https://www.gate6.com/contact-us/){ .md-button .md-button--primary}
+The ServiceNow integration is available directly from within App Connect — no need to contact Gate6 first. Open the extension, go to **More > Settings**, select **ServiceNow** from the list of connectors, and click "Connect." Follow the on-screen instructions to finish setup.
