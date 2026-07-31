@@ -525,6 +525,7 @@ function createCoreRouter() {
                 platform,
                 rcAccountId,
                 rcExtensionId,
+                devRcAccountId: req.query.devRcAccountId,
                 connectorId: req.query.connectorId,
                 isPrivate: req.query.isPrivate === 'true'
             });
@@ -704,6 +705,7 @@ function createCoreRouter() {
             const managedAuthSettings: ManagedAuthAdminResponse = await managedAuthCore.getManagedAuthAdminSettings({
                 platform: user.platform,
                 rcAccountId,
+                devRcAccountId: req.query.devRcAccountId,
                 connectorId: req.query.connectorId,
                 isPrivate: req.query.isPrivate === 'true'
             });
@@ -1420,6 +1422,7 @@ function createCoreRouter() {
             const additionalInfo = req.body.additionalInfo;
             const rcAccessToken = getRcAccessTokenFromRequest(req);
             const connectorId = req.body.connectorId;
+            const devRcAccountId = req.body.devRcAccountId;
             const isPrivate = !!req.body.isPrivate;
             if (!platform) {
                 tracer?.trace('apiKeyLogin:missingPlatform', {});
@@ -1440,6 +1443,7 @@ function createCoreRouter() {
                 proxyId,
                 rcAccountId,
                 rcExtensionId,
+                devRcAccountId,
                 connectorId,
                 isPrivate,
                 hashedRcExtensionId: hashedExtensionId,

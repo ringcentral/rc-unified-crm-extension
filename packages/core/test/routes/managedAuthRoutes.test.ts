@@ -68,6 +68,7 @@ describe('Managed Auth Routes', () => {
           rcAccessToken: 'valid-rc-token',
           rcAccountId: 'spoofed-account-id',
           rcExtensionId: 'spoofed-extension-id',
+          devRcAccountId: 'connector-owner-account',
         });
 
       expect(response.status).toBe(200);
@@ -76,6 +77,7 @@ describe('Managed Auth Routes', () => {
         platform: 'testCRM',
         rcAccountId: 'validated-account-id',
         rcExtensionId: 'validated-extension-id',
+        devRcAccountId: 'connector-owner-account',
       }));
     });
 
@@ -247,6 +249,7 @@ describe('Managed Auth Routes', () => {
           jwtToken: 'crm-jwt',
           rcAccessToken: 'valid-rc-token',
           connectorId: 'shared-connector',
+          devRcAccountId: 'connector-owner-account',
           isPrivate: 'true',
         });
 
@@ -257,6 +260,7 @@ describe('Managed Auth Routes', () => {
       expect(managedAuthCore.getManagedAuthAdminSettings).toHaveBeenCalledWith({
         platform: 'salesforce',
         rcAccountId: 'validated-account-id',
+        devRcAccountId: 'connector-owner-account',
         connectorId: 'shared-connector',
         isPrivate: true,
       });
@@ -390,6 +394,7 @@ describe('Managed Auth Routes', () => {
           rcAccessToken: 'valid-rc-token',
           rcAccountId: 'spoofed-account-id',
           rcExtensionId: 'spoofed-extension-id',
+          devRcAccountId: 'connector-owner-account',
         });
 
       expect(response.status).toBe(200);
@@ -398,6 +403,7 @@ describe('Managed Auth Routes', () => {
         platform: 'testCRM',
         rcAccountId: 'validated-account-id',
         rcExtensionId: 'validated-extension-id',
+        devRcAccountId: 'connector-owner-account',
       }));
     });
   });

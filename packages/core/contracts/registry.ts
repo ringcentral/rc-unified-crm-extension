@@ -65,6 +65,7 @@ import {
 } from './auth';
 import {
   BasicMutationResponseSchema,
+  EntityIdSchema,
   ReturnMessageSchema,
 } from './common';
 import {
@@ -453,6 +454,16 @@ export const httpApiOperationContracts: readonly OpenApiOperationContract[] = [
   {
     method: 'get',
     path: '/apiKeyManagedAuthState',
+    parameters: [
+      {
+        name: 'devRcAccountId',
+        in: 'query',
+        required: false,
+        description: 'RingCentral account that owns the private or shared Developer Portal connector.',
+        schema: EntityIdSchema,
+        example: '400012345678',
+      },
+    ],
     responses: {
       '200': {
         schema: 'ManagedAuthStateResponse',
@@ -607,6 +618,16 @@ export const httpApiOperationContracts: readonly OpenApiOperationContract[] = [
   {
     method: 'get',
     path: '/admin/managedAuth',
+    parameters: [
+      {
+        name: 'devRcAccountId',
+        in: 'query',
+        required: false,
+        description: 'RingCentral account that owns the private or shared Developer Portal connector.',
+        schema: EntityIdSchema,
+        example: '400012345678',
+      },
+    ],
     responses: {
       '200': {
         schema: 'ManagedAuthAdminResponse',

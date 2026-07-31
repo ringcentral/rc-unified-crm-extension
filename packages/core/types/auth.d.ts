@@ -90,6 +90,7 @@ export interface ApiKeyLoginParams {
   proxyId?: string;
   rcAccountId?: string | number;
   rcExtensionId?: string | number;
+  devRcAccountId?: string | number;
   connectorId?: string;
   isPrivate?: boolean;
   hashedRcExtensionId?: string;

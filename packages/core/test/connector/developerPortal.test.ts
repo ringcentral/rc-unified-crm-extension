@@ -101,6 +101,30 @@ describe('developerPortal connector', () => {
     );
   });
 
+  test('loads an internal connector manifest directly when the developer account is provided', async () => {
+    axios.get.mockResolvedValueOnce({
+      data: {
+        id: 'shared-crm',
+        ownerAccountId: 'owner-account',
+      },
+    });
+
+    await expect(getConnectorManifest({
+      rcAccountId: 'viewer-account',
+      devRcAccountId: 'owner-account',
+      connectorId: 'shared-crm',
+      isPrivate: true,
+    })).resolves.toEqual({
+      id: 'shared-crm',
+      ownerAccountId: 'owner-account',
+    });
+
+    expect(axios.get).toHaveBeenCalledTimes(1);
+    expect(axios.get).toHaveBeenCalledWith(
+      'https://appconnect.labs.ringcentral.com/public-api/connectors/shared-crm/manifest?access=internal&type=connector&accountId=owner-account',
+    );
+  });
+
   test('loads a shared private connector manifest from the owner account', async () => {
     axios.get
       .mockResolvedValueOnce({

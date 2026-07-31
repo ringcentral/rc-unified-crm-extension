@@ -601,6 +601,25 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "x-app-connect-generated-contract": true,
+            "name": "devRcAccountId",
+            "in": "query",
+            "required": false,
+            "description": "RingCentral account that owns the private or shared Developer Portal connector.",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
+            },
+            "example": "400012345678"
           }
         ],
         "responses": {
@@ -907,6 +926,25 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "x-app-connect-generated-contract": true,
+            "name": "devRcAccountId",
+            "in": "query",
+            "required": false,
+            "description": "RingCentral account that owns the private or shared Developer Portal connector.",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
+            },
+            "example": "400012345678"
           }
         ],
         "responses": {
@@ -3397,7 +3435,9 @@
       {
         "method": "get",
         "path": "/apiKeyManagedAuthState",
-        "parameters": [],
+        "parameters": [
+          "query:devRcAccountId"
+        ],
         "requestBody": false,
         "responses": [
           "200"
@@ -3460,7 +3500,9 @@
       {
         "method": "get",
         "path": "/admin/managedAuth",
-        "parameters": [],
+        "parameters": [
+          "query:devRcAccountId"
+        ],
         "requestBody": false,
         "responses": [
           "200"
@@ -4237,6 +4279,17 @@
           "connectorId": {
             "type": "string",
             "description": "Developer Portal connector identifier used to resolve managed authentication fields."
+          },
+          "devRcAccountId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "RingCentral account that owns the private or shared Developer Portal connector."
           },
           "isPrivate": {
             "type": "boolean",

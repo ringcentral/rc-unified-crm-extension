@@ -42,6 +42,7 @@ export interface ManagedAuthAccountParams {
 }
 
 export interface ManagedAuthFieldDefinitionParams extends ManagedAuthAccountParams {
+  devRcAccountId?: string | number;
   connectorId?: string;
   isPrivate?: boolean;
 }
