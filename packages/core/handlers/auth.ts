@@ -121,7 +121,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
  * @param {ApiKeyLoginParams} params
  * @returns {Promise<AuthHandlerResult>}
  */
-async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, connectorId, isPrivate, hashedRcExtensionId, additionalInfo }) {
+async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, devRcAccountId, connectorId, isPrivate, hashedRcExtensionId, additionalInfo }) {
     const platformModule = connectorRegistry.getConnector(platform);
     let resolvedAdditionalInfo = {
         ...(additionalInfo ?? {})
@@ -133,13 +133,14 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
     /** @type {Array<Record<string, unknown>>} */
     let managedFieldDefinitions = [];
     if (rcAccountId) {
-        managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ rcAccountId, platform, connectorId, isPrivate });
+        managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ rcAccountId, devRcAccountId, platform, connectorId, isPrivate });
         const shouldFallbackToManualAuth = managedFieldDefinitions.length > 0
             && await managedAuthCore.hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
         const managedAuthResult = await managedAuthCore.resolveApiKeyLoginFields({
             platform,
             rcAccountId,
             rcExtensionId,
+            devRcAccountId,
             connectorId,
             isPrivate,
             apiKey,

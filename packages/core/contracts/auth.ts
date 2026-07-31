@@ -36,6 +36,9 @@ export const ApiKeyLoginRequestSchema = z.strictObject({
   connectorId: z.string().describe(
     'Developer Portal connector identifier used to resolve managed authentication fields.',
   ).optional(),
+  devRcAccountId: EntityIdSchema.describe(
+    'RingCentral account that owns the private or shared Developer Portal connector.',
+  ).optional(),
   isPrivate: z.boolean().meta({
     default: false,
     description: 'Whether connectorId identifies a private connector.',

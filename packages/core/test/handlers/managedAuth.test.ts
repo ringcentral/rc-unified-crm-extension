@@ -244,10 +244,12 @@ describe('Managed Auth Handler', () => {
       platform: defaultPlatform,
       connectorId: 'connector-123',
       rcAccountId: 'developer-portal-account',
+      devRcAccountId: 'connector-owner-account',
     });
 
     expect(developerPortal.getConnectorManifest).toHaveBeenCalledWith({
       rcAccountId: 'developer-portal-account',
+      devRcAccountId: 'connector-owner-account',
       connectorId: 'connector-123',
       isPrivate: false,
     });

@@ -84,7 +84,7 @@ describe('flattened serverless artifact imports', () => {
     artifactRoot = path.join(tempRoot, 'var', 'task');
     fs.mkdirSync(artifactRoot, { recursive: true });
 
-    for (const name of ['index.js', 'lambda.js', 'server.js', 'dbAccessor.js', 'releaseNotes.json']) {
+    for (const name of ['index.js', 'lambda.js', 'server.js', 'dbAccessor.js', 'backfillCallLogAiNotes.js', 'releaseNotes.json']) {
       copy(path.join(BUILD_ROOT, 'src', name), path.join(artifactRoot, name));
     }
     for (const name of ['connectors', 'plugins']) {
