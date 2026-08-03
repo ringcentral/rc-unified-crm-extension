@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.7.40
+
+- Fix: Get implemented interface in time
+- Fix: On log page, single search contact option becomes button
+
+## 1.7.39
+
+- New: AI notes support different languages
+
 ## 1.7.38
 
 - Fix: Security patches

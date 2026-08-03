@@ -1,4 +1,16 @@
 {
+    "1.7.40": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Get implemented interface in time"
+            },
+            {
+                "type": "Fix",
+                "description": "On log page, single search contact option becomes button"
+            }
+        ]
+    },
     "1.7.39": {
         "global": [
             {
