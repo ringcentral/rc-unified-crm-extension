@@ -131,6 +131,8 @@ export interface CallLogSubmission {
   aiNote?: string;
   transcript?: string;
   recordingLink?: string;
+  voicemailLink?: string;
+  voicemailMessageId?: string;
   subject?: string;
   startTime?: string | Date;
   duration?: number;
@@ -148,6 +150,7 @@ export interface ComposeCallLogParams {
   aiNote?: string;
   transcript?: string;
   recordingLink?: string;
+  voicemailLink?: string;
   subject?: string;
   startTime?: string | Date;
   duration?: number;

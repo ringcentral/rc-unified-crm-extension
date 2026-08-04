@@ -64,7 +64,7 @@ There is a lot of potential information about a call that can be logged. Dependi
 * **Date/time** - the start and end date/time of the call
 * **Duration** - the duration of the call
 * **Call result** - what did RingCentral observe as the result of the call, e.g. "call connected," "voicemail," "missed," etc. 
-* **Recording** - if there is a recording for the call, a link to the recording will be embedded 
+* **Recording** - if there is a call recording or a voicemail linked to the call, a RingCentral Media Reader link will be embedded
 * **AI notes/summary** - AI-generated summary of the call (requires ACE subscription)
 * **Transcript** - A transcript of the call (requires ACE subscription)
 * **Call journey (Server-side logging only)** - Provides details on how calls are routed within the RingCentral phone system (e.g., IVR menus, call queue transfers). Manual call transfers performed by users are not included. This information is available only in Admin Settings and requires server-side logging to be enabled.
@@ -95,6 +95,10 @@ It might be helpful from time to time to quickly assess and remedy any calls tha
 ## Logging call recordings
 
 If a call is recorded, a link to the call's recording is included in the contents logged to the CRM automatically. 
+
+For a missed call that produced a voicemail, App Connect also resolves the voicemail's audio attachment and includes a separate voicemail recording link in the same CRM call log. The voicemail remains a RingCentral Message Store item; App Connect does not upload or archive its audio file in the CRM.
+
+With server-side logging, App Connect treats a successful voicemail indication from the telephony event like a call-recording indication. If the linked Message Store record or its audio attachment is not ready during delayed synchronization, App Connect leaves the call log pending and retries instead of completing the create or update without the voicemail link. A telephony event that reports a voicemail recording error is not treated as pending media.
 
 !!! info "Call recording links are generated with certain delay"
     Please be aware that it takes time for RingCentral server to process and upload your recordings, therefore recording links won't be generated immediately after calls. The delay could be seconds to minutes dpending on duration of the call and RingCentral server's current capacity.  
