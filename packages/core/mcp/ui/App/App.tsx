@@ -3,7 +3,7 @@ import { ConnectorList, type Connector } from './components/ConnectorList'
 import { AuthInfoForm } from './components/AuthInfoForm'
 import { OAuthConnect } from './components/OAuthConnect'
 import { AuthSuccess } from './components/AuthSuccess'
-import { setServerUrl } from './lib/callTool'
+import { setServerUrl, setWidgetSessionToken } from './lib/callTool'
 import { fetchConnectors, fetchManifest } from './lib/developerPortal'
 import { dbg } from './lib/debugLog'
 
@@ -13,6 +13,7 @@ interface ToolOutput {
   rcAccountId?: string | null
   rcExtensionId?: string | null
   openaiSessionId?: string | null
+  widgetSessionToken?: string | null
   error?: boolean
   errorMessage?: string
 }
@@ -45,6 +46,7 @@ function applyServerUrl(output: ToolOutput | null) {
   if (output?.serverUrl) {
     setServerUrl(output.serverUrl);
   }
+  setWidgetSessionToken(output?.widgetSessionToken);
   return output;
 }
 
@@ -234,7 +236,7 @@ export function App() {
   )
 
   const handleAuthSuccess = useCallback(
-    (authData: { jwtToken?: string; userInfo?: any }) => {
+    (authData: { userInfo?: any }) => {
       setFlow((prev) => ({ ...prev, userInfo: authData.userInfo ?? null }))
       setStep('success')
     },
@@ -324,7 +326,6 @@ export function App() {
           connectorDisplayName={flow.connectorDisplayName!}
           hostname={flow.hostname}
           openaiSessionId={data?.openaiSessionId ?? null}
-          rcExtensionId={data?.rcExtensionId ?? null}
           onSuccess={handleAuthSuccess}
           onError={handleAuthError}
           onBack={resetToSelect}

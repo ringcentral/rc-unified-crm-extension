@@ -4,6 +4,9 @@ hide:
 ---
 # Setup and installation
 
+!!! tip "Looking for App Connect 2.0 beta?"
+    Try the new App Connect 2.0 with more features and support for more CRMs. [Get started with App Connect 2.0 &raquo;](2.0/index.md)
+
 RingCentral's App Connect is a browser extension for Google Chrome and Microsoft Edge that is available in their respective stores. Installation is quick and easy if you are accustom to installing browser extensions. Click the web store button below to get started. 
 
 <figure markdown>
@@ -11,6 +14,25 @@ RingCentral's App Connect is a browser extension for Google Chrome and Microsoft
   [![Microsoft Edge store](img/edge-store.png)](https://microsoftedge.microsoft.com/addons/detail/ringcentral-app-connect/fkoakbdjghpdcjlhelgeiahggkghnkfl){ .md-button .download-button }
   <figcaption>Install the extension now</figcaption>
 </figure>
+
+## Managing App Connect from the Admin Console
+
+!!! info "The Admin Console is new and still being actively developed."
+
+RingCentral App Connect now includes a web-based Admin Console, giving administrators a central place to manage App Connect without needing to install the browser extension themselves. Today, the Admin Console lets you:
+
+* Setup and configure Universal Logging (aka server-side call logging)
+* Access reports and usage analytics
+* Manage settings across your company
+* Check connectivity health to your CRM
+* Discover and install plugins
+
+<figure markdown>
+  ![Admin Console managed settings](img/admin-console-managed-settings.png)
+  <figcaption>Manage settings across your company from the Admin Console</figcaption>
+</figure>
+
+All of this same functionality is also available from the Admin tab inside the App Connect browser extension. We built the web-based Admin Console to make it easier for admins to set up and manage App Connect and, if needed, configure activity logging across their company without requiring every user to download and install the browser extension.
 
 ## Installing the browser plugin
 
@@ -39,18 +61,7 @@ The process of connecting App Connect to your CRM is more or less the same at a 
 4. Scroll down to find your CRM, and click the "Connect" button. 
 5. Follow the on-screen instructions for your CRM. 
 
-Each CRM may have a slightly different approach in order to install the extension fully. Consult the CRM-specific documentation to setup and configure your CRM below.
-
-* [Connect and setup Bullhorn](./crm/bullhorn.md)
-* [Connect and setup Clio](./crm/clio.md)
-* [Connect and setup Freshdesk](./crm/freshdesk.md)
-* [Connect and setup Insightly](./crm/insightly.md)
-* [Connect and setup GoHighLevel](./crm/gohighlevel.md)
-* [Connect and setup Google Sheets](./crm/google-sheets.md)
-* [Connect and setup NetSuite](./crm/netsuite.md)
-* [Connect and setup Pipedrive](./crm/pipedrive.md)
-* [Connect and setup Redtail CRM](./crm/redtail.md)
-* [Connect and setup ServiceNow](./crm/servicenow.md)
+Each CRM may have a slightly different approach in order to install the extension fully. Consult the [full list of supported integrations](./crm/index.md) for CRM-specific setup and configuration instructions.
 
 ## Accessing the dialer
 

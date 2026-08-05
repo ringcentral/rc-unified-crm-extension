@@ -13,9 +13,9 @@ When an admin enables server-side logging for their organization, App Connect su
 
 1. Resolves the contact via `findContact`
 2. Determines the correct user mapping (agent → CRM user) if configured
-3. Calls `createCallLog` with the resolved contact and call data — using the admin's stored credentials or agent-mapped credentials depending on the connector's configuration
+3. Calls `createCallLog` with the resolved contact, call data, and raw RingCentral extension id (`rcExtensionId`) — using the admin's stored credentials or agent-mapped credentials depending on the connector's configuration
 
-Your connector's existing `findContact` and `createCallLog` implementations handle server-side logs exactly as they handle client-side logs. No separate code path is required. What you do need to implement are the **configuration and management interfaces** described below.
+Your connector's existing `findContact` and `createCallLog` implementations handle server-side logs exactly as they handle client-side logs. No separate code path is required. The shared runtime stores the local call-log linkage by session id plus hashed extension identity; for server-side logging it hashes the incoming `rcExtensionId` with the adapter server's own hash key before checking duplicates or saving `callLogs`. What you do need to implement are the **configuration and management interfaces** described below.
 
 ## Manifest configuration
 

@@ -14,6 +14,8 @@ async function createCallLog({
   additionalSubmission,
   aiNote,
   transcript,
+  voicemailLink,
+  voicemailMessageId,
   ringSenseTranscript,
   ringSenseSummary,
   ringSenseAIScore,
@@ -46,6 +48,8 @@ async function createCallLog({
 | `note` | Agent note submitted by the user or cached from server-side logging. |
 | `additionalSubmission` | Values from manifest `page.callLog.additionalFields[]`. |
 | `aiNote`, `transcript` | Smart Notes/AI summary and transcript when enabled for the user. |
+| `voicemailLink` | RingCentral Media Reader link for the voicemail linked to the call, when available. |
+| `voicemailMessageId` | ID of the linked RingCentral voicemail Message Store record, when available. |
 | `ringSenseTranscript`, `ringSenseSummary`, `ringSenseAIScore`, `ringSenseBulletedSummary`, `ringSenseLink` | ACE/RingSense artifacts when available. |
 | `composedLogDetails` | Body composed by core when `getLogFormatType()` returns `text/plain`, `text/html`, or `text/markdown`. Empty when the connector uses a custom format. |
 | `hashedAccountId` | Hashed RingCentral account ID from request headers when available. |
@@ -66,12 +70,12 @@ If `logId` is missing, core treats the operation as unsuccessful.
 
 Create a single CRM activity for the call. App Connect assumes one CRM log maps to one RingCentral call session.
 
-When possible, write `composedLogDetails` directly to the CRM body. That keeps user log-format settings, recordings, AI artifacts, and later update behavior consistent across connectors.
+When possible, write `composedLogDetails` directly to the CRM body. That keeps user log-format settings, call and voicemail recordings, AI artifacts, and later update behavior consistent across connectors.
 
 ## Reference
 
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/createCallLog.js"
+    --8<-- "packages/template/src/connectors/interfaces/createCallLog.ts"
     ```

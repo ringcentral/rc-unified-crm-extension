@@ -59,15 +59,25 @@ Common variables:
 | `APP_HOST` | Local host bind value for development. |
 | `PORT` | Local server port. |
 | `APP_SERVER_SECRET_KEY` | Shared secret used by the app server. |
-| `DATABASE_URL` | Database URL. Local development commonly uses SQLite. |
+| `DATABASE_URL` | Sequelize database URL. Use `sqlite:...` for SQLite or `postgres://...` / `postgresql://...` for Postgres. |
+| `DATABASE_SSL` | Optional Postgres SSL override. When unset, localhost database hosts use SSL off and other Postgres hosts use SSL on. |
 | `DISABLE_SYNC_DB_TABLE` | Set when table sync should be skipped. |
 | `DYNAMODB_LOCALHOST` | Local DynamoDB endpoint for local Dynamo-backed models. |
 | `DEVELOPER_DYNAMODB_TABLE_PREFIX` | Prefix for Developer Console connector/proxy DynamoDB tables. |
 | `DEVELOPER_APP_SERVER_SECRET_KEY` | Secret used to decrypt stored connector secrets. |
 | CRM OAuth variables | Connector-specific client IDs, client secrets, token URLs, and redirect URIs used by `getOauthInfo()`. |
 | `RINGCENTRAL_SERVER`, `RINGCENTRAL_CLIENT_ID`, `RINGCENTRAL_CLIENT_SECRET` | Required for RingCentral admin OAuth and some reporting flows. |
+| `RINGCENTRAL_MCP_CLIENT_ID` | Public RingCentral OAuth client ID used by MCP clients with PKCE. Do not use a client secret for MCP OAuth. |
 
 Keep CRM client secrets and app secrets in environment variables, not in the manifest.
+
+For local Postgres, use a localhost URL so SSL is disabled automatically:
+
+```bash
+DATABASE_URL=postgres://app_connect:password@localhost:5432/app_connect
+```
+
+For a remote Postgres host, SSL is enabled automatically. Set `DATABASE_SSL=false` only when a non-local database explicitly does not support SSL.
 
 ## Deployment Checklist
 

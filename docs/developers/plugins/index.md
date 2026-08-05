@@ -1,5 +1,10 @@
 ---
-title: "App Connect Plugins"
+type: contract
+title: App Connect Plugins
+description: Lifecycle, manifest, execution, OAuth, licensing, and configuration guidance for App Connect plugins.
+owner: RingCentral
+status: proposed
+tags: [app-connect, plugins]
 ---
 
 # App Connect Plugins
@@ -17,7 +22,9 @@ Scaffold a plugin server with:
 npx @app-connect/cli init my-plugin --template plugin
 ```
 
-The template route wiring lives in `packages/plugin-template/src/app.js`. It shows the endpoints App Connect expects a plugin server to expose.
+The template route wiring lives in `packages/plugin-template/src/app.ts`. It shows the endpoints App Connect expects a plugin server to expose.
+
+Implementing the server in another programming language? Use the [Plugin server API reference](../plugin-server-api/index.md) as the language-neutral contract for requests, responses, authentication, and async callbacks, or [download the OpenAPI specification](../downloads/plugin-server-openapi.json) directly.
 
 ## Registration Flow
 
@@ -28,7 +35,7 @@ The template route wiring lives in `packages/plugin-template/src/app.js`. It sho
 5. The plugin server validates the RingCentral admin identity and returns `{ jwtToken }`.
 6. App Connect stores that plugin JWT in account data and uses it as a bearer token when invoking plugin endpoints.
 
-Core resolves public, private, and shared plugin manifests through `packages/core/handlers/plugin.js`.
+Core resolves public, private, and shared plugin manifests through `packages/core/handlers/plugin.ts`.
 
 ## Manifest Fields
 
@@ -42,6 +49,10 @@ Current plugin runtime reads these fields from the plugin platform manifest:
 | `supportedLogTypes` | Activity types that should invoke the plugin: `call`, `sms`, and/or `fax`. |
 | `isAsync` | Marks the plugin as asynchronous. For call logs, App Connect dispatches after create or update succeeds and expects a callback. |
 | `tokenSyncUrl` | Required for async plugins. App Connect calls this before invoking `endpointUrl` so the plugin can refresh its stored token. |
+| `showAuthorizationButton` | Optional. Shows a user-facing **Connect** or **Logout** action on the plugin configuration page. |
+| `authorizationUrl` | Optional. Endpoint that returns the third-party OAuth authorization URL as `{ "authUrl": "..." }`. |
+| `authStateUrl` | Optional. Endpoint that returns the user's plugin auth state as `{ "successful": true }` or `{ "successful": false }`. |
+| `logoutUrl` | Optional. Endpoint that disconnects the user's third-party account for this plugin. |
 | Config fields | Stored in user settings under `plugin_<pluginId>` and passed to plugin calls as `config`. |
 
 Keep plugin secrets on the plugin server. The manifest should contain URLs and UI/config metadata, not secret values.
@@ -64,6 +75,58 @@ The template exposes these route shapes:
 
 Protected plugin endpoints should read the bearer token from `Authorization` and refresh it through `x-refreshed-jwt-token` when needed. The template helper is `validateAndRefreshPluginToken`; adjust its plugin-id check if your configured endpoint URL does not include a plugin id path parameter.
 
+## Optional User OAuth
+
+Use plugin OAuth when the plugin needs a user to connect a third-party service in addition to the CRM connection that App Connect already manages.
+
+Enable **Support OAuth** in the Developer Console plugin form, then configure:
+
+- `authorizationUrl`: a plugin endpoint that builds and returns the third-party authorization URL.
+- `authStateUrl`: a plugin endpoint that tells the client whether the user is already connected.
+- `logoutUrl`: a plugin endpoint that disconnects the user's third-party account.
+
+### Callback routing
+
+The OAuth provider must redirect back to the App Connect extension redirect URI first, not directly to the plugin server. The client watches the OAuth popup and only detects completion when the popup lands on the extension redirect URI.
+
+The plugin callback endpoint is still where the OAuth code should be exchanged for tokens, but it is reached by the client after the extension receives the browser redirect. Put that plugin callback URL in the OAuth `state` value as `redirectTo`.
+
+```text
+OAuth provider
+  -> App Connect extension redirect URI
+  -> client calls plugin callback from state.redirectTo
+  -> plugin exchanges code for tokens and stores them
+```
+
+An authorization URL returned by `authorizationUrl` should use the extension redirect URI as `redirect_uri` and include plugin routing data in `state`:
+
+```text
+https://provider.example.com/oauth/authorize
+  ?client_id=...
+  &redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html
+  &state={"from":"plugin","redirectTo":"https://plugin.example.com/oauth/callback"}
+```
+
+The `state` value is shown decoded for readability. URL-encode it when building the real authorization URL.
+
+After the provider redirects to the extension redirect URI, App Connect calls the plugin callback endpoint:
+
+```text
+GET https://plugin.example.com/oauth/callback
+  ?hashedExtensionId=<hashed-extension-id>
+  &callbackUri=<full-extension-callback-url>
+```
+
+The plugin callback endpoint should:
+
+1. Parse `callbackUri` to read the provider's authorization `code` and `state`.
+2. Validate the `state` value before exchanging the code.
+3. Exchange the authorization code with the third-party OAuth provider.
+4. Store access and refresh tokens on the plugin server, keyed to the user identity such as `hashedExtensionId`.
+5. Return a successful response so the client can show the plugin as connected.
+
+Do not register the plugin server callback URL as the OAuth app redirect URI unless that endpoint immediately redirects the browser back to the App Connect extension redirect URI. If the OAuth popup stays on the plugin server callback URL, the extension cannot detect that OAuth completed.
+
 ## Synchronous Plugins
 
 A synchronous plugin runs inline before the connector save. App Connect sends the current logging payload and waits for the plugin response.
@@ -78,7 +141,7 @@ Request body:
     "logInfo": {}
   },
   "config": {
-    "ignoredLetters": {
+    "ignoreLetters": {
       "value": "abc"
     }
   }
@@ -92,6 +155,8 @@ Use synchronous plugins for deterministic, fast payload transformations.
 ## Asynchronous Plugins
 
 Async plugins are currently callback-enabled for call-log create and update flows. App Connect creates a one-week task cache, saves the task id, and sends that task id to the plugin. The task id embedded in the callback URL is the callback validation method. SMS and fax async plugins remain fire-and-forget and do not receive this callback contract yet.
+
+The JavaScript template's `/plugin/async` handler currently requires the call callback fields. If your manifest declares asynchronous SMS or fax support, adapt that handler to accept the fire-and-forget request variant documented in the [Plugin server API reference](../plugin-server-api/index.md).
 
 Request body:
 
@@ -150,7 +215,7 @@ If a plugin requires entitlement checks, configure `licenseStatusUrl`. App Conne
 Authorization: Bearer <pluginJwtToken>
 ```
 
-Return a JSON object that the client can interpret as the plugin license state. The template handler is `packages/plugin-template/src/handlers/license.js`.
+Return a JSON object that the client can interpret as the plugin license state. The template handler is `packages/plugin-template/src/handlers/license.ts`.
 
 ## Custom Configuration
 

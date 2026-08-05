@@ -1,0 +1,486 @@
+// @ts-check
+
+const {
+    createCoreApp,
+    connectorRegistry,
+    proxyConnector
+} = /** @type {any} */ (require('@app-connect/core'));
+const path = require('path');
+const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
+const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
+const axios = /** @type {any} */ (require('axios'));
+const bullhorn = /** @type {any} */ (require('./connectors/bullhorn'));
+const bullhornReport = /** @type {any} */ (require('./connectors/bullhorn/report'));
+const clio = /** @type {any} */ (require('./connectors/clio'));
+const googleSheets = /** @type {any} */ (require('./connectors/googleSheets'));
+const insightly = /** @type {any} */ (require('./connectors/insightly'));
+const netsuite = /** @type {any} */ (require('./connectors/netsuite'));
+const pipedrive = /** @type {any} */ (require('./connectors/pipedrive'));
+const redtail = /** @type {any} */ (require('./connectors/redtail'));
+const vinsolutions = /** @type {any} */ (require('./connectors/vinsolutions'));
+const googleSheetsExtra = /** @type {any} */ (require('./connectors/googleSheets/extra'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
+const adminCore = /** @type {any} */ (require('@app-connect/core/handlers/admin'));
+const googleDrivePlugin = /** @type {any} */ (require('./plugins/googleDrivePlugin'));
+const allCapPlugin = /** @type {any} */ (require('./plugins/allCapPlugin'));
+// Register connectors
+connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
+connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
+
+connectorRegistry.registerConnector('bullhorn', bullhorn);
+connectorRegistry.registerConnector('clio', clio);
+connectorRegistry.registerConnector('googleSheets', googleSheets);
+connectorRegistry.registerConnector('insightly', insightly);
+connectorRegistry.registerConnector('netsuite', netsuite);
+connectorRegistry.registerConnector('pipedrive', pipedrive);
+connectorRegistry.registerConnector('redtail', redtail);
+connectorRegistry.registerConnector('vinsolutions', vinsolutions);
+connectorRegistry.registerConnector('proxy', proxyConnector);
+
+// Create Express app with core functionality
+const app = createCoreApp();
+
+const { PluginUserModel } = /** @type {any} */ (require('./plugins/models/pluginUserModel'));
+const { GoogleDriveFileModel } = /** @type {any} */ (require('./plugins/models/googleDriveFileModel'));
+async function initDB() {
+    if (!process.env.DISABLE_SYNC_DB_TABLE) {
+        console.log('creating db tables if not exist...');
+        await PluginUserModel.sync();
+        await GoogleDriveFileModel.sync();
+    }
+}
+
+initDB();
+
+// Add custom routes for specific connectors
+// Google Sheets specific routes
+app.get('/googleSheets/filePicker', async function (req, res) {
+    try {
+        const jwtToken = req.query.token;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send();
+                return;
+            }
+            const fileContent = await googleSheetsExtra.renderPickerFile({ user });
+            res.send(fileContent);
+        } else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        logger.error('Error getting file picker', { stack: e.stack });
+        res.status(500).send(e);
+    }
+});
+
+app.post('/googleSheets/sheet', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send();
+                return;
+            }
+            const { successful, sheetName, sheetUrl } = await googleSheetsExtra.createNewSheet({ user, data: req.body });
+            if (successful) {
+                res.status(200).send({
+                    name: sheetName,
+                    url: sheetUrl
+                });
+                return;
+            }
+            else {
+                res.status(500).send('Failed to create new sheet');
+                return;
+            }
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+            return;
+        }
+    }
+    catch (e) {
+        logger.error('Error creating new sheet', { stack: e.stack });
+        res.status(500).send(e);
+    }
+});
+
+app.delete('/googleSheets/sheet', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send();
+                return;
+            }
+            await googleSheetsExtra.removeSheet({ user });
+            res.status(200).send('Sheet removed');
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        logger.error('Error removing sheet', { stack: e.stack });
+        res.status(500).send(e);
+    }
+});
+
+app.post('/googleSheets/selectedSheet', async function (req, res) {
+    const authHeader = `Bearer ${req.body.accessToken}`;
+    const response = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+        headers: {
+            Authorization: authHeader
+        }
+    });
+    const data = response?.data;
+    const user = await UserModel.findByPk(`${data?.sub}-googleSheets`);
+    if (!user) {
+        res.status(400).send('User not found');
+        return;
+    }
+    await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
+
+    res.status(200).send({ message: 'Sheet selected', Id: req.body.field });
+});
+
+// Google Sheets admin routes
+app.get('/admin/googleSheets/filePicker', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send('User not found');
+                return;
+            }
+            const fileContent = await googleSheetsExtra.renderAdminPickerFile({ user, rcAccessToken: req.query.rcAccessToken });
+            res.send(fileContent);
+        } else {
+            res.status(400).send('Please authorize admin access');
+        }
+    }
+    catch (e) {
+        res.status(500).send(e);
+    }
+});
+
+app.post('/admin/googleSheets/sheet', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send('User not found');
+                return;
+            }
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (isValidated) {
+                const { successful, sheetName, sheetUrl } = await googleSheetsExtra.createNewSheet({ user, data: req.body });
+                if (successful) {
+                    // Store admin configuration
+                    await googleSheetsExtra.setAdminGoogleSheetsConfig({
+                        rcAccountId,
+                        sheetName,
+                        sheetUrl,
+                        customizable: req.body.customizable || false
+                    });
+                    res.status(200).send({
+                        name: sheetName,
+                        url: sheetUrl
+                    });
+                } else {
+                    res.status(500).send('Failed to create new sheet');
+                }
+            } else {
+                res.status(403).send('Admin validation failed');
+            }
+        }
+    }
+    catch (e) {
+        res.status(500).send(e);
+    }
+});
+
+app.post('/admin/googleSheets/selectedSheet', async function (req, res) {
+    try {
+        const authHeader = `Bearer ${req.body.accessToken}`;
+        const response = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+            headers: {
+                Authorization: authHeader
+            }
+        });
+        const data = response?.data;
+        const user = await UserModel.findByPk(`${data?.sub}-googleSheets`);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+        if (isValidated) {
+            const { successful, sheetName, sheetUrl } = await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
+            if (successful) {
+                // Store admin configuration
+                await googleSheetsExtra.setAdminGoogleSheetsConfig({
+                    rcAccountId,
+                    sheetName,
+                    sheetUrl,
+                    customizable: req.body.customizable || false
+                });
+                res.status(200).send({ message: 'Admin sheet configuration saved', Id: req.body.field });
+            } else {
+                res.status(500).send('Failed to configure sheet');
+            }
+        } else {
+            res.status(403).send('Admin validation failed');
+        }
+    }
+    catch (e) {
+        res.status(500).send(e);
+    }
+});
+
+app.get('/admin/googleSheets/config', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send('User not found');
+                return;
+            }
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (isValidated) {
+                const config = await googleSheetsExtra.getAdminGoogleSheetsConfig({ rcAccountId });
+                res.status(200).send(config);
+            } else {
+                res.status(403).send('Admin validation failed');
+            }
+        } else {
+            res.status(400).send('Please authorize admin access');
+        }
+    }
+    catch (e) {
+        res.status(500).send(e);
+    }
+});
+
+// Pipedrive specific routes
+app.get('/pipedrive-redirect', function (req, res) {
+    try {
+        res.sendFile(path.join(__dirname, 'connectors/pipedrive/redirect.html'));
+    }
+    catch (e) {
+        logger.error('Error getting pipedrive redirect', { stack: e.stack });
+        res.status(500).send(e);
+    }
+});
+
+app.delete('/pipedrive-redirect', async function (req, res) {
+    try {
+        const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
+        if (`Basic ${basicAuthHeader}` === req.get('authorization')) {
+            const userId = req.body.user_id;
+            if (!userId) {
+                res.status(400).send('Missing user_id');
+                return;
+            }
+
+            // Find the user to get refresh token for revocation
+            const user = await UserModel.findByPk(userId);
+            if (user) {
+                const platformModule = /** @type {any} */ (require(`./connectors/pipedrive`));
+                await platformModule.unAuthorize({ user });
+                await UserModel.destroy({
+                    where: {
+                        id: userId,
+                        platform: 'pipedrive'
+                    }
+                });
+            }
+            res.status(200).send('User deleted');
+        } else {
+            res.status(401).send('Unauthorized');
+        }
+    }
+    catch (e) {
+        logger.error('Error removing pipedrive redirect', { stack: e.stack });
+        res.status(500).send(e);
+    }
+});
+
+app.get('/plugin/licenseStatus/:pluginId', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const user = await UserModel.findByPk(userId);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        const pluginId = req.params.pluginId;
+        switch (pluginId) {
+            case 'googleDrive':
+                const { isSuccessful } = await googleDrivePlugin.checkAuth({ userId });
+                const errorMessage = [
+                    'License is invalid'
+                ]
+                if (!isSuccessful) {
+                    errorMessage.push('Google Drive user is not authorized')
+                }
+                res.status(200).send({
+                    licenseStatus: false,
+                    errorMessage: errorMessage.join(' AND '),
+                    licenseStatusDescription: 'Invalid. Please go [here](https://www.google.com)'
+                });
+                break;
+            case 'allCap':
+                res.status(200).send({
+                    licenseStatus: true,
+                    licenseStatusDescription: 'License: Basic'
+                });
+                break;
+            default:
+                res.status(400).send('Unknown plugin');
+                return;
+        }
+    }
+    catch (e) {
+        logger.error('Error getting plugin license status', { stack: e.stack });
+        res.status(500).send(e);
+    }
+});
+
+app.post('/plugin/:pluginId', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const user = await UserModel.findByPk(userId);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        let result;
+        switch (req.params.pluginId) {
+            case 'googleDrive':
+                result = googleDrivePlugin.uploadToGoogleDrive({ user, data: req.body.data });
+                break;
+            case 'all_cap':
+                result = allCapPlugin.allCap({ user, data: req.body.data });
+                break;
+            default:
+                res.status(400).send('Unknown plugin');
+                return;
+        }
+
+        res.status(200).send(result);
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
+    }
+});
+
+app.get('/googleDrive/oauthUrl', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!jwtToken) {
+            res.status(400).send('JWT token is required');
+            return;
+        }
+        const result = await googleDrivePlugin.getOAuthUrl({ jwtToken, pluginId: req.query.pluginId });
+        res.status(200).send(result);
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
+    }
+});
+
+app.get('/googleDrive/oauthCallback', async function (req, res) {
+    try {
+        const state = req.query.callbackUri.split('state=')[1];
+        // add params back to callbackUri
+        const callbackUri = `${req.query.callbackUri}&code=${req.query.code}&scope=${req.query.scope}`;
+        const stateJson = JSON.parse(decodeURIComponent(state));
+        const jwtToken = stateJson.jwtToken;
+        const pluginId = stateJson.pluginId;
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const user = await UserModel.findByPk(userId);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        await googleDrivePlugin.onOAuthCallback({ user, callbackUri });
+        res.status(200).send({ pluginId });
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
+    }
+});
+
+app.get('/googleDrive/checkAuth', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!jwtToken) {
+            res.status(400).send('JWT token is required');
+            return;
+        }
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const result = await googleDrivePlugin.checkAuth({ userId });
+        res.status(200).send(result);
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
+    }
+});
+
+app.post('/googleDrive/logout', async function (req, res) {
+    try {
+        const jwtToken = req.body.jwtToken;
+        if (!jwtToken) {
+            res.status(400).send('JWT token is required');
+            return;
+        }
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const result = await googleDrivePlugin.logout({ userId });
+        res.status(200).send(result);
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
+    }
+});
+
+// // Internal-only: manually trigger Bullhorn monthly report w/ Salesforce data
+// app.get('/internal/bullhorn/monthly-salesforce-report', async function (req, res) {
+//     try {
+
+//         //await bullhorn.generateMontlyCsvReportWithSalesforceData();
+//         await bullhornReport.sendMonthlyCsvReportByEmailWithSalesforceData();
+//         console.log({message:'Bullhorn Salesforce monthly report generated successfully'});
+//         res.status(200).send({ ok: true });
+//     }
+//     catch (e) {
+//         logger.error('Failed to generate Bullhorn Salesforce monthly report', { stack: e.stack });
+//         res.status(500).send({ ok: false, error: e && e.message ? e.message : 'Unknown error' });
+//     }
+// });
+
+exports.getServer = function getServer() {
+    return app;
+}
+
+export {};

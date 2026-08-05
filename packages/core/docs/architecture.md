@@ -6,7 +6,7 @@ Its job is to expose a stable HTTP surface, persist shared state, and delegate C
 
 ## Main Entry Points
 
-`index.js` exports the package assembly surface:
+`index.ts` exports the package assembly surface:
 
 | Export | Purpose |
 | --- | --- |
@@ -20,12 +20,13 @@ Its job is to expose a stable HTTP surface, persist shared state, and delegate C
 
 ## Runtime Responsibilities
 
-`index.js` owns the framework assembly:
+`index.ts` owns the framework assembly:
 
 - configures local DynamoDB support when `DYNAMODB_LOCALHOST` is set
 - installs an axios interceptor in local-style environments
 - syncs Sequelize models on startup unless `DISABLE_SYNC_DB_TABLE` or `skipDatabaseInit` disables it
 - adds the `hashedRcExtensionId` column to `users` if an older schema is missing it
+- migrates `callLogs` to include `hashedExtensionId` in the local call-log identity key when an older schema is missing it
 - mounts all shared HTTP routes
 - exposes dev-only mock routes when `IS_PROD === 'false'`
 
@@ -35,7 +36,7 @@ The non-MCP request path is:
 
 1. Express receives a request through `createCoreApp()` or `createCoreRouter()`.
 2. Core middleware parses JSON or XML and applies CORS defaults.
-3. Route handlers in `index.js` decode JWTs, gather analytics metadata, and call a shared handler.
+3. Route handlers in `index.ts` decode JWTs, gather analytics metadata, and call a shared handler.
 4. Handlers load the current user and connector, refresh auth if needed, and call the connector operation.
 5. Models persist linkage data such as user sessions, call log ids, cached account data, and plugin task state.
 6. Libraries compose payloads, normalize errors, emit analytics, and handle logging.
@@ -68,12 +69,12 @@ There are two storage styles in this package:
 
 Several concerns are applied in multiple modules:
 
-- OAuth refresh via `lib/oauth.js`
-- RingCentral admin and reporting helpers via `lib/ringcentral.js`
-- response-safe error shaping via `lib/errorHandler.js`
-- analytics events via `lib/analytics.js`
-- opt-in debug traces via `lib/debugTracer.js`
-- structured server logging via `lib/logger.js`
+- OAuth refresh via `lib/oauth.ts`
+- RingCentral admin and reporting helpers via `lib/ringcentral.ts`
+- response-safe error shaping via `lib/errorHandler.ts`
+- analytics events via `lib/analytics.ts`
+- opt-in debug traces via `lib/debugTracer.ts`
+- structured server logging via `lib/logger.ts`
 
 ## Important Environment Variables
 
@@ -91,3 +92,4 @@ Several concerns are applied in multiple modules:
 | `RINGCENTRAL_SERVER` | Used by RingCentral OAuth and reporting helpers |
 | `RINGCENTRAL_CLIENT_ID` | Used by RingCentral OAuth and reporting helpers |
 | `RINGCENTRAL_CLIENT_SECRET` | Used by RingCentral OAuth and reporting helpers |
+| `RINGCENTRAL_MCP_CLIENT_ID` | Public RingCentral OAuth client ID used by MCP clients with PKCE; no client secret is exposed |

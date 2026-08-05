@@ -35,9 +35,9 @@ cd my-crm-connector
 
 The generated server includes:
 
-- `src/app.js`, which registers the connector and creates the core Express app
-- `src/connectors/myCRM.js`, which exports the connector interface functions
-- `src/connectors/interfaces/*.js`, starter implementations backed by mock JSON files
+- `src/app.ts`, which registers the connector and creates the core Express app
+- `src/connectors/myCRM.ts`, which exports the connector interface functions
+- `src/connectors/interfaces/*.ts`, starter implementations backed by mock JSON files
 - `.env.test`, a local environment example
 
 If dependencies were not installed automatically:
@@ -99,7 +99,7 @@ The template uses mock JSON files, so the first lookup may not find a contact. A
 
 ## 6. Replace The Mock Logic
 
-Update the connector interfaces under `src/connectors/interfaces/` or replace `src/connectors/myCRM.js` with your own implementation.
+Update the connector interfaces under `src/connectors/interfaces/` or replace `src/connectors/myCRM.ts` with your own implementation.
 
 Implement at least:
 

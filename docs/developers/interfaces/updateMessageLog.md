@@ -60,6 +60,6 @@ Core uses `existingMessageLog.thirdPartyLogId`; you do not need to return the CR
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/updateMessageLog.js"
+    --8<-- "packages/template/src/connectors/interfaces/updateMessageLog.ts"
     ```
 

@@ -55,6 +55,6 @@ Connectors can ignore fields they do not need. Regional connectors commonly use 
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/getOauthInfo.js"
+    --8<-- "packages/template/src/connectors/interfaces/getOauthInfo.ts"
     ```
 

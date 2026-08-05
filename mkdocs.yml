@@ -12,10 +12,13 @@ not_in_nav: |
   crm/agencyzoom/gate6.md
   crm/agencyzoom/aa.md
   users/calldown-lists.md
+  operations/index.md
+  operations/dependency-security-todo.md
 
 theme:
   name: material
   logo: img/RingCentral_logo_color.png
+  favicon: img/favicon-32x32.png
   custom_dir: overrides
   font:
     text: Inter Tight
@@ -55,10 +58,22 @@ plugins:
         - crm/jobadder.md
         - solutions/solutions-footer.md
         - build.md
+        - developers/crm-server-openapi.json
+  - openapi:
+      suppress_tag_overview: true
+      suppress_method_badges: true
+      specs:
+        server:
+          source: developers/crm-server-openapi-public.json
+          output_dir: developers/server-api
+        plugin-server:
+          source: developers/plugin-server-openapi.json
+          output_dir: developers/plugin-server-api
   - print-site
 
 hooks:
   - scripts/mkdocs/hooks/shortcodes.py
+  - scripts/mkdocs/hooks/openapi_downloads.py
 
 extra:
   social:
@@ -99,11 +114,14 @@ nav:
   - 'AgencyZoom': crm/agencyzoom/index.md
   - 'Bullhorn': crm/bullhorn.md
   - 'Clio': crm/clio.md
+  - 'ConnectWise': crm/connectwise.md
   - 'Freshdesk': crm/freshdesk.md
   - 'GoHighLevel': crm/gohighlevel.md
   - 'Google Sheets': crm/google-sheets.md
   - 'Insightly': crm/insightly.md
+  - 'monday.com': crm/monday.md
   - 'NetSuite': crm/netsuite.md
+  - 'Odoo': crm/odoo.md
   - 'Pipedrive': crm/pipedrive.md
   - 'Redtail CRM': crm/redtail.md
   - 'ServiceNow': crm/servicenow.md
@@ -127,6 +145,8 @@ nav:
     - 'New CRMs':
 #      - 'JobAdder': crm/jobadder.md
       - 'AgencyZoom': crm/agencyzoom/index.md
+      - 'monday.com': crm/monday.md
+      - 'Odoo': crm/odoo.md
       - 'ServiceTitan': crm/servicetitan.md
       - 'Smokeball': crm/smokeball.md
       - 'Zoho': crm/zoho.md
@@ -164,6 +184,7 @@ nav:
     - 'Phone number formats': users/phone-number-formats.md
     - 'Preferred device': users/preferred-device.md
     - 'Region': users/region.md
+    - 'Language and localization': users/localization.md
     - 'Appearance': users/appearance-setting.md
     - 'Advanced options':
       - 'Developer options': users/developer-options.md
@@ -175,6 +196,7 @@ nav:
   - 'Is your CRM compatible?': developers/proprietary-crm.md
   - 'Plugins':
     - 'Getting started': developers/plugins/index.md
+    - 'API reference': developers/plugin-server-openapi.json
 
   - 'Connectors': 
     - 'Getting started': developers/getting-started.md
@@ -235,18 +257,16 @@ nav:
         - 'getServerLoggingSettings': developers/interfaces/getServerLoggingSettings.md
         - 'updateServerLoggingSettings': developers/interfaces/updateServerLoggingSettings.md
         - 'postSaveUserInfo': developers/interfaces/postSaveUserInfo.md
+    - 'API reference': developers/crm-server-openapi-public.json
 
-- 'MCP':
-  - 'Available tools': mcp/index.md
-  - 'LLMs':
-    - 'ChatGPT': mcp/chatgpt.md
-    - 'Claude': mcp/claude.md
-    - 'Codex': mcp/codex.md
-    - 'Cursor': mcp/cursor.md
-    - 'Gemini': mcp/gemini.md
+- 'MCP': https://mcp.labs.ringcentral.com/docs/servers/app-connect/
 
 - 'Support':
-  - 'Troubleshooting': support.md
+  - 'Getting help': support.md
+  - 'Knowledge base':
+    - 'No "Connect" button visible': troubleshooting/no-connect-button.md
+    - 'Contact not found during call lookup': troubleshooting/contact-not-found.md
+    - 'Calls stuck in "Pending" or "preparing data..."': troubleshooting/calls-stuck-pending.md
   - 'Submitting bug reports': collect-logs.md
   - 'Build a CRM connector':
     - 'Overview': build/index.md

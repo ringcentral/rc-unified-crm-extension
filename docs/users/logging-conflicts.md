@@ -63,6 +63,7 @@ When multiple contacts are matched, users can select a policy by which one of th
 
 * Select the last updated contact record
 * Select the first contact in alphabetical order
+* Select the earliest created contact record
 
 <figure markdown>
   ![Logging calls](../img/auto-logging-policies.png)

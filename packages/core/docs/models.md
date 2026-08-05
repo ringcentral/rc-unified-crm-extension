@@ -4,11 +4,11 @@ The package uses Sequelize for durable application data and Dynamoose for select
 
 ## Sequelize Models
 
-### `models/sequelize.js`
+### `models/sequelize.ts`
 
-Creates the shared Sequelize instance from `DATABASE_URL`.
+Creates the shared Sequelize instance from `DATABASE_URL`. SQLite URLs use the SQLite dialect. Postgres URLs use the Postgres dialect, with SSL disabled for localhost database hosts and enabled for other hosts unless `DATABASE_SSL` is set.
 
-### `models/userModel.js`
+### `models/userModel.ts`
 
 Stores CRM-authenticated users.
 
@@ -27,7 +27,7 @@ Stores CRM-authenticated users.
 | `hashedRcExtensionId` | Hashed RingCentral extension id |
 | `userSettings` | Per-user settings JSON |
 
-### `models/callLogModel.js`
+### `models/callLogModel.ts`
 
 Stores the mapping between telephony sessions and CRM call logs.
 
@@ -35,12 +35,14 @@ Stores the mapping between telephony sessions and CRM call logs.
 | --- | --- |
 | `id` | Telephony call id |
 | `sessionId` | Session id; also part of the composite primary key |
+| `extensionNumber` | Legacy RingCentral extension number identity; part of the composite primary key |
+| `hashedExtensionId` | Hashed RingCentral extension id used for current call-log identity; part of the composite primary key |
 | `platform` | Connector platform |
 | `thirdPartyLogId` | CRM log id |
 | `userId` | App Connect user id |
 | `contactId` | CRM contact id used for the log |
 
-### `models/messageLogModel.js`
+### `models/messageLogModel.ts`
 
 Stores message-log linkage records.
 
@@ -53,7 +55,7 @@ Stores message-log linkage records.
 | `thirdPartyLogId` | CRM log id |
 | `userId` | App Connect user id |
 
-### `models/adminConfigModel.js`
+### `models/adminConfigModel.ts`
 
 Stores account-level admin configuration.
 
@@ -67,7 +69,7 @@ Stores account-level admin configuration.
 | `adminTokenExpiry` | Admin token expiry |
 | `userMappings` | JSON mapping between CRM users and RingCentral extensions |
 
-### `models/cacheModel.js`
+### `models/cacheModel.ts`
 
 Stores temporary task state, mainly for async plugin work.
 
@@ -80,7 +82,7 @@ Stores temporary task state, mainly for async plugin work.
 | `data` | Optional task payload. Async plugin tasks keep callback URL, plugin id, call-log lookup fields, original plugin input, and failure `message` when a callback fails. |
 | `expiry` | Cleanup cutoff. Async plugin callback tasks expire after one week. |
 
-### `models/accountDataModel.js`
+### `models/accountDataModel.ts`
 
 Stores account-scoped cached data.
 
@@ -98,7 +100,7 @@ Helper export:
 
 - `getOrRefreshAccountData()` which returns cached data unless `forceRefresh` is set
 
-### `models/callDownListModel.js`
+### `models/callDownListModel.ts`
 
 Stores user-owned call-down queue items.
 
@@ -114,13 +116,13 @@ Stores user-owned call-down queue items.
 
 This model enables timestamps and indexes on `userId`, `status`, `scheduledAt`, and `userId + status`.
 
-### `models/llmSessionModel.js`
+### `models/llmSessionModel.ts`
 
 Stores a lightweight mapping from an LLM session id to a JWT token.
 
 ## Dynamoose Models
 
-### `models/dynamo/connectorSchema.js`
+### `models/dynamo/connectorSchema.ts`
 
 Stores connector metadata used by proxy integrations.
 
@@ -130,15 +132,15 @@ Important role:
 
 This schema is a dependency of auth, contact, log, admin, and proxy connector flows.
 
-### `models/dynamo/lockSchema.js`
+### `models/dynamo/lockSchema.ts`
 
 Stores distributed lock state used by token refresh and similar coordination logic.
 
-### `models/dynamo/noteCacheSchema.js`
+### `models/dynamo/noteCacheSchema.ts`
 
 Stores note cache entries keyed by `sessionId`.
 
 Main usage:
 
-- `handlers/log.js` can read cached notes during server-side call logging
+- `handlers/log.ts` can read cached notes during server-side call logging
 - `saveNoteCache()` writes entries with a TTL

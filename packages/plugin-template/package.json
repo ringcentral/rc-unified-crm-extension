@@ -2,12 +2,14 @@
   "name": "@app-connect/plugin-template",
   "version": "1.0.0",
   "description": "Minimal plugin template for RingCentral App Connect",
-  "main": "src/server.js",
+  "main": "dist/server.js",
   "private": true,
   "scripts": {
-    "start": "node src/server.js",
-    "prod": "node src/server.js",
-    "dev": "node src/server.js"
+    "start": "npm run prod",
+    "prod": "npm run build && node dist/server.js",
+    "dev": "npm run build && node dist/server.js",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json"
   },
   "dependencies": {
     "axios": "^1.8.1",
@@ -16,6 +18,10 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "serverless-http": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.6.3"
   },
   "keywords": [
     "ringcentral",

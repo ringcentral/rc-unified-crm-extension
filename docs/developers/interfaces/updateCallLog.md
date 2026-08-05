@@ -11,6 +11,8 @@ async function updateCallLog({
   authHeader,
   recordingLink,
   recordingDownloadLink,
+  voicemailLink,
+  voicemailMessageId,
   subject,
   note,
   startTime,
@@ -51,6 +53,8 @@ async function updateCallLog({
 | `authHeader` | Prepared CRM auth header. |
 | `recordingLink` | View/listen link for the recording when available. |
 | `recordingDownloadLink` | Download link when the caller supplied one. |
+| `voicemailLink` | RingCentral Media Reader link for the voicemail linked to the call, when available. |
+| `voicemailMessageId` | ID of the linked RingCentral voicemail Message Store record, when available. |
 | `subject`, `note` | Latest user-editable log fields. |
 | `startTime`, `duration`, `result`, `legs` | Finalized RingCentral call details. |
 | `aiNote`, `transcript` | Smart Notes/AI summary and transcript when available. |
@@ -81,6 +85,6 @@ Users may edit the CRM activity directly after `createCallLog` and before a late
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/updateCallLog.js"
+    --8<-- "packages/template/src/connectors/interfaces/updateCallLog.ts"
     ```
 

@@ -8,30 +8,30 @@ The MCP (Model Context Protocol) module provides an AI assistant interface for t
 
 ```
 packages/core/mcp/
-├── mcpHandler.js          # Main MCP server handler + WIDGET_VERSION constant
+├── mcpHandler.ts          # Main MCP server handler + WIDGET_VERSION constant
 ├── lib/
-│   └── validator.js       # Connector manifest validation
+│   └── validator.ts       # Connector manifest validation
 ├── tools/                 # MCP tool implementations
-│   ├── index.js           # Tool registry (tools + widgetTools)
-│   ├── getHelp.js         # Help/onboarding tool
-│   ├── getPublicConnectors.js  # Triggers widget, resolves RC account ID + rcExtensionId + openaiSessionId
-│   ├── doAuth.js          # OAuth session creation (widget-only)
-│   ├── checkAuthStatus.js # Poll OAuth status (widget-only)
-│   ├── logout.js          # Logout from CRM
-│   ├── findContactByPhone.js  # Search contact by phone
-│   ├── findContactByName.js   # Search contact by name
-│   ├── createContact.js   # Create new contact
-│   ├── createCallLog.js   # Create call log entry
-│   ├── rcGetCallLogs.js   # Fetch RingCentral call logs
-│   ├── listAppointments.js    # List appointments (upcoming/today/past/all/custom)
-│   ├── createAppointment.js   # Create a new appointment/event
-│   ├── updateAppointment.js   # Update/reschedule an appointment/event
-│   ├── confirmAppointment.js  # Confirm an appointment/event
-│   ├── cancelAppointment.js   # Cancel an appointment/event
-│   ├── getGoogleFilePicker.js # Google Sheets picker (disabled)
-│   ├── getCallLog.js      # Get call log (disabled)
-│   ├── updateCallLog.js   # Update call log (disabled)
-│   └── createMessageLog.js # Create message log (disabled)
+│   ├── index.ts           # Tool registry (tools + widgetTools)
+│   ├── getHelp.ts         # Help/onboarding tool
+│   ├── getPublicConnectors.ts  # Triggers widget, resolves RC account ID + rcExtensionId + openaiSessionId
+│   ├── doAuth.ts          # OAuth session creation (widget-only)
+│   ├── checkAuthStatus.ts # Poll OAuth status (widget-only)
+│   ├── logout.ts          # Logout from CRM
+│   ├── findContactByPhone.ts  # Search contact by phone
+│   ├── findContactByName.ts   # Search contact by name
+│   ├── createContact.ts   # Create new contact
+│   ├── createCallLog.ts   # Create call log entry
+│   ├── rcGetCallLogs.ts   # Fetch RingCentral call logs
+│   ├── listAppointments.ts    # List appointments (upcoming/today/past/all/custom)
+│   ├── createAppointment.ts   # Create a new appointment/event
+│   ├── updateAppointment.ts   # Update/reschedule an appointment/event
+│   ├── confirmAppointment.ts  # Confirm an appointment/event
+│   ├── cancelAppointment.ts   # Cancel an appointment/event
+│   ├── getGoogleFilePicker.ts # Google Sheets picker (disabled)
+│   ├── getCallLog.ts      # Get call log (disabled)
+│   ├── updateCallLog.ts   # Update call log (disabled)
+│   └── createMessageLog.ts # Create message log (disabled)
 └── ui/                    # ChatGPT Widget UI
     ├── index.html         # Entry HTML
     ├── package.json       # UI dependencies
@@ -55,7 +55,7 @@ packages/core/mcp/
 
 ## Core Components
 
-### MCP Handler (`mcpHandler.js`)
+### MCP Handler (`mcpHandler.ts`)
 
 A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no SSE, no in-memory sessions. Each POST request is handled independently, making it fully compatible with stateless deployments like AWS Lambda.
 
@@ -70,7 +70,7 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 - Stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']` at response time
 - Returns `structuredContent` for schema-bearing tool calls and includes serialized JSON text content for backwards compatibility
 - Serves the widget HTML via `resources/read`
-- Exposes `handleWidgetToolCall` which searches both `tools.tools` and `tools.widgetTools`
+- Exposes `handleWidgetToolCall`, which verifies the signed widget session token and dispatches only `tools.widgetTools`
 
 **Request Flow:**
 1. Receives `POST /mcp` with a JSON-RPC body
@@ -82,22 +82,22 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 
 ### Widget Version Management
 
-`WIDGET_VERSION` in `mcpHandler.js` is the **only place** that needs to change when bumping the widget version:
+`WIDGET_VERSION` in `mcpHandler.ts` is the **only place** that needs to change when bumping the widget version:
 
 ```js
-// mcpHandler.js
+// mcpHandler.ts
 const WIDGET_VERSION = 6;
 const WIDGET_URI = `ui://widget/ConnectorList-v${WIDGET_VERSION}.html`;
 ```
 
-At registration time, `mcpHandler.js` stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']`. `getPublicConnectors.js` itself does **not** contain a version number.
+At registration time, `mcpHandler.ts` stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']`. `getPublicConnectors.ts` itself does **not** contain a version number.
 
 **To deploy a new widget build:**
 1. Rebuild the widget: `cd packages/core/mcp/ui && npm run build`
-2. Increment `WIDGET_VERSION` in `mcpHandler.js`
+2. Increment `WIDGET_VERSION` in `mcpHandler.ts`
 3. Restart the server
 
-### Manifest Validator (`lib/validator.js`)
+### Manifest Validator (`lib/validator.ts`)
 
 Validates connector manifest structures before authentication operations.
 
@@ -105,7 +105,7 @@ Validates connector manifest structures before authentication operations.
 
 ### Tool Registry
 
-Tools are split into two registries in `tools/index.js`:
+Tools are split into two registries in `tools/index.ts`:
 
 | Registry | Purpose |
 |----------|---------|
@@ -114,7 +114,7 @@ Tools are split into two registries in `tools/index.js`:
 
 ### Argument Handling
 
-`mcpHandler.js` automatically injects server-side values into every tool's args before calling `execute()`:
+`mcpHandler.ts` automatically injects server-side values into every tool's args before calling `execute()`:
 
 | Injected arg | Source | Purpose |
 |---|---|---|
@@ -127,11 +127,11 @@ Tools do **not** need ChatGPT to pass `jwtToken` explicitly — it is resolved f
 
 New or refreshed LLM session JWTs are written only when the user record has an `accessToken`, so disconnected users are not issued a new tool JWT.
 
-Note: `widgetTools` are called via `POST /mcp/widget-tool-call` which bypasses the MCP session layer entirely. No server-side injection occurs for widget tool calls — all required values must be passed explicitly by the widget in the request body.
+Note: `widgetTools` are called via `POST /mcp/widget-tool-call`. The widget must send the short-lived `X-App-Connect-Widget-Token` issued by `getPublicConnectors`; `mcpHandler.ts` verifies that token and injects `rcExtensionId` / `openaiSessionId` into widget tool args. Widget request bodies are not trusted for identity.
 
 ### Output Handling
 
-`tools/list` includes an `outputSchema` for every AI-visible MCP tool. For `tools/call`, `mcpHandler.js` converts each tool's returned object into MCP `structuredContent` and also returns the same payload as serialized JSON in a text content block for clients that still read only `content`.
+`tools/list` includes an `outputSchema` for every AI-visible MCP tool. For `tools/call`, `mcpHandler.ts` converts each tool's returned object into MCP `structuredContent` and also returns the same payload as serialized JSON in a text content block for clients that still read only `content`.
 
 Tools that return `{ success: false, ... }` are surfaced as regular MCP tool results with `isError: true`, so the model can see the error payload and self-correct.
 
@@ -154,7 +154,7 @@ Triggers the interactive connector selection widget. The widget fetches the conn
 | Read-only | Yes |
 | Parameters | None (server injects `rcAccessToken` and `openaiSessionId`) |
 | Returns | `structuredContent` with `serverUrl`, `rcAccountId`, `rcExtensionId`, and `openaiSessionId` |
-| Widget | `ui://widget/ConnectorList-v{WIDGET_VERSION}.html` (versioned by `mcpHandler.js`) |
+| Widget | `ui://widget/ConnectorList-v{WIDGET_VERSION}.html` (versioned by `mcpHandler.ts`) |
 
 #### `logout`
 Logs out user from the CRM platform.
@@ -208,9 +208,9 @@ Polls the OAuth session status. Called exclusively by the widget during the OAut
 
 | Property | Value |
 |----------|-------|
-| Parameters | `sessionId`, `rcExtensionId?` (passed by widget from `getPublicConnectors` structuredContent) |
+| Parameters | `sessionId`; `rcExtensionId` is injected from the signed widget session token |
 | Returns | `{ data: { status, ... } }` for all states |
-| On Success | `data.jwtToken` and `data.userInfo` included; JWT stored in `LlmSessionModel` keyed by `rcExtensionId` |
+| On Success | `data.userInfo` included; JWT stored server-side in `LlmSessionModel` keyed by verified `rcExtensionId` and not returned to the widget |
 | Statuses | `pending` · `completed` · `failed` — all return consistent `{ data: { status } }` for reliable widget parsing |
 
 ## ChatGPT Widget UI
@@ -234,7 +234,7 @@ The UI module provides a single interactive widget that drives the full authenti
 | `ui/notifications/tool-result` postMessage | MCP Apps bridge notification |
 | Polling `window.openai.toolOutput` | Fallback for async population |
 
-The initial payload is `{ serverUrl, rcAccountId, rcExtensionId, openaiSessionId }`.
+The initial payload is `{ serverUrl, rcAccountId, rcExtensionId, openaiSessionId, widgetSessionToken }`. `widgetSessionToken` is short-lived and sent only as the `X-App-Connect-Widget-Token` header for widget tool calls.
 
 **2. Fetching connectors and manifests** — via direct `fetch()` to `appconnect.labs.ringcentral.com`:
 
@@ -251,10 +251,10 @@ const manifest   = await fetchManifest(connector.id, isPrivate, rcAccountId)
 import { callTool } from './lib/callTool'
 
 const result = await callTool('doAuth', { sessionId, connectorName, hostname })
-const status = await callTool('checkAuthStatus', { sessionId, rcExtensionId })
+const status = await callTool('checkAuthStatus', { sessionId })
 ```
 
-`window.openai.callTool()` is **intentionally not used** for widget tool calls. Direct `fetch()` to `/mcp/widget-tool-call` forwards all arguments correctly and works for both `doAuth` and `checkAuthStatus`.
+`window.openai.callTool()` is **intentionally not used** for widget tool calls. Direct `fetch()` to `/mcp/widget-tool-call` forwards all arguments correctly and works for both `doAuth` and `checkAuthStatus`. `callTool()` adds the signed widget session token header automatically.
 
 ### Widget Auth Flow
 
@@ -271,7 +271,7 @@ loadingConnectors → select → loading → authInfo (if dynamic/selectable env
 | `select` | `ConnectorList` | Displays available connectors |
 | `loading` | (spinner) | Shown while manifest is being fetched |
 | `authInfo` | `AuthInfoForm` | Collects hostname (dynamic) or environment (selectable). Resolved locally — no server call |
-| `oauth` | `OAuthConnect` | Uses `openaiSessionId` as the OAuth session ID (falls back to `crypto.randomUUID()`). Generates the OAuth URL client-side, calls `doAuth` in background to register the session in the DB, then shows "Authorize" button. After click, polls `checkAuthStatus` every 5 seconds via direct fetch |
+| `oauth` | `OAuthConnect` | Uses `openaiSessionId` as the OAuth session ID (falls back to `crypto.randomUUID()`). Generates the OAuth URL client-side, calls `doAuth` in background with the signed widget token to register the session in the DB, then shows "Authorize" button. After click, polls `checkAuthStatus` every 5 seconds via direct fetch |
 | `success` | `AuthSuccess` | Shows connected CRM name and user info |
 | `error` | (inline) | Shows error with "Back to connector list" link |
 
@@ -284,7 +284,7 @@ Displays available CRM connectors with public/private badges. On selection, dele
 Form for environment info collection. Handles `dynamic` (text input) and `selectable` (button list) environment types. Hostname resolution happens inline in `App.tsx`.
 
 #### OAuthConnect
-Handles the full OAuth step. Uses `openaiSessionId` (from the initial tool output) as the session ID so the OAuth callback can be correlated with the ChatGPT conversation — falls back to `crypto.randomUUID()` when running outside ChatGPT. Calls `doAuth` in the background, shows an "Authorize in [CRM]" button (disabled until session is created), then polls `checkAuthStatus` every 5 seconds via `callTool()` (direct fetch). On success, fires `updateModelContext` to push the jwtToken into ChatGPT's context, then calls `onSuccess`.
+Handles the full OAuth step. Uses `openaiSessionId` (from the initial tool output) as the session ID so the OAuth callback can be correlated with the ChatGPT conversation — falls back to `crypto.randomUUID()` when running outside ChatGPT. Calls `doAuth` in the background, shows an "Authorize in [CRM]" button (disabled until session is created), then polls `checkAuthStatus` every 5 seconds via `callTool()` (direct fetch). On success, fires `updateModelContext` with a non-secret connected-session message, then calls `onSuccess`.
 
 #### AuthSuccess
 Success banner showing the connected CRM name and optional user info.
@@ -317,7 +317,7 @@ cd packages/core/mcp/ui
 npm run dev
 ```
 
-**Cache busting after a build:** Increment `WIDGET_VERSION` in `mcpHandler.js` and restart the server. That is the only file that needs to change — `getPublicConnectors.js` and the README do not contain a version number.
+**Cache busting after a build:** Increment `WIDGET_VERSION` in `mcpHandler.ts` and restart the server. That is the only file that needs to change — `getPublicConnectors.ts` and the README do not contain a version number.
 
 ## API Integration
 
@@ -327,10 +327,24 @@ npm run dev
 |----------|---------|
 | `POST /mcp` | Full MCP protocol endpoint for AI assistants (ChatGPT, etc.) |
 | `POST /mcp/widget-tool-call` | Lightweight direct tool call for the widget iframe (bypasses MCP session protocol) |
+| `GET /.well-known/oauth-protected-resource` | MCP protected-resource metadata |
+| `GET /.well-known/oauth-authorization-server` | MCP OAuth authorization-server metadata |
+| `POST /oauth/register` | Dynamic registration response for the MCP public RingCentral client |
+| `GET /oauth/authorize_shim` | Redirects MCP PKCE authorization requests to RingCentral after stripping unsupported params |
+
+MCP RingCentral OAuth uses `RINGCENTRAL_MCP_CLIENT_ID`, which must be a public/PKCE RingCentral OAuth client. `/oauth/register` returns that client ID plus `token_endpoint_auth_method: "none"` and never returns `RINGCENTRAL_CLIENT_SECRET`. MCP clients exchange authorization codes directly with RingCentral using their `code_verifier`.
+
+Existing MCP client sessions created before the PKCE change may still cache the old RingCentral client ID. When those sessions fail to refresh or try to authorize with the stale client ID, the server returns `mcp_oauth_reconnect_required` / `mcp_oauth_client_mismatch` guidance telling the user to disconnect or remove the App Connect MCP server from the MCP client, then add and connect it again.
 
 #### `POST /mcp/widget-tool-call`
 
 Called by the widget via `fetch()` to invoke `doAuth` and `checkAuthStatus` with full argument support.
+
+Required header:
+
+```http
+X-App-Connect-Widget-Token: <widgetSessionToken from getPublicConnectors>
+```
 
 **`doAuth` request:**
 ```json
@@ -349,8 +363,7 @@ Called by the widget via `fetch()` to invoke `doAuth` and `checkAuthStatus` with
 {
   "tool": "checkAuthStatus",
   "toolArgs": {
-    "sessionId": "<same sessionId used in doAuth>",
-    "rcExtensionId": "<from getPublicConnectors structuredContent>"
+    "sessionId": "<same sessionId used in doAuth>"
   }
 }
 ```
@@ -372,12 +385,13 @@ Currently supported for MCP integration:
 ## Security Considerations
 
 1. **JWT Tokens**: Stored server-side in `LlmSessionModel`, **keyed by `rcExtensionId`** (a cryptographically verified RingCentral identity). Tools receive the JWT via server injection — it is never sent back to ChatGPT as a visible parameter.
-2. **RC Identity Verification**: On the first tool call of each session, `mcpHandler.js` calls `GET /restapi/v1.0/extension/~` with the Bearer token from the request. If the RC token is invalid, the call throws and `rcExtensionId` remains `null`. The result is cached in `sessionContext` so at most **one RC API call** is made per conversation.
+2. **RC Identity Verification**: On the first tool call of each session, `mcpHandler.ts` calls `GET /restapi/v1.0/extension/~` with the Bearer token from the request. If the RC token is invalid, the call throws and `rcExtensionId` remains `null`. The result is cached in `sessionContext` so at most **one RC API call** is made per conversation.
 3. **Session key binding**: The sessions Map is keyed on the stable `openai/session` ID so the same `sessionContext` (and its verified `rcExtensionId`) is reused for all tool calls within a ChatGPT conversation. A session can only access credentials stored under its own verified `rcExtensionId`.
 4. **Session Management**: MCP sessions are server-side and automatically cleaned up on transport close.
-5. **OAuth Flows**: Uses secure OAuth 2.0 with server-side callback handling.
+5. **OAuth Flows**: CRM connector OAuth still uses server-side callback handling. MCP RingCentral OAuth uses a public PKCE client (`RINGCENTRAL_MCP_CLIENT_ID`), advertises `code_challenge_methods_supported: ["S256"]`, and does not expose `RINGCENTRAL_CLIENT_SECRET` to MCP clients.
 6. **RC Account ID**: Resolved server-side via RC API and passed to the widget — never requires exposing secrets to the browser.
-7. **CORS**: Widget calls `appconnect.labs.ringcentral.com` directly; the developer portal public API supports browser fetch.
+7. **Widget session token**: `getPublicConnectors` issues a short-lived signed token after RC identity resolution. `/mcp/widget-tool-call` requires that token and injects the verified `rcExtensionId`; it does not trust widget-provided identity values.
+8. **CORS**: Widget calls `appconnect.labs.ringcentral.com` directly; the developer portal public API supports browser fetch.
 
 | | Before | After |
 |---|---|---|
@@ -411,8 +425,8 @@ A typical conversation flow:
 5. **Widget**: Fetches Clio manifest → shows environment selector (US/EU/AU/CA)
 6. **User**: Selects region → widget calls `doAuth` with `openaiSessionId` as OAuth session key → shows "Authorize in Clio" button
 7. **User**: Clicks button → Clio OAuth page opens in new tab → user authorizes
-8. **Widget**: Polls `checkAuthStatus` every 5 seconds via direct fetch (passes `sessionId` + `rcExtensionId`) → "Waiting for authorization..."
-9. **Widget**: Auth completes → jwtToken stored in `LlmSessionModel[rcExtensionId]` → widget fires `updateModelContext` with jwtToken → shows success banner
+8. **Widget**: Polls `checkAuthStatus` every 5 seconds via direct fetch (passes `sessionId`; server injects `rcExtensionId` from signed token) → "Waiting for authorization..."
+9. **Widget**: Auth completes → jwtToken stored in `LlmSessionModel[rcExtensionId]` server-side → widget fires `updateModelContext` without jwtToken → shows success banner
 10. **AI**: "You're now connected! What would you like to do?"
 11. **User**: "Find contacts named Test"
 12. **AI**: Calls `findContactByName(name="Test")` — server injects jwtToken automatically using cached `rcExtensionId` as lookup key → returns results

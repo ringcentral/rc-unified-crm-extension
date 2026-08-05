@@ -5,8 +5,8 @@
   "ext": "*",
   "ignore": [
       "node_modules",
-      "src/connectors/mockContacts.json",
-      "src/connectors/mockCallLogs.json",
-      "src/connectors/mockMessageLogs.json"
+      "src/connectors/mockContacts.tson",
+      "src/connectors/mockCallLogs.tson",
+      "src/connectors/mockMessageLogs.tson"
   ]
 }

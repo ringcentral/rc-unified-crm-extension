@@ -25,7 +25,7 @@ If you have not already done so, begin by [installing App Connect](https://appco
 
 ## Setup the extension
 
-Once the extension has been installed, follow these steps to setup and configure the extension for Clio. 
+Once the extension has been installed, follow these steps to setup and configure the extension for Smokeball. 
 
 1. [Login to Smokeball AU](https://app.smokeball.com.au/).
 

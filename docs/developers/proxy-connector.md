@@ -22,7 +22,7 @@ Use a code connector when logging one call requires several dependent API calls,
 2. Auth data is saved with the App Connect user record, including `platformAdditionalInfo.proxyId`.
 3. Core loads `proxyConfig` from the connector store by `proxyId`.
 4. The proxy connector implements the same interfaces as a code connector.
-5. For each operation, `proxy/engine.js` renders URL, headers, query, and body values, performs the request with axios, and maps the response.
+5. For each operation, `proxy/engine.ts` renders URL, headers, query, and body values, performs the request with axios, and maps the response.
 
 ## Top-Level Config
 
@@ -152,9 +152,9 @@ Common variables:
 | `findContact` | `phoneNumber`, `parsedPhoneNumber.*`, `overridingFormat`, `isExtension` |
 | `createContact` | `phoneNumber`, `newContactName`, `newContactType`, `additionalSubmission.*` |
 | `findContactWithName` | `name` |
-| `createCallLog` | `contactInfo.*`, `callLog.*`, `subject`, `startTime`, `endTime`, `note`, `additionalSubmission.*`, `aiNote`, `transcript`, `composedLogDetails`, `hashedAccountId`, `isFromSSCL`, ACE/RingSense fields |
+| `createCallLog` | `contactInfo.*`, `callLog.*`, `subject`, `startTime`, `endTime`, `note`, `additionalSubmission.*`, `aiNote`, `transcript`, `voicemailLink`, `voicemailMessageId`, `composedLogDetails`, `hashedAccountId`, `isFromSSCL`, ACE/RingSense fields |
 | `getCallLog` | `thirdPartyLogId`, `contactId` |
-| `updateCallLog` | `thirdPartyLogId`, `existingCallLog`, `recordingLink`, `recordingDownloadLink`, `subject`, `note`, `startTime`, `endTime`, `duration`, `result`, `legs`, `additionalSubmission.*`, `composedLogDetails`, `existingCallLogDetails`, ACE/RingSense fields |
+| `updateCallLog` | `thirdPartyLogId`, `existingCallLog`, `recordingLink`, `recordingDownloadLink`, `voicemailLink`, `voicemailMessageId`, `subject`, `note`, `startTime`, `endTime`, `duration`, `result`, `legs`, `additionalSubmission.*`, `composedLogDetails`, `existingCallLogDetails`, ACE/RingSense fields |
 | `upsertCallDisposition` | `thirdPartyLogId`, `existingCallLog`, `dispositions.*` |
 | `createMessageLog` | `contactInfo.*`, `message.*`, `creationTime`, `additionalSubmission.*`, `recordingLink`, `faxDocLink`, `faxDownloadLink`, `imageLink`, `videoLink` |
 | `updateMessageLog` | `thirdPartyLogId`, `existingMessageLog`, `message.*`, `creationTime`, `additionalSubmission.*`, `imageLink`, `videoLink` |
@@ -198,12 +198,17 @@ Proxy mode saves `platformAdditionalInfo` after removing any `password` field fr
       "typePath": "type",
       "titlePath": "title",
       "companyPath": "company",
+      "createdDatePath": "created_at",
       "mostRecentActivityDatePath": "updated_at",
       "additionalInfoPath": "additionalInfo"
     }
   }
 }
 ```
+
+`createdDatePath` should map to the CRM record creation timestamp. Auto logging needs it when users choose the "earliest created contact" resolver for multiple contact matches.
+
+Prefer ISO 8601 values with a timezone, such as `2024-01-01T00:00:00Z`. The client also accepts Unix timestamps in seconds, milliseconds, microseconds, or nanoseconds; numeric timestamp strings; `YYYY-MM-DD HH:mm:ss`; date-only `YYYY-MM-DD`; compact `YYYYMMDD` or `YYYYMMDDHHmmss`; RFC-style named dates; and `.NET /Date(1704067200000)/` values. Ambiguous slash formats such as `01/02/2024` are intentionally rejected.
 
 ### createContact
 
@@ -307,7 +312,8 @@ Proxy mode saves `platformAdditionalInfo` after removing any `password` field fr
           "idPath": "id",
           "namePath": "name",
           "phonePath": "phone",
-          "typePath": "type"
+          "typePath": "type",
+          "createdDatePath": "created_at"
         }
       }
     },

@@ -74,5 +74,5 @@ When `successful` is false, return `returnMessage` so the client can tell the us
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/getUserInfo.js"
+    --8<-- "packages/template/src/connectors/interfaces/getUserInfo.ts"
     ```

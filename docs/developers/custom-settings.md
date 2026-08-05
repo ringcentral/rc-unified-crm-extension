@@ -19,6 +19,30 @@ Connector settings live in `platforms.<crmName>.settings[]`. They appear in App 
 
 Each section groups related setting items.
 
+Sections are visible to end users by default. Set `visibleToUsers` to `false` when the section should be hidden from the end-user settings page but still remain available in admin managed settings and runtime configuration:
+
+```json
+{
+  "settings": [
+    {
+      "id": "mondayOptions",
+      "type": "section",
+      "name": "Monday options",
+      "visibleToUsers": false,
+      "items": [
+        {
+          "id": "contactBoardId",
+          "type": "inputField",
+          "name": "Contact board ID"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Use this for account-level setup values that admins configure for users, such as board IDs or workspace IDs that users should not edit directly.
+
 ## Setting Types
 
 ### Input Field
@@ -99,6 +123,19 @@ const value = user.userSettings?.defaultBillableStatus?.value ?? 'billable';
 ```
 
 The key is the setting item `id`, not the section `id`.
+
+## Using Settings In URL Templates
+
+The same setting item `id` can be used as a token in CRM URL templates:
+
+```json
+{
+  "contactPageUrl": "https://{hostname}/boards/{contactBoardId}/pulses/{contactId}",
+  "logPageUrl": "https://{hostname}/boards/{contactBoardId}/pulses/{logId}"
+}
+```
+
+At runtime, `{contactBoardId}` is resolved from `userSettings.contactBoardId.value` after admin and user settings have been merged. See [URL template tokens](manifest.md#url-template-tokens) for the full token list and precedence rules.
 
 ## Admin Managed Settings
 

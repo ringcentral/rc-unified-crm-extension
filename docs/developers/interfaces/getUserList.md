@@ -48,6 +48,6 @@ Core auto-matches CRM users to RingCentral extensions by email or name. Admins c
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/getUserList.js"
+    --8<-- "packages/template/src/connectors/interfaces/getUserList.ts"
     ```
 

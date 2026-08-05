@@ -36,9 +36,9 @@ The server will start on `http://localhost:6066` (or the port specified in your 
 
 The template follows a modular structure:
 
-- **`src/app.js`**: Main application setup with core functionality and custom routes
-- **`src/server.js`**: Server entry point for local development
-- **`src/lambda.js`**: Lambda function entry point for serverless deployment
+- **`src/app.ts`**: Main application setup with core functionality and custom routes
+- **`src/server.ts`**: Server entry point for local development
+- **`src/lambda.ts`**: Lambda function entry point for serverless deployment
 - **`src/connectors/`**: CRM connector implementations and manifests
 - **`scripts/`**: Utility scripts for setup and deployment
 - **`test/`**: Test files organized by component
@@ -55,7 +55,7 @@ The template follows a modular structure:
 Add your custom routes directly to the app after creating it:
 
 ```javascript
-// path: /src/app.js
+// path: /src/app.ts
 const app = createCoreApp();
 
 // Add your custom routes

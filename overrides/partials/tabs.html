@@ -1,0 +1,19 @@
+{#-
+  Custom override of mkdocs-material's partials/tabs.html.
+  Adds Admin Console / Developer Console login buttons on the same
+  row as the horizontal nav tabs, right-aligned.
+-#}
+{% import "partials/tabs-item.html" as item with context %}
+<nav class="md-tabs" aria-label="{{ lang.t('tabs') }}" data-md-component="tabs">
+  <div class="md-grid md-tabs__grid">
+    <ul class="md-tabs__list">
+      {% for nav_item in nav.items %}
+        {{ item.render(nav_item) }}
+      {% endfor %}
+    </ul>
+    <div class="md-tabs__actions">
+      <a href="https://appconnect.labs.ringcentral.com/admin/" class="md-tabs__login-btn" target="_blank" rel="noopener">Admin Console</a>
+      <a href="https://appconnect.labs.ringcentral.com/console" class="md-tabs__login-btn" target="_blank" rel="noopener">Developer Console</a>
+    </div>
+  </div>
+</nav>

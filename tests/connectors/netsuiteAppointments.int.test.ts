@@ -1,0 +1,807 @@
+jest.mock('axios', () => ({
+    get: jest.fn(),
+    post: jest.fn(),
+    patch: jest.fn()
+}));
+
+const axios = require('axios');
+const netsuite = require('../../src/connectors/netsuite');
+const {
+    AppointmentActionResponseSchema,
+    AppointmentCreateResponseSchema,
+    AppointmentListResponseSchema,
+    AppointmentRecordResponseSchema
+} = require('../../packages/core/contracts');
+
+describe('NetSuite appointment connector', () => {
+    const authHeader = 'Bearer netsuite-token';
+    const user = {
+        hostname: '1234567.suitetalk.api.netsuite.com',
+        timezoneOffset: '-04:00'
+    };
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    test('listAppointments returns a warning when hostname/account information is missing', async () => {
+        await expect(netsuite.listAppointments({
+            user: {
+                hostname: ''
+            },
+            authHeader
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Missing NetSuite account information.',
+                ttl: 5000
+            }
+        });
+        expect(axios.get).not.toHaveBeenCalled();
+    });
+
+    test('listAppointments fetches calendar events and normalizes appointment rows', async () => {
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        id: 1001,
+                        title: 'Discovery Call',
+                        description: '<p>Hello<br />World &amp; Team</p>',
+                        startDate: '7/20/2026',
+                        startTime: '3:00 pm',
+                        endTime: '4:30 pm',
+                        status: 'CONFIRMED',
+                        attendees: [
+                            { id: 501, name: 'Alice Client', type: 'contact' },
+                            { name: 'Missing Id' }
+                        ],
+                        attendee: {
+                            items: [
+                                { attendee: { id: 502, name: 'Bob Client', type: 'contact' } }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const result = await netsuite.listAppointments({
+            user,
+            authHeader,
+            range: {
+                startDate: '2026-07-01',
+                endDate: '2026-07-31'
+            }
+        });
+
+        expect(result).toEqual({
+            appointments: [
+                {
+                    thirdPartyAppointmentId: '1001',
+                    id: '1001',
+                    title: 'Discovery Call',
+                    description: 'Hello\nWorld & Team',
+                    startTimeUtc: '2026-07-20T19:00:00.000Z',
+                    durationMinutes: 90,
+                    status: 'CONFIRMED',
+                    contactId: '',
+                    attendees: [
+                        { id: '501', name: 'Alice Client', type: 'contact' },
+                        { id: '502', name: 'Bob Client', type: 'contact' }
+                    ]
+                }
+            ]
+        });
+        expect(() => AppointmentListResponseSchema.parse({
+            successful: true,
+            ...result
+        })).not.toThrow();
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.restlets.api.netsuite.com/app/site/hosting/restlet.nl',
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+                params: {
+                    script: 'customscript_rcfetchcalendarevents',
+                    deploy: 'customdeploy_rcfetchcalendarevents',
+                    startDate: '2026-07-01',
+                    endDate: '2026-07-31',
+                    page: 0,
+                    pageSize: 1000
+                }
+            }
+        );
+    });
+
+    test('listAppointments normalizes object status values to their ids', async () => {
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        id: 1002,
+                        title: 'Object Status Event',
+                        status: {
+                            id: 'CONFIRMED',
+                            refName: 'Confirmed'
+                        }
+                    }
+                ]
+            }
+        });
+
+        const result = await netsuite.listAppointments({
+            user,
+            authHeader
+        });
+
+        expect(result.appointments).toEqual([
+            expect.objectContaining({
+                id: '1002',
+                status: 'CONFIRMED'
+            })
+        ]);
+    });
+
+    test('createAppointment posts a calendar event, reloads it, and normalizes the result', async () => {
+        axios.post.mockResolvedValueOnce({
+            headers: {
+                location: 'https://example.com/services/rest/record/v1/calendarEvent/2002'
+            },
+            data: {}
+        });
+        axios.get.mockResolvedValueOnce({
+            data: {
+                id: 2002,
+                title: 'Created Event',
+                message: 'Created body',
+                startDate: '2026-07-20',
+                startTime: '15:00:00',
+                endTime: '15:30:00',
+                status: 'CONFIRMED',
+                attendee: {
+                    items: [
+                        { attendee: { id: 501, name: 'Alice Client', type: 'contact' } }
+                    ]
+                }
+            }
+        });
+
+        const result = await netsuite.createAppointment({
+            user,
+            authHeader,
+            payload: {
+                title: 'Created Event',
+                summary: 'Created body',
+                startTimeUtc: '2026-07-20T19:00:00.000Z',
+                durationMinutes: 30,
+                status: 'confirmed',
+                contacts: [
+                    { id: 501 },
+                    502
+                ]
+            }
+        });
+
+        expect(axios.post).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent',
+            {
+                title: 'Created Event',
+                startDate: '2026-07-20',
+                startTime: '15:00:00',
+                endTime: '15:30:00',
+                timedEvent: true,
+                message: 'Created body',
+                status: { id: 'CONFIRMED' },
+                attendee: {
+                    items: [
+                        { attendee: { id: 501 } },
+                        { attendee: { id: 502 } }
+                    ]
+                }
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/2002',
+            { headers: { Authorization: authHeader } }
+        );
+        expect(result).toMatchObject({
+            appointmentId: '2002',
+            appointment: {
+                id: '2002',
+                title: 'Created Event',
+                description: 'Created body',
+                startTimeUtc: '2026-07-20T19:00:00.000Z',
+                durationMinutes: 30,
+                status: 'CONFIRMED',
+                attendees: [
+                    { id: '501', name: 'Alice Client', type: 'contact' }
+                ]
+            }
+        });
+        expect(() => AppointmentCreateResponseSchema.parse({
+            successful: true,
+            ...result
+        })).not.toThrow();
+    });
+
+    test('createAppointment maps NetSuite error details into the warning message', async () => {
+        axios.post.mockRejectedValueOnce({
+            response: {
+                data: {
+                    'o:errorDetails': [
+                        { detail: 'Calendar permission missing' },
+                        { detail: 'Role is not allowed' }
+                    ]
+                }
+            }
+        });
+
+        await expect(netsuite.createAppointment({
+            user,
+            authHeader,
+            payload: {
+                title: 'Blocked'
+            }
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Calendar permission missing Role is not allowed',
+                ttl: 60000
+            }
+        });
+    });
+
+    test('createAppointment returns a warning when NetSuite omits the created appointment id', async () => {
+        axios.post.mockResolvedValueOnce({
+            headers: {},
+            data: {}
+        });
+
+        await expect(netsuite.createAppointment({
+            user,
+            authHeader,
+            payload: {
+                title: 'Missing Id Event',
+                startTimeUtc: '2026-07-20T19:00:00.000Z',
+                durationMinutes: 30
+            }
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'NetSuite did not return the created appointment ID.',
+                ttl: 60000
+            }
+        });
+        expect(axios.get).not.toHaveBeenCalled();
+    });
+
+    test('createAppointment accepts direct date fields and existing attendee items', async () => {
+        axios.post.mockResolvedValueOnce({
+            headers: {
+                Location: 'https://example.com/services/rest/record/v1/calendarEvent/2100'
+            },
+            data: {}
+        });
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: {
+                    id: 2100,
+                    title: 'Direct Date Event',
+                    description: 'Direct body',
+                    startDate: '2026-07-21',
+                    startTime: '09:15:00',
+                    endTime: '10:00:00',
+                    status: 'TENTATIVE'
+                }
+            }
+        });
+
+        const result = await netsuite.createAppointment({
+            user: { ...user, timezoneOffset: '+00:00' },
+            authHeader,
+            payload: {
+                title: 'Direct Date Event',
+                message: 'Direct body',
+                startDate: '2026-07-21',
+                startTime: '09:15:00',
+                endTime: '10:00:00',
+                status: { id: 'tentative' },
+                attendee: {
+                    items: [
+                        { attendee: { id: 701 } }
+                    ]
+                }
+            }
+        });
+
+        expect(axios.post).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent',
+            {
+                title: 'Direct Date Event',
+                startDate: '2026-07-21',
+                startTime: '09:15:00',
+                endTime: '10:00:00',
+                timedEvent: true,
+                message: 'Direct body',
+                status: { id: 'TENTATIVE' },
+                attendee: {
+                    items: [
+                        { attendee: { id: 701 } }
+                    ]
+                }
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(result).toMatchObject({
+            appointmentId: '2100',
+            appointment: {
+                id: '2100',
+                title: 'Direct Date Event',
+                startTimeUtc: '2026-07-21T09:15:00.000Z',
+                durationMinutes: 45,
+                status: 'TENTATIVE'
+            }
+        });
+    });
+
+    test('updateAppointment patches attendees and normalizes the updated event', async () => {
+        axios.patch.mockResolvedValueOnce({ status: 204 });
+        axios.get.mockResolvedValueOnce({
+            data: {
+                id: 3003,
+                title: 'Updated Event',
+                description: '<b>Updated body</b>',
+                status: 'TENTATIVE',
+                attendee: {
+                    items: [
+                        { attendee: { id: 601, name: 'Updated Client', type: 'contact' } }
+                    ]
+                }
+            }
+        });
+
+        const result = await netsuite.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: '3003',
+            patchBody: {
+                title: 'Updated Event',
+                summary: 'Updated body',
+                status: 'tentative',
+                contacts: [
+                    { id: 601 },
+                    { id: '' },
+                    {}
+                ]
+            }
+        });
+
+        expect(axios.patch).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3003?replace=attendee',
+            {
+                status: { id: 'TENTATIVE' },
+                message: 'Updated body',
+                title: 'Updated Event',
+                attendee: {
+                    items: [
+                        { attendee: { id: '601' } }
+                    ]
+                }
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3003',
+            { headers: { Authorization: authHeader } }
+        );
+        expect(result.appointment).toMatchObject({
+            id: '3003',
+            title: 'Updated Event',
+            description: 'Updated body',
+            status: 'TENTATIVE',
+            attendees: [
+                { id: '601', name: 'Updated Client', type: 'contact' }
+            ]
+        });
+        expect(() => AppointmentRecordResponseSchema.parse({
+            successful: true,
+            appointmentId: '3003',
+            ...result
+        })).not.toThrow();
+    });
+
+    test('updateAppointment sends only status for a status-only patch', async () => {
+        axios.patch.mockResolvedValueOnce({ status: 204 });
+        axios.get.mockResolvedValueOnce({
+            data: {
+                id: 3004,
+                title: 'Existing Event',
+                status: 'TENTATIVE'
+            }
+        });
+
+        const result = await netsuite.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: '3004',
+            patchBody: {
+                status: 'tentative'
+            }
+        });
+
+        expect(axios.patch).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004',
+            {
+                status: { id: 'TENTATIVE' }
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004',
+            { headers: { Authorization: authHeader } }
+        );
+        expect(result.appointment).toMatchObject({
+            id: '3004',
+            title: 'Existing Event',
+            status: 'TENTATIVE'
+        });
+        expect(() => AppointmentRecordResponseSchema.parse({
+            successful: true,
+            appointmentId: '3004',
+            ...result
+        })).not.toThrow();
+    });
+
+    test('updateAppointment preserves omitted fields and attendees for a title-only patch', async () => {
+        axios.patch.mockResolvedValueOnce({ status: 204 });
+        axios.get.mockResolvedValueOnce({
+            data: {
+                id: 3005,
+                title: 'Renamed Event',
+                status: 'CONFIRMED',
+                attendees: [
+                    { id: 701, name: 'Existing Attendee', type: 'contact' }
+                ]
+            }
+        });
+
+        const result = await netsuite.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: '3005',
+            patchBody: {
+                title: 'Renamed Event'
+            }
+        });
+
+        expect(axios.patch).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3005',
+            {
+                title: 'Renamed Event'
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3005',
+            { headers: { Authorization: authHeader } }
+        );
+        expect(result.appointment).toMatchObject({
+            id: '3005',
+            title: 'Renamed Event',
+            attendees: [
+                { id: '701', name: 'Existing Attendee', type: 'contact' }
+            ]
+        });
+    });
+
+    test('updateAppointment falls back to UTC timezone and preserves attendees when contacts are omitted', async () => {
+        axios.get
+            .mockRejectedValueOnce(new Error('timezone unavailable'))
+            .mockResolvedValueOnce({
+                data: {
+                    data: {
+                        id: 3004,
+                        title: 'UTC Event',
+                        message: 'UTC body',
+                        startDate: '2026-07-22',
+                        startTime: '14:00:00',
+                        endTime: '14:45:00'
+                    }
+                }
+            });
+        axios.patch.mockResolvedValueOnce({ status: 204 });
+
+        const result = await netsuite.updateAppointment({
+            user: { hostname: user.hostname },
+            authHeader,
+            appointmentId: '3004',
+            patchBody: {
+                start_at: '2026-07-22T14:00:00.000Z',
+                durationMinutes: 45,
+                summary: 'UTC body'
+            }
+        });
+
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone',
+            { headers: { Authorization: authHeader } }
+        );
+        expect(axios.patch).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004',
+            {
+                startDate: '2026-07-22',
+                startTime: '14:00:00',
+                endTime: '14:45:00',
+                message: 'UTC body'
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004',
+            { headers: { Authorization: authHeader } }
+        );
+        expect(result.appointment).toMatchObject({
+            id: '3004',
+            title: 'UTC Event',
+            durationMinutes: 45
+        });
+    });
+
+    test('updateAppointment maps provider errors into warning responses', async () => {
+        axios.patch.mockRejectedValueOnce({
+            response: {
+                data: {
+                    'o:errorDetails': [
+                        { detail: 'Update denied' }
+                    ]
+                }
+            }
+        });
+
+        await expect(netsuite.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: 'broken',
+            patchBody: {
+                title: 'Blocked'
+            }
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Update denied',
+                ttl: 60000
+            }
+        });
+    });
+
+    test('refreshAppointment handles missing, success, and provider error responses', async () => {
+        axios.get.mockResolvedValueOnce({
+            data: null
+        });
+
+        await expect(netsuite.refreshAppointment({
+            user,
+            authHeader,
+            appointmentId: 'missing'
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Appointment not found in NetSuite.',
+                ttl: 5000
+            }
+        });
+
+        axios.get.mockResolvedValueOnce({
+            data: {
+                id: 4004,
+                title: 'Refreshed Event',
+                startDate: '2026-07-20',
+                startTime: '10:00:00',
+                endTime: '11:00:00',
+                status: 'CONFIRMED'
+            }
+        });
+
+        await expect(netsuite.refreshAppointment({
+            user,
+            authHeader,
+            appointmentId: '4004'
+        })).resolves.toMatchObject({
+            appointment: {
+                id: '4004',
+                title: 'Refreshed Event',
+                startTimeUtc: '2026-07-20T14:00:00.000Z',
+                durationMinutes: 60,
+                status: 'CONFIRMED'
+            }
+        });
+
+        axios.get.mockRejectedValueOnce({
+            response: {
+                data: {
+                    'o:errorDetails': [
+                        { detail: 'Calendar event lookup failed' }
+                    ]
+                }
+            }
+        });
+
+        await expect(netsuite.refreshAppointment({
+            user,
+            authHeader,
+            appointmentId: 'broken'
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Calendar event lookup failed',
+                ttl: 60000
+            }
+        });
+    });
+
+    test('confirmAppointment and cancelAppointment patch appointment status', async () => {
+        axios.patch
+            .mockResolvedValueOnce({ data: { ok: true } })
+            .mockResolvedValueOnce({ data: { ok: true } });
+
+        const confirmResult = await netsuite.confirmAppointment({
+            user,
+            authHeader,
+            appointmentId: '5005'
+        });
+        expect(confirmResult).toEqual({
+            successful: true,
+            returnMessage: {
+                messageType: 'success',
+                message: 'Appointment confirmed successfully',
+                ttl: 60000
+            }
+        });
+        expect(() => AppointmentActionResponseSchema.parse({
+            appointmentId: '5005',
+            ...confirmResult
+        })).not.toThrow();
+
+        const cancelResult = await netsuite.cancelAppointment({
+            user,
+            authHeader,
+            appointmentId: '5005'
+        });
+        expect(cancelResult).toEqual({
+            successful: true,
+            returnMessage: {
+                messageType: 'success',
+                message: 'Appointment cancelled successfully',
+                ttl: 60000
+            }
+        });
+        expect(() => AppointmentActionResponseSchema.parse({
+            appointmentId: '5005',
+            ...cancelResult
+        })).not.toThrow();
+
+        expect(axios.patch).toHaveBeenNthCalledWith(
+            1,
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/5005',
+            { status: { id: 'CONFIRMED' } },
+            { headers: { Authorization: authHeader, 'Content-Type': 'application/json' } }
+        );
+        expect(axios.patch).toHaveBeenNthCalledWith(
+            2,
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/5005',
+            { status: { id: 'CANCELLED' } },
+            { headers: { Authorization: authHeader, 'Content-Type': 'application/json' } }
+        );
+    });
+
+    test('confirmAppointment and cancelAppointment map provider errors into warnings', async () => {
+        axios.patch
+            .mockRejectedValueOnce({
+                response: {
+                    data: {
+                        'o:errorDetails': [
+                            { detail: 'Confirm denied' }
+                        ]
+                    }
+                }
+            })
+            .mockRejectedValueOnce(new Error('cancel failed'));
+
+        await expect(netsuite.confirmAppointment({
+            user,
+            authHeader,
+            appointmentId: '5006'
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Confirm denied',
+                ttl: 60000
+            }
+        });
+
+        await expect(netsuite.cancelAppointment({
+            user,
+            authHeader,
+            appointmentId: '5006'
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Error cancelling appointment',
+                ttl: 60000
+            }
+        });
+    });
+
+    test('listAppointments normalizes sparse calendar events and attendee rows', async () => {
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        id: 9001,
+                        attendee: {
+                            items: [
+                                { attendee: null },
+                                { attendee: { id: 801 } },
+                                {}
+                            ]
+                        },
+                        attendees: [
+                            {},
+                            { id: 802 }
+                        ]
+                    }
+                ]
+            }
+        });
+
+        await expect(netsuite.listAppointments({
+            user,
+            authHeader
+        })).resolves.toEqual({
+            appointments: [
+                {
+                    thirdPartyAppointmentId: '9001',
+                    id: '9001',
+                    title: '',
+                    description: '',
+                    startTimeUtc: null,
+                    durationMinutes: 0,
+                    status: undefined,
+                    contactId: '',
+                    attendees: [
+                        { id: '802', name: '', type: '' },
+                        { id: '801', name: '', type: '' }
+                    ]
+                }
+            ]
+        });
+    });
+});
+
+export {};

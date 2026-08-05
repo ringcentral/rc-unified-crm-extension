@@ -47,6 +47,7 @@
           "namePath": "name",
           "typePath": "",
           "phonePath": "",
+          "createdDatePath": "",
           "additionalInfoPath": ""
         }
       }

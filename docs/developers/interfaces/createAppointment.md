@@ -59,5 +59,5 @@ return {
 === "Clio"
 
     ```js
-    --8<-- "src/connectors/clio/index.js:1216:1269"
+    --8<-- "src/connectors/clio/index.ts:1216:1269"
     ```

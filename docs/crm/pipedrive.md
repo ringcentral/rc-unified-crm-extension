@@ -33,21 +33,14 @@ When you login successfully, the Chrome extension will automatically update to s
 
 And with that, you will be connected to Pipedrive and ready to begin using the integration. 
 
-## Enabling SMS logging
+## Activity type mismatch
 
-SMS logging in Pipedrive requires a custom activity type named **"SMS"** to be created in your Pipedrive account. App Connect looks for an activity type containing the keyword "SMS" — if it doesn't exist, SMS messages will not be logged.
+!!! warning "Call or SMS logging fails?"
+    If you are seeing Call or SMS logging fails with a error message talking about activity type, please read the solution below 
 
-!!! warning "SMS messages not logging?"
-    If you are not seeing SMS messages logged in Pipedrive, this is almost certainly the reason. Create the SMS activity type below and logging will begin immediately.
+Call logging in Pipedrive requires an activity type whose name contains **"call"** (case-insensitive) to be created in your Pipedrive account so that it can pick up the wanted activity type. Same story for SMS logging, which will need activity type name contains **"sms"** (case-insensitive).
 
-To create the activity type, a Pipedrive admin should follow these steps:
-
-1. Go to **Settings**
-2. Click **Activities**
-3. Click **Add Activity**
-4. Name the activity **SMS** and select an icon
-
-Once saved, all inbound and outbound SMS messages handled by App Connect will be logged using this activity type.
+Once created/updated, clear/refresh contact match, then App Connect will use this activity type.
 
 ## Tailoring your configuration
 

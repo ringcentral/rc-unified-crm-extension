@@ -1,5 +1,41 @@
 # Release notes
 
+## 1.7.40
+
+- Fix: Get implemented interface in time
+- Fix: On log page, single search contact option becomes button
+
+## 1.7.39
+
+- New: AI notes support different languages
+
+## 1.7.38
+
+- Fix: Security patches
+
+## 1.7.37
+
+- New: Custom fields for call pop parameters
+- New: New option for auto log multi match resolver - Earliest created
+- Fix: Shared SMS sending for company main number
+- Fix: Server-side logging call log id inconsistency
+
+## 1.7.35
+
+- New: Can show RingCentral Account Id on support page
+- New: Add hashedExtensionId in plugin calls
+- New: Show notification when having incoming call while minized
+- Fix: User session refresh and validtion issue
+- Fix: Warm-transfer call pop
+- Fix: Refresh manifest for override properties
+
+## 1.7.34
+
+- New: Call pop fallback url when no matched contact
+- Fix: Hostname page input debounce
+- Fix: RingCentral additional info submission during auth
+- Fix: Managed auth, admins can now see hidden fields
+
 ## 1.7.33
 
 - New: Developer Console manifest flag to disable Contact Cache
@@ -157,6 +193,20 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.35
+
+- Fix: Server-side logging call log id inconsistency
+
+## 1.6.34
+
+- New: Can show RingCentral Account Id on support page
+- Fix: User session refresh and validtion issue
+- Fix: Message log can now show error message
+
+## 1.6.33
+
+- Fix: Outboud call failure issue
 
 ## 1.6.32
 

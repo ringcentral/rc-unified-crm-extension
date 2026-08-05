@@ -10,7 +10,7 @@ hide:
 <div class="crm-mkt__hero">
   <div>
     <h1 class="crm-mkt__hero-title">Build Support for Your CRM</h1>
-    <p class="crm-mkt__hero-sub">App Connect is an open-source framework that any developer can extend. If your CRM isn't supported today, the following partners — including RingCentral Professional Services — can build it for you.</p>
+    <p class="crm-mkt__hero-sub">App Connect is an open-source framework that any developer can extend. If your CRM isn't supported today, the following partners — including <a href="professional-services/">RingCentral Professional Services</a> — can build it for you.</p>
   </div>
   <div class="crm-mkt__hero-stats">
     <div class="crm-mkt__stat">

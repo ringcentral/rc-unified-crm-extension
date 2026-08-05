@@ -123,6 +123,9 @@ We have commitments from developers to build adapters to the following CRMs usin
 -    [![Smokeball Logo](../img/crm-logo-smokeball.png){.crm-logo}](../crm/smokeball.md)
      [Smokeball by Captivo Labs](../crm/smokeball.md)
 
+-    [![monday.com Logo](../img/crm-logo-monday.png){.crm-logo}](../crm/monday.md)
+     [monday.com by Gate6](../crm/monday.md)
+
 -    [![Zoho Logo](../img/crm-logo-zoho.png){.crm-logo}](../crm/zoho.md)
      [Zoho by RingClone](../crm/zoho.md)
 

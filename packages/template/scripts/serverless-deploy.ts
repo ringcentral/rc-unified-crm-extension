@@ -1,0 +1,31 @@
+const { exec } = require('child_process');
+const { resolve } = require('path');
+
+const projectPath = resolve(__dirname, '..', '..');
+const deployPath = resolve(projectPath, 'serverless-deploy');
+
+const execAsync = (cmd, options = {
+  cwd: deployPath,
+}) => {
+  return new Promise((resolve, reject) => {
+    exec(cmd, options, (error, stdout, stderr) => {
+      if (error) {
+        return reject(error);
+      }
+      console.log(`stdout: ${stdout}`);
+      console.error(`stderr: ${stderr}`);
+      resolve(stdout);
+    })
+  });
+}
+
+async function run () {
+  console.log('start deploy');
+  const serverlessBin = resolve(projectPath, 'node_modules', '.bin', process.platform === 'win32' ? 'sls.cmd' : 'sls');
+  const serverlessDeployCmd = `"${serverlessBin}" deploy --force --verbose`;
+  console.log(`run cmd: ${serverlessDeployCmd}`);
+  const serverlessDeployRes = await execAsync(serverlessDeployCmd).catch((e) => console.log(e));
+  console.log(serverlessDeployRes);
+}
+
+run();

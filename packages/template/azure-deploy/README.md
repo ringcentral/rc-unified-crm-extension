@@ -20,7 +20,7 @@ This ensures Azure will automatically run `npm install` after deployment.
 Only the source code is deployed. The following are **excluded** from deployment:
 
 - `node_modules/` - Dependencies are installed on the server
-- `*.test.js`, `__tests__/` - Test files
+- `*.test.ts`, `__tests__/` - Test files
 - `.env` - Environment variables (configure these in Azure Portal instead)
 - `.git/` - Git repository data
 - `*.log` - Log files
@@ -75,7 +75,7 @@ Create a ZIP file of your code and deploy:
 # Create deployment package (excluding unnecessary files)
 zip -r deploy.zip . \
   -x "node_modules/*" \
-  -x "*.test.js" \
+  -x "*.test.ts" \
   -x "__tests__/*" \
   -x ".env" \
   -x ".git" \
@@ -201,7 +201,7 @@ jobs:
         run: |
           zip -r deploy.zip . \
             -x "node_modules/*" \
-            -x "*.test.js" \
+            -x "*.test.ts" \
             -x "__tests__/*" \
             -x ".env" \
             -x ".git" \

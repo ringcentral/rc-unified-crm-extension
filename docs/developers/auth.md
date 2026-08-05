@@ -60,7 +60,7 @@ Required interfaces:
 
 Optional OAuth interfaces and hooks:
 
-- `getOverridingOAuthOption({ code })`
+- `getOverridingOAuthOption({ code, oauthInfo })`
 - `checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout)`
 - `authValidation({ user })`
 - [`refreshUserInfo`](interfaces/refreshUserInfo.md)
