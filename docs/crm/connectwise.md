@@ -7,6 +7,8 @@
 
 [Captivo Labs](https://www.captivolabs.com) connects your RingCentral account to your ConnectWise account. When you receive a call, our system looks up the matching company or contact in ConnectWise and displays it to you before answering the actual call. When a call ends, it's logged as an activity against the right company, contact, and ticket, along with notes, AI transcription summaries, tasks, and call duration.
 
+<iframe width="825" height="464" src="https://www.youtube.com/embed/mNUL_Kc82rs?si=NcUEBRYeI79FuqGA" title="Ring Central + Odoo by Captivo Labs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
 !!! money "As a third-party integration, the ConnectWise integration comes at an additional cost"
 
 ## What it does
