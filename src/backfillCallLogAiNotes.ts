@@ -21,7 +21,6 @@ const connectorRegistry = /** @type {any} */ (require('@app-connect/core/connect
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { upsertAiNote, upsertTranscript } = /** @type {any} */ (require('@app-connect/core/lib/callLogComposer'));
 const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
-const { createPerMinuteRateLimiter } = /** @type {any} */ (require('./perMinuteRateLimiter'));
 
 // 这是个裸 lambda,不会像 src/index.ts 那样把整个 Express app 起起来,
 // 所以 connectorRegistry 里不会自动注册任何 connector——这里只注册我们要用到的 bullhorn,
@@ -33,6 +32,7 @@ const LOG_TAG = '[backfillCallLogAiNotes]';
 // Keep bounded concurrency for in-flight work. ratePerMinute below spaces out
 // the request-producing portion of each call-log task.
 const BATCH_CONCURRENCY = 5;
+const ONE_MINUTE_MS = 60 * 1000;
 // Refresh before the token actually expires so a long paginated request does not start
 // with a token that is only seconds away from becoming invalid.
 const ADMIN_TOKEN_RENEW_HANDICAP_MS = 60 * 1000;
@@ -40,6 +40,32 @@ const ADMIN_TOKEN_RENEW_HANDICAP_MS = 60 * 1000;
 // 而 RC account call-log 的 dateFrom/dateTo 过滤的是通话实际发生的 startTime——两者可能因为同步延迟对不上,
 // 所以查 RC 时前后各多留一天缓冲,避免边界上的通话记录漏查。
 const RC_CALL_LOG_DATE_PADDING_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Creates an evenly spaced rate limiter. Reservations are made synchronously,
+ * so concurrent callers are still assigned distinct start times.
+ *
+ * @param {number} ratePerMinute
+ * @returns {() => Promise<void>}
+ */
+function createPerMinuteRateLimiter(ratePerMinute: number) {
+    if (!Number.isFinite(ratePerMinute) || ratePerMinute <= 0) {
+        throw new Error('ratePerMinute must be a positive number');
+    }
+
+    const intervalMs = ONE_MINUTE_MS / ratePerMinute;
+    let nextStartTime = 0;
+
+    return async function waitForRateLimit() {
+        const currentTime = Date.now();
+        const scheduledTime = Math.max(currentTime, nextStartTime);
+        nextStartTime = scheduledTime + intervalMs;
+        const waitMs = scheduledTime - currentTime;
+        if (waitMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, waitMs));
+        }
+    };
+}
 
 const replaceAllText = (value, search, replacement) => value.split(search).join(replacement);
 
