@@ -3,9 +3,6 @@
 !!! info "Requires App Connect 2.0"
     This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
 
-!!! tip "Built for legal teams"
-    See how this integration fits into a firm's client intake and billing workflow on our [Legal solutions overview](../solutions/legal/index.md).
-
 Smokeball is the leading legal practice management software that boosts your productivity through automatic time tracking, document automation, and law society approved billing.
 
 [Captivo Labs](https://www.captivolabs.com) connects your RingCentral account to your Smokeball account. When you receive a call, our system looks up the contact from your Smokeball and displays it to you before answering the actual call. When a call ends, it's logged against the right contact, the right matter, the right account along with notes, AI transcription summaries, tasks, and call duration.

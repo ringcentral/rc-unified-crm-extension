@@ -1,7 +1,7 @@
 # Setting up App Connect for Dominion
 
-!!! info "Part of Automotive Connect"
-    This connector is available exclusively through RingCentral's [Automotive Connect](../solutions/automotive/index.md) solution for dealerships.
+!!! info "Built for automotive dealerships"
+    Learn more about [RingCentral's solutions for automotive dealerships](https://www.ringcentral.com/office/industry-solutions/automotive.html).
 
 Dominion is a dealership management system (DMS) used by automotive dealerships to manage sales, service, and customer records. RingCentral's integration with Dominion brings click-to-dial, screen-pop, and automatic call logging directly into the tools your sales and service teams already use.
 

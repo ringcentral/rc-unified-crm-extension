@@ -1,7 +1,7 @@
 # Setting up App Connect for Vin Solutions
 
-!!! info "Part of Automotive Connect"
-    This connector is available exclusively through RingCentral's [Automotive Connect](../solutions/automotive/index.md) solution for dealerships.
+!!! info "Built for automotive dealerships"
+    Learn more about [RingCentral's solutions for automotive dealerships](https://www.ringcentral.com/office/industry-solutions/automotive.html).
 
 Vin Solutions is a CRM built for automotive dealerships, part of the Cox Automotive family of products. RingCentral's integration with Vin Solutions brings click-to-dial, screen-pop, and automatic call logging directly into the tools your sales and service teams already use.
 

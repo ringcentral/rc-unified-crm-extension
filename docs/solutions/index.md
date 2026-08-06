@@ -10,37 +10,70 @@ RingCentral App Connect isn't just a dialer; it is a high-performance integratio
 
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     AUTOMOTIVE CONNECT BANNER
-     ═══════════════════════════════════════════════════════════ -->
-<a href="automotive/" class="ac-v5-auto-banner ac-v5-auto-banner--contained">
-<div class="ac-v5-auto-banner__inner">
-<span class="ac-v5-auto-banner__icon-wrap">
-<svg class="ac-v5-auto-banner__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
-</span>
-<span class="ac-v5-auto-banner__copy">
-<span class="ac-v5-auto-banner__title">Introducing Automotive Connect</span>
-<span class="ac-v5-auto-banner__sub">Connect your dealership to RingCentral through your preferred DMS or automotive solution provider.</span>
-</span>
-<span class="ac-v5-auto-banner__arrow">→</span>
-</div>
-</a>
+## Explore by Business Need
 
-<!-- ═══════════════════════════════════════════════════════════
-     LEGAL BANNER
-     ═══════════════════════════════════════════════════════════ -->
-<a href="legal/" class="ac-v5-auto-banner ac-v5-auto-banner--contained">
-<div class="ac-v5-auto-banner__inner">
-<span class="ac-v5-auto-banner__icon-wrap">
-<svg class="ac-v5-auto-banner__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="11" rx="2"/><rect x="9" y="4" width="6" height="3" rx="1"/><rect x="3" y="12" width="18" height="1.5"/></svg>
-</span>
-<span class="ac-v5-auto-banner__copy">
-<span class="ac-v5-auto-banner__title">App Connect for Legal Teams</span>
-<span class="ac-v5-auto-banner__sub">Connect your firm to RingCentral through Clio, Smokeball, or the practice management software you already use.</span>
-</span>
-<span class="ac-v5-auto-banner__arrow">→</span>
+<div class="grid cards rc-gradient" markdown>
+
+-   :material-speedometer:{ .lg .middle } __Sales Velocity & Outbound Efficiency__
+
+    ---
+
+    Accelerate your outreach and eliminate the "between-call" friction that kills momentum. Use Call-Back lists and Voicemail Drop to transform your CRM into a high-speed sales engine.
+	
+	---
+    [Learn about Sales Velocity](sales-velocity.md)
+
+-   :material-dialpad:{ .lg .middle } __Embedded Communications__
+
+    ---
+	 
+    Work where you live. Bring the full power of the RingCentral phone directly into any browser-based application, eliminating tab-switching and the "Toggle Tax."
+
+    ---
+    
+    [Learn about Embedded Tools](embedded-communications.md)
+
+-   :material-phone-check:{ .lg .middle } __Compliance & Data Integrity__
+
+    ---
+	
+    Ensure your CRM is always the Single Source of Truth. Automate call and SMS logging with intelligent, unattended conflict resolution rules that keep your data clean without interrupting your team.
+
+    ---
+
+    [Learn about Auto-Logging](communication-logging.md)
+
+-   :fontawesome-solid-wand-magic-sparkles:{ .lg .middle } __Artificial Intelligence__
+
+    ---
+	
+    Turn "dark data" into strategic assets. Use AI Assistant and ACE (AI Conversation Expert) to automatically summarize calls, detect sentiment, and create follow-up tasks. Plus App Connect into any LLM.
+	
+	---
+	
+    [Learn about Conversation AI](artificial-intelligence.md)
+
+-   :material-account-supervisor-outline:{ .lg .middle } __Supervision & Monitoring__
+
+    ---
+	
+    Manage your team in real-time. From the Live HUD to "Listen, Whisper, Barge" coaching tools, get the visibility you need to scale excellence across your organization.
+	
+	---
+	
+    [Learn about Supervision](supervision.md)
+
+-   :material-connection:{ .lg .middle } __The Universal Connector__
+
+    ---
+	
+    Stop waiting for custom integrations. Use our developer-friendly JSON manifest framework to embed RingCentral into any proprietary or niche web application in minutes.
+	
+	---
+	
+    [Learn about Custom Integrations](integrations.md)
+
 </div>
-</a>
 
 ## Why Leading Teams Choose App Connect
 

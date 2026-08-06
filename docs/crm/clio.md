@@ -1,8 +1,5 @@
 # Setting up App Connect for Clio
 
-!!! tip "Built for legal teams"
-    See how this integration fits into a firm's client intake and billing workflow on our [Legal solutions overview](../solutions/legal/index.md).
-
 Clio provides legal client relationship management software to help law firms manage business development functions such as client intake, client scheduling and follow-up, revenue tracking, and more. In short, Clio addresses the client intake process of turning potential new clients into retained clients.
 
 RingCentral's integration with Clio helps streamline communications with clients, and helps staff servicing clients to better support them through the entire intake process by helping to manage and store communication history with clients, report on billable time and more.

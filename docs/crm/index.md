@@ -14,7 +14,7 @@ hide:
   </div>
   <div class="crm-mkt__hero-stats">
     <div class="crm-mkt__stat">
-      <span class="crm-mkt__stat-num">18+</span>
+      <span class="crm-mkt__stat-num">19+</span>
       <span class="crm-mkt__stat-label">Integrations</span>
     </div>
     <div class="crm-mkt__stat">
@@ -81,6 +81,19 @@ hide:
     </div>
     <div class="crm-mkt__footer">
       <span class="crm-mkt__by crm-mkt__by--partner">By Captivo Labs</span>
+      <span class="crm-mkt__cta">View docs →</span>
+    </div>
+  </a>
+
+  <a href="dominion/" class="crm-mkt__card crm-mkt__card--partner">
+    <div class="crm-mkt__logo"><img src="../img/crm-logo-dominion.png" alt="Dominion"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Automotive / DMS</div>
+      <div class="crm-mkt__name">Dominion</div>
+      <p class="crm-mkt__desc">Log calls and texts against Dominion DMS records without leaving the platform.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--rc">By RingCentral</span>
       <span class="crm-mkt__cta">View docs →</span>
     </div>
   </a>
@@ -246,7 +259,7 @@ hide:
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Automotive / DMS</div>
       <div class="crm-mkt__name">Vin Solutions</div>
-      <p class="crm-mkt__desc">Click-to-dial, screen-pop, and automatic call logging directly inside Vin Solutions. Part of Automotive Connect.</p>
+      <p class="crm-mkt__desc">Click-to-dial, screen-pop, and automatic call logging directly inside Vin Solutions.</p>
     </div>
     <div class="crm-mkt__footer">
       <span class="crm-mkt__by crm-mkt__by--rc">By RingCentral</span>

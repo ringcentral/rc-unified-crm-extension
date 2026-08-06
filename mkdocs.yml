@@ -131,14 +131,13 @@ nav:
   - 'Zoho': crm/zoho.md
 - 'Solutions':
   - 'Overview': solutions/index.md
-  - 'Automotive':
-    - 'Overview': solutions/automotive/index.md
-    - 'AI + Automotive': solutions/automotive/ai.md
-    - 'DMS Providers': solutions/automotive/dms-providers.md
-  - 'Legal':
-    - 'Overview': solutions/legal/index.md
-    - 'AI + Legal': solutions/legal/ai.md
-    - 'PMS Providers': solutions/legal/pms-providers.md
+  - 'Automotive': https://www.ringcentral.com/office/industry-solutions/automotive.html
+  - 'Embedded communications': solutions/embedded-communications.md
+  - 'Sales velocity': solutions/sales-velocity.md
+  - 'Supervision &amp; monitoring': solutions/supervision.md
+  - 'Automated logging': solutions/communication-logging.md
+  - 'AI-generated insights': solutions/artificial-intelligence.md
+  - 'Universal connector': solutions/integrations.md
 - 'Documentation':
   - 'Overview': users/access.md
   - 'Installation': getting-started.md
