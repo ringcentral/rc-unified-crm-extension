@@ -55,6 +55,16 @@
     color: #066fac;
 }
 
+/* mkdocs-material-ringcentral hardcodes .md-search__input color to #fff,
+   which makes typed search text invisible against the search box's white
+   background. Override to black. */
+.md-search__input {
+    color: #000 !important;
+}
+.md-search__input::placeholder {
+    color: rgba(0, 0, 0, 0.45) !important;
+}
+
 #config-table td:first-child {
     text-wrap: nowrap;
 }
