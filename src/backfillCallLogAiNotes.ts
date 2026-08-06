@@ -13,6 +13,7 @@ const { Op } = /** @type {any} */ (require('sequelize'));
 const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
 const { CallLogModel } = /** @type {any} */ (require('@app-connect/core/models/callLogModel'));
 const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
+const { CacheModel } = /** @type {any} */ (require('@app-connect/core/models/cacheModel'));
 const { getHashValue } = /** @type {any} */ (require('@app-connect/core/lib/util'));
 const { RingCentral: RawRingCentral } = /** @type {any} */ (require('@app-connect/core/lib/ringcentral'));
 const RingCentral = /** @type {any} */ (RawRingCentral);
@@ -40,6 +41,14 @@ const ADMIN_TOKEN_RENEW_HANDICAP_MS = 60 * 1000;
 // 而 RC account call-log 的 dateFrom/dateTo 过滤的是通话实际发生的 startTime——两者可能因为同步延迟对不上,
 // 所以查 RC 时前后各多留一天缓冲,避免边界上的通话记录漏查。
 const RC_CALL_LOG_DATE_PADDING_MS = 24 * 60 * 60 * 1000;
+const BACKFILL_JOB_CACHE_KEY_PREFIX = 'maintenance-backfill-call-log-ai-notes';
+const BACKFILL_JOB_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000;
+const BACKFILL_JOB_STALE_PROCESSING_MS = 5 * 60 * 1000;
+const DEFAULT_JOB_BATCH_SIZE = 12;
+const MAX_JOB_BATCH_SIZE = 12;
+const MAX_RECORDED_JOB_ERRORS = 100;
+const AI_REQUEST_MAX_ATTEMPTS = 3;
+const AI_REQUEST_RETRY_BASE_MS = 5 * 1000;
 
 /**
  * Creates an evenly spaced rate limiter. Reservations are made synchronously,
@@ -48,15 +57,15 @@ const RC_CALL_LOG_DATE_PADDING_MS = 24 * 60 * 60 * 1000;
  * @param {number} ratePerMinute
  * @returns {() => Promise<void>}
  */
-function createPerMinuteRateLimiter(ratePerMinute: number) {
+function createPerMinuteRateLimiter(ratePerMinute: number, initialNextStartTime = 0) {
     if (!Number.isFinite(ratePerMinute) || ratePerMinute <= 0) {
         throw new Error('ratePerMinute must be a positive number');
     }
 
     const intervalMs = ONE_MINUTE_MS / ratePerMinute;
-    let nextStartTime = 0;
+    let nextStartTime = Number.isFinite(initialNextStartTime) ? initialNextStartTime : 0;
 
-    return async function waitForRateLimit() {
+    const waitForRateLimit = async function waitForRateLimit() {
         const currentTime = Date.now();
         const scheduledTime = Math.max(currentTime, nextStartTime);
         nextStartTime = scheduledTime + intervalMs;
@@ -65,6 +74,9 @@ function createPerMinuteRateLimiter(ratePerMinute: number) {
             await new Promise((resolve) => setTimeout(resolve, waitMs));
         }
     };
+    const rateLimiterWithState: any = waitForRateLimit;
+    rateLimiterWithState.getNextStartTime = () => nextStartTime;
+    return rateLimiterWithState;
 }
 
 const replaceAllText = (value, search, replacement) => value.split(search).join(replacement);
@@ -367,6 +379,7 @@ async function processCallLog({
         wouldPatchTranscript: false,
         wouldPatch: false,
         patched: false,
+        failed: false,
         skippedReason: null
     };
     try {
@@ -391,12 +404,12 @@ async function processCallLog({
             return summary;
         }
 
-        await waitForRateLimit();
-        const aiNotesResult = await fetchRcAiNotes({
+        const aiNotesResult = await fetchRcAiNotesWithRetry({
             rcSDK,
             ownerExtensionId,
             telephonySessionId: callLog.id,
-            adminTokenManager
+            adminTokenManager,
+            waitForRateLimit
         });
         summary.rcAiNotesFound = aiNotesResult.found;
         summary.rcAiNotesRaw = aiNotesResult.data;
@@ -444,6 +457,7 @@ async function processCallLog({
 
         return summary;
     } catch (error) {
+        summary.failed = true;
         summary.skippedReason = `Error: ${error.message}`;
         logger.error(`${LOG_TAG} error processing call log`, { stack: error.stack, telephonySessionId: callLog.id });
         return summary;
@@ -551,7 +565,355 @@ async function backfillCallLogAiNotes(input) {
     return { mode, summaries, wouldPatchCount, patchedCount, failedPatchCount };
 }
 
+function getBackfillJobCacheId(jobId) {
+    return `${BACKFILL_JOB_CACHE_KEY_PREFIX}:${jobId}`;
+}
+
+function getBackfillCandidateWhere({ bullhornUserIds, dateFrom, dateTo, cursorCreatedAt = null, cursorId = null }) {
+    const where = {
+        userId: { [Op.in]: bullhornUserIds },
+        platform: 'bullhorn',
+        createdAt: { [Op.between]: [new Date(dateFrom), new Date(dateTo)] }
+    };
+    if (cursorCreatedAt && cursorId) {
+        const cursorDate = new Date(cursorCreatedAt);
+        where[Op.and] = [{
+            [Op.or]: [
+                { createdAt: { [Op.gt]: cursorDate } },
+                { createdAt: cursorDate, id: { [Op.gt]: cursorId } }
+            ]
+        }];
+    }
+    return where;
+}
+
+function validateJobInput(input) {
+    const { rcAccountId, dateFrom, dateTo, mode = 'dry-run' } = input || {};
+    if (!rcAccountId || !dateFrom || !dateTo) {
+        throw new Error('rcAccountId, dateFrom and dateTo are required');
+    }
+    if (!['dry-run', 'run'].includes(mode)) {
+        throw new Error('mode must be either dry-run or run');
+    }
+    if (!Number.isFinite(new Date(dateFrom).getTime()) || !Number.isFinite(new Date(dateTo).getTime())) {
+        throw new Error('dateFrom and dateTo must be valid dates');
+    }
+    if (new Date(dateFrom).getTime() >= new Date(dateTo).getTime()) {
+        throw new Error('dateFrom must be earlier than dateTo');
+    }
+}
+
+function getRetryAfterMs(error, attempt) {
+    const headers = error.response?.headers;
+    const rawRetryAfter = typeof headers?.get === 'function'
+        ? headers.get('retry-after')
+        : headers?.['retry-after'];
+    const retryAfterSeconds = Number(rawRetryAfter);
+    if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
+        return Math.min(retryAfterSeconds * 1000, ONE_MINUTE_MS);
+    }
+    return Math.min(AI_REQUEST_RETRY_BASE_MS * (2 ** (attempt - 1)), ONE_MINUTE_MS);
+}
+
+async function fetchRcAiNotesWithRetry({
+    rcSDK,
+    ownerExtensionId,
+    telephonySessionId,
+    adminTokenManager,
+    waitForRateLimit
+}) {
+    for (let attempt = 1; attempt <= AI_REQUEST_MAX_ATTEMPTS; attempt++) {
+        await waitForRateLimit();
+        try {
+            return await fetchRcAiNotes({
+                rcSDK,
+                ownerExtensionId,
+                telephonySessionId,
+                adminTokenManager
+            });
+        } catch (error) {
+            const status = Number(error.response?.status);
+            const retryable = !status || status === 429 || status >= 500;
+            if (!retryable || attempt === AI_REQUEST_MAX_ATTEMPTS) throw error;
+            const retryAfterMs = getRetryAfterMs(error, attempt);
+            logger.warn(`${LOG_TAG} transient RC AI notes request failure, retrying`, {
+                telephonySessionId,
+                status: status || null,
+                attempt,
+                retryAfterMs
+            });
+            await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+        }
+    }
+    throw new Error('RC AI notes retry loop ended unexpectedly');
+}
+
+async function createBackfillJob(input) {
+    validateJobInput(input);
+    const {
+        rcAccountId,
+        dateFrom,
+        dateTo,
+        mode = 'dry-run',
+        ratePerMinute = 12,
+        batchSize = DEFAULT_JOB_BATCH_SIZE
+    } = input;
+    const normalizedRate = Number(ratePerMinute);
+    if (!Number.isFinite(normalizedRate) || normalizedRate <= 0 || normalizedRate > 15) {
+        throw new Error('ratePerMinute must be between 0 and 15');
+    }
+    const normalizedBatchSize = Math.min(MAX_JOB_BATCH_SIZE, Math.max(1, Math.floor(Number(batchSize)) || DEFAULT_JOB_BATCH_SIZE));
+    const existingJob = await CacheModel.findOne({
+        where: {
+            userId: rcAccountId,
+            cacheKey: { [Op.like]: `${BACKFILL_JOB_CACHE_KEY_PREFIX}:%` },
+            [Op.or]: [
+                { status: { [Op.in]: ['pending', 'running'] } },
+                { status: { [Op.like]: 'processing:%' } }
+            ]
+        },
+        order: [['createdAt', 'ASC']]
+    });
+    if (existingJob) {
+        throw new Error(`Active backfill job already exists for this account: ${existingJob.data?.jobId || existingJob.id}`);
+    }
+
+    const bullhornUsers = await UserModel.findAll({ where: { rcAccountId, platform: 'bullhorn' } });
+    const bullhornUserIds = bullhornUsers.map((user) => user.id);
+    const total = bullhornUserIds.length
+        ? await CallLogModel.count({
+            where: getBackfillCandidateWhere({ bullhornUserIds, dateFrom, dateTo })
+        })
+        : 0;
+    const jobId = require('crypto').randomUUID();
+    const now = new Date();
+    const data = {
+        version: 1,
+        jobId,
+        rcAccountId,
+        dateFrom: new Date(dateFrom).toISOString(),
+        dateTo: new Date(dateTo).toISOString(),
+        mode,
+        ratePerMinute: normalizedRate,
+        batchSize: normalizedBatchSize,
+        cursorCreatedAt: null,
+        cursorId: null,
+        nextAiRequestAt: null,
+        total,
+        processed: 0,
+        wouldPatch: 0,
+        patched: 0,
+        skipped: 0,
+        failed: 0,
+        guessedExtension: 0,
+        errors: [],
+        createdAt: now.toISOString(),
+        completedAt: total ? null : now.toISOString()
+    };
+    await CacheModel.create({
+        id: getBackfillJobCacheId(jobId),
+        status: total ? 'pending' : 'completed',
+        userId: rcAccountId,
+        cacheKey: `${BACKFILL_JOB_CACHE_KEY_PREFIX}:${jobId}`,
+        data,
+        expiry: new Date(now.getTime() + BACKFILL_JOB_EXPIRY_MS)
+    });
+    logger.info(`${LOG_TAG} created backfill job`, { jobId, rcAccountId, mode, total });
+    return { jobId, status: total ? 'pending' : 'completed', total, mode };
+}
+
+async function findClaimableBackfillJob() {
+    const processingPattern = 'processing:%';
+    const staleBefore = new Date(Date.now() - BACKFILL_JOB_STALE_PROCESSING_MS);
+    const busyJob = await CacheModel.findOne({
+        where: {
+            cacheKey: { [Op.like]: `${BACKFILL_JOB_CACHE_KEY_PREFIX}:%` },
+            status: { [Op.like]: processingPattern },
+            updatedAt: { [Op.gte]: staleBefore }
+        }
+    });
+    if (busyJob) return { busy: true, job: null };
+
+    let job = await CacheModel.findOne({
+        where: {
+            cacheKey: { [Op.like]: `${BACKFILL_JOB_CACHE_KEY_PREFIX}:%` },
+            status: { [Op.in]: ['pending', 'running'] }
+        },
+        order: [['createdAt', 'ASC']]
+    });
+    let stale = false;
+    if (!job) {
+        job = await CacheModel.findOne({
+            where: {
+                cacheKey: { [Op.like]: `${BACKFILL_JOB_CACHE_KEY_PREFIX}:%` },
+                status: { [Op.like]: processingPattern },
+                updatedAt: { [Op.lt]: staleBefore }
+            },
+            order: [['updatedAt', 'ASC']]
+        });
+        stale = !!job;
+    }
+    if (!job) return { busy: false, job: null };
+
+    const leaseStatus = `processing:${require('crypto').randomUUID()}`;
+    const claimWhere: any = { id: job.id, status: job.status };
+    if (stale) claimWhere.updatedAt = { [Op.lt]: staleBefore };
+    const [claimedCount] = await CacheModel.update(
+        { status: leaseStatus },
+        { where: claimWhere }
+    );
+    if (!claimedCount) return { busy: true, job: null };
+    job.status = leaseStatus;
+    return { busy: false, job, leaseStatus };
+}
+
+async function updateClaimedJob(job, leaseStatus, status, data) {
+    const [updatedCount] = await CacheModel.update(
+        { status, data },
+        { where: { id: job.id, status: leaseStatus } }
+    );
+    return updatedCount > 0;
+}
+
+async function runBackfillJobWorker() {
+    const claim = await findClaimableBackfillJob();
+    if (claim.busy) return { status: 'busy' };
+    if (!claim.job) return { status: 'idle' };
+
+    const { job, leaseStatus } = claim;
+    const data = { ...job.data, errors: [...(job.data?.errors || [])] };
+    try {
+        const bullhornUsers = await UserModel.findAll({
+            where: { rcAccountId: data.rcAccountId, platform: 'bullhorn' }
+        });
+        const bullhornUserIds = bullhornUsers.map((user) => user.id);
+        if (!bullhornUserIds.length) {
+            data.completedAt = new Date().toISOString();
+            data.lastWorkerError = 'No Bullhorn users found for this RC account';
+            await updateClaimedJob(job, leaseStatus, 'failed', data);
+            return { jobId: data.jobId, status: 'failed', reason: data.lastWorkerError };
+        }
+
+        const callLogs = await CallLogModel.findAll({
+            where: getBackfillCandidateWhere({
+                bullhornUserIds,
+                dateFrom: data.dateFrom,
+                dateTo: data.dateTo,
+                cursorCreatedAt: data.cursorCreatedAt,
+                cursorId: data.cursorId
+            }),
+            order: [['createdAt', 'ASC'], ['id', 'ASC']],
+            limit: data.batchSize || DEFAULT_JOB_BATCH_SIZE
+        });
+        if (!callLogs.length) {
+            data.completedAt = new Date().toISOString();
+            await updateClaimedJob(job, leaseStatus, 'completed', data);
+            return { jobId: data.jobId, status: 'completed', ...getJobCounts(data) };
+        }
+
+        const rcSDK = new RingCentral({
+            server: process.env.RINGCENTRAL_SERVER,
+            clientId: process.env.RINGCENTRAL_CLIENT_ID,
+            clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
+            redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
+        });
+        const adminTokenManager = await createAdminTokenManager({ rcSDK, rcAccountId: data.rcAccountId });
+        const batchDateFrom = callLogs[0].createdAt.toISOString();
+        const batchDateTo = callLogs[callLogs.length - 1].createdAt.toISOString();
+        const rcRecordsBySessionId = await fetchRcAccountCallLogBySessionId({
+            rcSDK,
+            adminTokenManager,
+            dateFrom: batchDateFrom,
+            dateTo: batchDateTo
+        });
+        const bullhornExecutorUser = await findBullhornExecutorUser(bullhornUsers);
+        const initialNextStartTime = data.nextAiRequestAt ? new Date(data.nextAiRequestAt).getTime() : 0;
+        const waitForRateLimit = createPerMinuteRateLimiter(data.ratePerMinute, initialNextStartTime);
+
+        for (const callLog of callLogs) {
+            const summary = await processCallLog({
+                callLog,
+                rcRecordsBySessionId,
+                rcSDK,
+                adminTokenManager,
+                bullhornExecutorUser,
+                mode: data.mode,
+                waitForRateLimit
+            });
+            data.processed++;
+            if (summary.wouldPatch) data.wouldPatch++;
+            if (summary.patched) data.patched++;
+            if (summary.ownerExtensionIdIsGuess) data.guessedExtension++;
+            if (summary.failed) {
+                data.failed++;
+                if (data.errors.length < MAX_RECORDED_JOB_ERRORS) {
+                    data.errors.push({
+                        telephonySessionId: summary.telephonySessionId,
+                        bullhornLogId: summary.bullhornLogId,
+                        error: summary.skippedReason
+                    });
+                }
+            } else if (!summary.wouldPatch) {
+                data.skipped++;
+            }
+            data.cursorCreatedAt = callLog.createdAt.toISOString();
+            data.cursorId = callLog.id;
+            const nextStartTime = waitForRateLimit.getNextStartTime();
+            data.nextAiRequestAt = nextStartTime ? new Date(nextStartTime).toISOString() : data.nextAiRequestAt;
+            const stillClaimed = await updateClaimedJob(job, leaseStatus, leaseStatus, data);
+            if (!stillClaimed) {
+                return { jobId: data.jobId, status: 'cancelled' };
+            }
+        }
+
+        const hasProbablyMore = callLogs.length >= (data.batchSize || DEFAULT_JOB_BATCH_SIZE);
+        const nextStatus = hasProbablyMore ? 'running' : 'completed';
+        if (nextStatus === 'completed') data.completedAt = new Date().toISOString();
+        await updateClaimedJob(job, leaseStatus, nextStatus, data);
+        return { jobId: data.jobId, status: nextStatus, ...getJobCounts(data) };
+    } catch (error) {
+        data.lastWorkerError = error.message;
+        data.lastWorkerErrorAt = new Date().toISOString();
+        await updateClaimedJob(job, leaseStatus, 'running', data);
+        logger.error(`${LOG_TAG} backfill job worker failed`, { jobId: data.jobId, stack: error.stack });
+        throw error;
+    }
+}
+
+function getJobCounts(data) {
+    return {
+        total: data.total,
+        processed: data.processed,
+        wouldPatch: data.wouldPatch,
+        patched: data.patched,
+        skipped: data.skipped,
+        failed: data.failed
+    };
+}
+
+async function getBackfillJobStatus({ jobId }) {
+    if (!jobId) throw new Error('jobId is required');
+    const job = await CacheModel.findByPk(getBackfillJobCacheId(jobId));
+    if (!job) throw new Error(`Backfill job not found: ${jobId}`);
+    const status = `${job.status}`.startsWith('processing:') ? 'processing' : job.status;
+    return { jobId, status, ...job.data };
+}
+
+async function cancelBackfillJob({ jobId }) {
+    if (!jobId) throw new Error('jobId is required');
+    const [updatedCount] = await CacheModel.update(
+        { status: 'cancelled' },
+        { where: { id: getBackfillJobCacheId(jobId) } }
+    );
+    if (!updatedCount) throw new Error(`Backfill job not found: ${jobId}`);
+    return { jobId, status: 'cancelled' };
+}
+
 exports.app = backfillCallLogAiNotes;
+exports.createJob = createBackfillJob;
+exports.runWorker = runBackfillJobWorker;
+exports.getJobStatus = getBackfillJobStatus;
+exports.cancelJob = cancelBackfillJob;
 exports.createAdminTokenManager = createAdminTokenManager;
 exports.findBullhornExecutorUser = findBullhornExecutorUser;
 exports.buildAiPatch = buildAiPatch;
