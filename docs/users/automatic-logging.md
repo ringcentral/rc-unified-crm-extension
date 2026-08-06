@@ -4,7 +4,7 @@ App Connect has the ability to automatically log calls. How exactly this feature
 
 ## Client-side vs server-side logging
 
-The main difference between these two options is when the call is logged. When using App Connect's basic client-side logging feature (this is the default configuration) calls are only logged when the App Connect window is open. Conversely, when server-side call logging is enbaled, calls are logged in real-time, the moment the call ends. 
+The main difference between these two options is when the call is logged. When using App Connect's basic client-side logging feature (this is the default configuration) calls are only logged when the App Connect window is open. Conversely, when server-side call logging is enabled, calls are logged in real-time, the moment the call ends. 
 
 |                                             | Client-side        | Server-side        |
 |---------------------------------------------|--------------------|--------------------|

@@ -643,6 +643,351 @@
     }
 }
 
+/* ─── Automotive Connect — homepage banner ──────────────────── */
+/* Full-bleed band (breaks out of the content column); inner content
+   stays aligned to the same margins as the rest of the page. */
+.ac-v5-auto-banner {
+    display: block;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    background: #002755;
+    text-decoration: none !important;
+    transition: background 0.15s;
+}
+.ac-v5-auto-banner:hover {
+    background: #003a75;
+}
+.ac-v5-auto-banner__inner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.75rem 2.5rem;
+}
+.ac-v5-auto-banner__icon-wrap {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: rgba(255, 122, 0, 0.18);
+    border: 1.5px solid rgba(255, 122, 0, 0.45);
+}
+.ac-v5-auto-banner__icon {
+    width: 36px;
+    height: 36px;
+    fill: #FF7A00;
+}
+.ac-v5-auto-banner__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+}
+.ac-v5-auto-banner__title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.01em;
+}
+.ac-v5-auto-banner__sub {
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.5;
+}
+.ac-v5-auto-banner__arrow {
+    flex-shrink: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #FF7A00;
+}
+@media (max-width: 640px) {
+    .ac-v5-auto-banner__inner {
+        flex-wrap: wrap;
+        padding: 1.5rem 1.25rem;
+    }
+    .ac-v5-auto-banner__icon-wrap {
+        width: 52px;
+        height: 52px;
+    }
+    .ac-v5-auto-banner__icon {
+        width: 28px;
+        height: 28px;
+    }
+    .ac-v5-auto-banner__arrow { display: none; }
+}
+
+/* Contained variant — for use inside normal content pages, where the
+   banner should sit within the page's content column instead of
+   breaking out edge-to-edge like the homepage version. */
+.ac-v5-auto-banner--contained {
+    position: static;
+    left: auto;
+    right: auto;
+    width: auto;
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 12px;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+.ac-v5-auto-banner--contained .ac-v5-auto-banner__inner {
+    max-width: none;
+    margin: 0;
+    gap: 0.8rem;
+    padding: 0.8rem 1.2rem;
+}
+.ac-v5-auto-banner--contained .ac-v5-auto-banner__icon-wrap {
+    width: 35px;
+    height: 35px;
+    border-radius: 10px;
+}
+.ac-v5-auto-banner--contained .ac-v5-auto-banner__icon {
+    width: 19px;
+    height: 19px;
+}
+.ac-v5-auto-banner--contained .ac-v5-auto-banner__title {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+.ac-v5-auto-banner--contained .ac-v5-auto-banner__sub {
+    font-size: 0.68rem;
+}
+.ac-v5-auto-banner--contained .ac-v5-auto-banner__arrow {
+    font-size: 0.96rem;
+}
+
+/* ─── Automotive Connect — workflow pills ───────────────────── */
+.av-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0 32px;
+}
+.av-pill {
+    font-size: 13px;
+    font-weight: 600;
+    color: #9A3412;
+    background: #FFF7ED;
+    border: 1.5px solid var(--ac-orange, #FFB347);
+    border-radius: 20px;
+    padding: 5px 14px;
+}
+
+/* ─── Automotive Connect — "learn more" link (AI page) ──────── */
+.av-ai-more {
+    margin: -0.5rem 0 1.5rem;
+    font-size: 0.85rem;
+}
+.av-ai-more a {
+    font-weight: 700;
+}
+
+/* ─── Automotive Connect — compact row-style AI cards ───────── */
+.av-ai-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 1.25rem 0 2rem;
+}
+.av-ai-card {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    background: #fff;
+    border: 1px solid #ECE9E6;
+    border-radius: 12px;
+    padding: 0.9rem 1.25rem;
+}
+.av-ai-card__icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+}
+.av-ai-card__icon .twemoji {
+    color: #FF7A00;
+}
+.av-ai-card__icon .twemoji svg {
+    width: 34px;
+    height: 34px;
+}
+.av-ai-card__body {
+    flex: 1;
+    min-width: 0;
+}
+.av-ai-card__body h6 {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1B2A4A;
+}
+.av-ai-card__body p {
+    margin: 0;
+    color: #4A4A4A;
+    line-height: 1.5;
+    font-size: 0.82rem;
+}
+.av-ai-card__cta {
+    flex-shrink: 0;
+}
+.av-ai-card__btn {
+    display: inline-block;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #FF7A00;
+    background: rgba(255, 122, 0, 0.08);
+    border: 1.5px solid rgba(255, 122, 0, 0.35);
+    border-radius: 999px;
+    padding: 0.45rem 1rem;
+    text-decoration: none !important;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+}
+.av-ai-card__btn:hover {
+    background: rgba(255, 122, 0, 0.16);
+    border-color: #FF7A00;
+}
+[data-md-color-scheme="slate"] .av-ai-card {
+    background: #1c1f26;
+    border-color: #2c3038;
+}
+[data-md-color-scheme="slate"] .av-ai-card__body h6 {
+    color: #F1F5F9;
+}
+[data-md-color-scheme="slate"] .av-ai-card__body p {
+    color: #C7CAD1;
+}
+@media (max-width: 640px) {
+    .av-ai-card {
+        flex-wrap: wrap;
+    }
+    .av-ai-card__cta {
+        width: 100%;
+    }
+    .av-ai-card__btn {
+        display: block;
+        text-align: center;
+    }
+}
+
+/* ─── Automotive Connect — problem / business-case band ─────── */
+.av-problem {
+    background: #002755;
+    border-radius: 14px;
+    padding: 2.25rem 2.5rem;
+    margin: 1.75rem 0 2.5rem;
+}
+.av-problem__eyebrow {
+    display: inline-block;
+    margin: 0 0 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #FF7A00;
+}
+.av-problem__lead {
+    max-width: 46em;
+    margin: 0 0 1.75rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+.av-problem__stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+.av-problem__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 122, 0, 0.25);
+    border-radius: 10px;
+}
+.av-problem__stat-num {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: #FF7A00;
+    line-height: 1.1;
+}
+.av-problem__stat-label {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.45;
+}
+@media (max-width: 720px) {
+    .av-problem { padding: 1.75rem 1.5rem; }
+    .av-problem__stats { grid-template-columns: 1fr; }
+}
+
+/* ─── Automotive Connect — cross-page sub-nav ───────────────── */
+.av-subnav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 1.75rem;
+}
+.av-subnav__link {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #4A5568;
+    background: #F5F5F5;
+    border: 1.5px solid transparent;
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    text-decoration: none !important;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.av-subnav__link:hover {
+    background: #FFF7ED;
+    color: #9A3412;
+    border-color: var(--ac-orange, #FFB347);
+}
+.av-subnav__link--active {
+    background: #FFF7ED;
+    color: #9A3412;
+    border-color: var(--ac-orange, #FFB347);
+}
+[data-md-color-scheme="slate"] .av-subnav__link {
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.06);
+}
+[data-md-color-scheme="slate"] .av-subnav__link:hover,
+[data-md-color-scheme="slate"] .av-subnav__link--active {
+    background: rgba(255, 122, 0, 0.15);
+    color: #FFB347;
+    border-color: rgba(255, 122, 0, 0.4);
+}
+
+/* ─── CRM catalog — "available now" badge ───────────────────── */
+.crm-mkt__by--available {
+    background: rgba(43, 155, 70, 0.1);
+    color: rgb(43, 155, 70);
+    border: 1px solid rgba(43, 155, 70, 0.3);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+[data-md-color-scheme="slate"] .crm-mkt__by--available {
+    background: rgba(43, 155, 70, 0.15);
+    color: #6FCF8E;
+    border-color: rgba(43, 155, 70, 0.3);
+}
+
 /* ─── CRM ticker — "don't see your CRM?" banner ─────────────── */
 .ac-v5-ticker-cta {
     text-align: center;

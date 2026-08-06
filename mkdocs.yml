@@ -115,6 +115,7 @@ nav:
   - 'Bullhorn': crm/bullhorn.md
   - 'Clio': crm/clio.md
   - 'ConnectWise': crm/connectwise.md
+  - 'Dominion': crm/dominion.md
   - 'Freshdesk': crm/freshdesk.md
   - 'GoHighLevel': crm/gohighlevel.md
   - 'Google Sheets': crm/google-sheets.md
@@ -126,15 +127,18 @@ nav:
   - 'Redtail CRM': crm/redtail.md
   - 'ServiceNow': crm/servicenow.md
   - 'Smokeball': crm/smokeball.md
+  - 'Vin Solutions': crm/vinsolutions.md
   - 'Zoho': crm/zoho.md
 - 'Solutions':
   - 'Overview': solutions/index.md
-  - 'Embedded communications': solutions/embedded-communications.md
-  - 'Sales velocity': solutions/sales-velocity.md
-  - 'Supervision &amp; monitoring': solutions/supervision.md
-  - 'Automated logging': solutions/communication-logging.md
-  - 'AI-generated insights': solutions/artificial-intelligence.md
-  - 'Universal connector': solutions/integrations.md
+  - 'Automotive':
+    - 'Overview': solutions/automotive/index.md
+    - 'AI + Automotive': solutions/automotive/ai.md
+    - 'DMS Providers': solutions/automotive/dms-providers.md
+  - 'Legal':
+    - 'Overview': solutions/legal/index.md
+    - 'AI + Legal': solutions/legal/ai.md
+    - 'PMS Providers': solutions/legal/pms-providers.md
 - 'Documentation':
   - 'Overview': users/access.md
   - 'Installation': getting-started.md
