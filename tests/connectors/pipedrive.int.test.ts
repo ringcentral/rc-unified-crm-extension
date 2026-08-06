@@ -1343,6 +1343,7 @@ describe('Pipedrive Connector', () => {
                 .reply(200, { data: {} }, mockRateLimitHeaders);
             nock(`https://${hostname}`)
                 .get('/v1/activityTypes')
+                .times(2)
                 .reply(200, {
                     data: [
                         { name: 'Email', key_string: 'email', active_flag: true },
@@ -1403,6 +1404,7 @@ describe('Pipedrive Connector', () => {
                 .reply(200, { data: {} }, mockRateLimitHeaders);
             nock(`https://${hostname}`)
                 .get('/v1/activityTypes')
+                .times(2)
                 .reply(200, {
                     data: [
                         { name: 'SMS', key_string: 'sms', active_flag: false },
