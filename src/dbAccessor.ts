@@ -5,7 +5,7 @@ const { sequelize } = /** @type {any} */ (require('@app-connect/core/models/sequ
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 // require('dotenv').config();
 /**
- * @param {{ dbQuery: string, dateFrom: string, dateTo: string, rcAccountId: string }} input
+ * @param {{ dbQuery: string, dateFrom: string, dateTo: string, rcAccountId: string, ratePerMinute: number }} input
  * @returns {Promise<unknown>}
  */
 async function executeQuery(input) {
@@ -18,6 +18,7 @@ async function executeQuery(input) {
                 dateFrom: input.dateFrom,
                 dateTo: input.dateTo,
                 rcAccountId: input.rcAccountId,
+                ratePerMinute: input.ratePerMinute,
             });
         }
         const result = await sequelize.query(input.dbQuery);

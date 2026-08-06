@@ -59,7 +59,8 @@ describe('dbAccessor', () => {
       dbQuery: mode,
       dateFrom: '2026-07-24T09:50:00Z',
       dateTo: '2026-07-28T01:50:00Z',
-      rcAccountId: '485987048'
+      rcAccountId: '485987048',
+      ratePerMinute: 30
     };
 
     await expect(dbAccessor.app(input)).resolves.toEqual(result);
@@ -67,7 +68,8 @@ describe('dbAccessor', () => {
       mode,
       dateFrom: input.dateFrom,
       dateTo: input.dateTo,
-      rcAccountId: input.rcAccountId
+      rcAccountId: input.rcAccountId,
+      ratePerMinute: input.ratePerMinute
     });
     expect(sequelize.query).not.toHaveBeenCalled();
   });

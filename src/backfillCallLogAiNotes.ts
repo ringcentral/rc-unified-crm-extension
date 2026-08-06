@@ -5,7 +5,7 @@
 // - mode=dry-run: 只计算并返回 patch 预览;
 // - mode=run: 将缺失的 AI Note/Transcript 实际写入 Bullhorn。
 // 直接调用(没有 HTTP 路由),入参:
-//   { mode: 'dry-run' | 'run', rcAccountId: string, dateFrom: string (ISO), dateTo: string (ISO) }
+//   { mode: 'dry-run' | 'run', rcAccountId: string, dateFrom: string (ISO), dateTo: string (ISO), ratePerMinute: number }
 // dateFrom/dateTo 是拿去匹配 callLogs.createdAt(UTC)的,即"这条通话记录是什么时候被写进 Bullhorn 的",
 // 不是 RC 那通电话实际发生的时间。
 
@@ -21,6 +21,7 @@ const connectorRegistry = /** @type {any} */ (require('@app-connect/core/connect
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { upsertAiNote, upsertTranscript } = /** @type {any} */ (require('@app-connect/core/lib/callLogComposer'));
 const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
+const { createPerMinuteRateLimiter } = /** @type {any} */ (require('./perMinuteRateLimiter'));
 
 // 这是个裸 lambda,不会像 src/index.ts 那样把整个 Express app 起起来,
 // 所以 connectorRegistry 里不会自动注册任何 connector——这里只注册我们要用到的 bullhorn,
@@ -29,9 +30,9 @@ const bullhornConnector = /** @type {any} */ (require('./connectors/bullhorn'));
 connectorRegistry.registerConnector('bullhorn', bullhornConnector);
 
 const LOG_TAG = '[backfillCallLogAiNotes]';
-// 每批并发处理的通话记录数,以及批次之间的间隔,避免同时打爆 RC / Bullhorn 的接口限流。
+// Keep bounded concurrency for in-flight work. ratePerMinute below spaces out
+// the request-producing portion of each call-log task.
 const BATCH_CONCURRENCY = 5;
-const BATCH_DELAY_MS = 250;
 // Refresh before the token actually expires so a long paginated request does not start
 // with a token that is only seconds away from becoming invalid.
 const ADMIN_TOKEN_RENEW_HANDICAP_MS = 60 * 1000;
@@ -40,7 +41,6 @@ const ADMIN_TOKEN_RENEW_HANDICAP_MS = 60 * 1000;
 // 所以查 RC 时前后各多留一天缓冲,避免边界上的通话记录漏查。
 const RC_CALL_LOG_DATE_PADDING_MS = 24 * 60 * 60 * 1000;
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const replaceAllText = (value, search, replacement) => value.split(search).join(replacement);
 
 // Keep the same AI Notes transformations used by crm-server-side-logging so a
@@ -325,7 +325,8 @@ async function processCallLog({
     rcSDK,
     adminTokenManager,
     bullhornExecutorUser,
-    mode
+    mode,
+    waitForRateLimit
 }) {
     const summary = {
         telephonySessionId: callLog.id, // CallLogModel.id 就是 RC 的 telephonySessionId
@@ -364,6 +365,7 @@ async function processCallLog({
             return summary;
         }
 
+        await waitForRateLimit();
         const aiNotesResult = await fetchRcAiNotes({
             rcSDK,
             ownerExtensionId,
@@ -423,9 +425,9 @@ async function processCallLog({
 }
 
 async function backfillCallLogAiNotes(input) {
-    const { rcAccountId, dateFrom, dateTo, mode = 'dry-run' } = input || {};
-    if (!rcAccountId || !dateFrom || !dateTo) {
-        throw new Error('rcAccountId, dateFrom, dateTo are required');
+    const { rcAccountId, dateFrom, dateTo, ratePerMinute, mode = 'dry-run' } = input || {};
+    if (!rcAccountId || !dateFrom || !dateTo || ratePerMinute === undefined) {
+        throw new Error('rcAccountId, dateFrom, dateTo, ratePerMinute are required');
     }
     if (!['dry-run', 'run'].includes(mode)) {
         throw new Error('mode must be either dry-run or run');
@@ -434,7 +436,8 @@ async function backfillCallLogAiNotes(input) {
         throw new Error('Missing RINGCENTRAL_SERVER/RINGCENTRAL_CLIENT_ID/RINGCENTRAL_CLIENT_SECRET env vars');
     }
 
-    logger.info(`${LOG_TAG} starting`, { mode, rcAccountId, dateFrom, dateTo });
+    const waitForRateLimit = createPerMinuteRateLimiter(Number(ratePerMinute));
+    logger.info(`${LOG_TAG} starting`, { mode, rcAccountId, dateFrom, dateTo, ratePerMinute });
 
     // 第一步:按 rcAccountId 找出这个账号下所有的 Bullhorn 用户。
     const bullhornUsers = await UserModel.findAll({ where: { rcAccountId, platform: 'bullhorn' } });
@@ -489,7 +492,8 @@ async function backfillCallLogAiNotes(input) {
                 rcSDK,
                 adminTokenManager,
                 bullhornExecutorUser,
-                mode
+                mode,
+                waitForRateLimit
             }))
         );
         for (const result of batchResults) {
@@ -499,9 +503,6 @@ async function backfillCallLogAiNotes(input) {
                 // Promise.allSettled 理论上不会到这个分支(processCallLog 内部已经 try/catch 兜底了),留着做防御性兜底。
                 logger.error(`${LOG_TAG} unexpected failure processing a call log`, { stack: result.reason?.stack });
             }
-        }
-        if (i + BATCH_CONCURRENCY < callLogs.length) {
-            await delay(BATCH_DELAY_MS);
         }
     }
 
