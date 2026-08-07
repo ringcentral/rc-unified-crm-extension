@@ -1,4 +1,4 @@
-# Setting up App Connect for NetSuite
+# NetSuite
 
 NetSuite is a cloud-based business management software that helps organizations manage their financials, operations, and customer relationships.
 
@@ -9,7 +9,9 @@ RingCentral's integration with NetSuite helps streamline communications with con
     * NetSuite users must have [REST Web Services](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_1544787084.html#Related-Topics) enabled. 
 	* NetSuite OneWorld license holders will need to manually add the "Subsidiaries" permission to the role they use to connect to NetSuite. 
 
-## Install the SuiteApp
+## Setup and configuration
+
+### Install the SuiteApp
 
 To begin using the NetSuite integration, users will first need to do the following:
 

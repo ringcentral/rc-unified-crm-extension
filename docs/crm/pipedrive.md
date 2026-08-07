@@ -1,16 +1,18 @@
-# Setting up App Connect for Pipedrive
+# Pipedrive
 
 Pipedrive is designed to help small businesses grow. For over ten years, Pipedrive has been committed to building the best CRM – a CRM by and for salespeople. The result is an easy-to-use, effective sales tool that centralizes your data, helping you visualize your entire sales process and win more deals.
 
 RingCentral's integration with Pipedrive helps streamline communications between customers, and helps sales staff to better support them through their entire lifecycle by helping to manage and store communication history with customers, capture important communication metadata and more.
 
-## Install the extension
+<iframe width="825" height="464" src="https://www.youtube.com/embed/y3Hk07-1dQM" title="App Connect for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+## Setup and configuration
+
+### Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/y3Hk07-1dQM" title="App Connect for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
-## Setup the extension
+### Connect to Pipedrive
 
 Once the extension has been installed, follow these steps to setup and configure the extension for Pipedrive. 
 
