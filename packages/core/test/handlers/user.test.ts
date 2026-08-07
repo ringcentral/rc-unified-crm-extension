@@ -42,6 +42,36 @@ describe('User Handler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.HASH_KEY = 'hash-key';
+    connectorRegistry.getConnector.mockReturnValue({
+      refreshUserInfo: jest.fn()
+    });
+  });
+
+  test('refreshUserInfo skips user and credential refresh when the connector does not implement it', async () => {
+    const platformModule = {
+      getAuthType: jest.fn()
+    };
+    const tracer = {
+      trace: jest.fn(),
+      traceError: jest.fn()
+    };
+    connectorRegistry.getConnector.mockReturnValue(platformModule);
+
+    await expect(userHandler.refreshUserInfo({
+      platform: 'unsupportedCRM',
+      userId: 'user-1',
+      tracer
+    })).resolves.toEqual({
+      successful: true
+    });
+
+    expect(tracer.trace).toHaveBeenCalledWith('refreshUserInfo:notImplemented', {
+      platform: 'unsupportedCRM'
+    });
+    expect(UserModel.findOne).not.toHaveBeenCalled();
+    expect(Connector.getProxyConfig).not.toHaveBeenCalled();
+    expect(platformModule.getAuthType).not.toHaveBeenCalled();
+    expect(oauth.checkAndRefreshAccessToken).not.toHaveBeenCalled();
   });
 
   test('refreshUserInfo returns warning when user is missing or has no access token', async () => {
@@ -79,7 +109,8 @@ describe('User Handler', () => {
     };
     const platformModule = {
       getAuthType: jest.fn().mockResolvedValue('oauth'),
-      getOauthInfo: jest.fn().mockResolvedValue({ tokenUrl: 'https://token.example.com' })
+      getOauthInfo: jest.fn().mockResolvedValue({ tokenUrl: 'https://token.example.com' }),
+      refreshUserInfo: jest.fn()
     };
     UserModel.findOne.mockResolvedValue(user);
     Connector.getProxyConfig.mockResolvedValue({ id: 'proxy-1' });

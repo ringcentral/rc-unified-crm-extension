@@ -5,7 +5,7 @@ Refreshes CRM-side information for an already connected user.
 Core calls this interface from `POST /user/refreshInfo` after it resolves the current user from the App Connect JWT, refreshes OAuth credentials when needed, and prepares the CRM authorization header. The client can call this route during post-login sync for an already connected CRM user. Implement it when the connector needs to refresh cached CRM profile data, validate CRM account state, or update connector-owned fields stored on the user record after login.
 
 !!! info "Optional interface"
-    `getUserInfo` remains the required login-time identity interface. `refreshUserInfo` is optional and is reported by `/implementedInterfaces?platform=<name>` when the connector exports it.
+    `getUserInfo` remains the required login-time identity interface. `refreshUserInfo` is optional and is reported by `/implementedInterfaces?platform=<name>` when the connector exports it. If a client calls `POST /user/refreshInfo` for a connector that does not implement this interface, Core treats the request as a successful no-op without loading the user or refreshing CRM credentials.
 
 ## Signature
 
