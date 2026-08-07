@@ -100,7 +100,7 @@ describe('Pipedrive Connector', () => {
                 clientId: 'test-client-id',
                 clientSecret: 'test-client-secret',
                 accessTokenUri: 'https://oauth.pipedrive.com/oauth/token',
-                redirectUri: 'https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect'
+                redirectUri: 'https://example.com/callback'
             });
         });
     });

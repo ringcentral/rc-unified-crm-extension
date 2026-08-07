@@ -1227,7 +1227,13 @@
               "title": "Status",
               "type": "selection",
               "required": true,
-              "contactTypeDependent": true
+              "contactTypeDependent": true,
+              "accountDataKey": "bullhornData",
+              "accountDataPropertyByContactType": {
+                "Lead": "leadStatuses",
+                "Candidate": "candidateStatuses",
+                "Contact": "contactStatuses"
+              }
             }
           ]
         },
@@ -1237,6 +1243,8 @@
               "const": "noteActions",
               "title": "Note action",
               "type": "selection",
+              "accountDataKey": "bullhornData",
+              "accountDataProperty": "commentActionList",
               "contactDependent": false,
               "allowCustomValue": true,
               "defaultSettingId": "bullhornDefaultNoteAction",
@@ -1273,6 +1281,8 @@
               "const": "noteActions",
               "title": "Note action",
               "type": "selection",
+              "accountDataKey": "bullhornData",
+              "accountDataProperty": "commentActionList",
               "contactDependent": false,
               "allowCustomValue": true,
               "defaultSettingId": "bullhornDefaultNoteAction",

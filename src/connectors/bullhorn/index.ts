@@ -11,7 +11,7 @@ const { encode, decoded } = /** @type {any} */ (require('@app-connect/core/lib/e
 const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
 const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
 const { Lock } = /** @type {any} */ (require('@app-connect/core/models/dynamo/lockSchema'));
-const { AccountDataModel, getOrRefreshAccountData } = /** @type {any} */ (require('@app-connect/core/models/accountDataModel'));
+const { getAccountData } = /** @type {any} */ (require('@app-connect/core/lib/accountData'));
 const {
     upsertCallDuration,
     upsertCallResult,
@@ -35,6 +35,59 @@ function getAuthType() {
 function getLogFormatType() {
     return LOG_DETAILS_FORMAT_TYPE.HTML;
 }
+
+async function fetchWithBullhornSession(user, fetchFn) {
+    try {
+        return await fetchFn(user);
+    }
+    catch (e) {
+        if (!isAuthError(e.response?.status)) {
+            throw e;
+        }
+        const refreshedUser = await refreshSessionToken(user);
+        if (!refreshedUser) {
+            throw e;
+        }
+        return fetchFn(refreshedUser);
+    }
+}
+
+function mapSelectionOptions(options) {
+    return options?.map(option => ({ const: option.value, title: option.label })) || [];
+}
+
+const accountData = {
+    bullhornData: {
+        fetch: async ({ user }) => {
+            const commentActionListResponse = await fetchWithBullhornSession(user, async currentUser => axios.get(
+                `${currentUser.platformAdditionalInfo.restUrl}settings/commentActionList`, {
+                    headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
+                }
+            ));
+            const leadStatusesResponse = await fetchWithBullhornSession(user, async currentUser => axios.get(
+                `${currentUser.platformAdditionalInfo.restUrl}meta/Lead?fields=status`, {
+                    headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
+                }
+            ));
+            const candidateStatusesResponse = await fetchWithBullhornSession(user, async currentUser => axios.get(
+                `${currentUser.platformAdditionalInfo.restUrl}meta/Candidate?fields=status`, {
+                    headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
+                }
+            ));
+            const contactStatusesResponse = await fetchWithBullhornSession(user, async currentUser => axios.get(
+                `${currentUser.platformAdditionalInfo.restUrl}meta/ClientContact?fields=status`, {
+                    headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
+                }
+            ));
+            return {
+                commentActionList: commentActionListResponse?.data?.commentActionList?.map(action => ({ const: action, title: action })) || [],
+                leadStatuses: mapSelectionOptions(leadStatusesResponse?.data?.fields?.find(field => field.name === 'status')?.options),
+                candidateStatuses: mapSelectionOptions(candidateStatusesResponse?.data?.fields?.find(field => field.name === 'status')?.options),
+                contactStatuses: mapSelectionOptions(contactStatusesResponse?.data?.fields?.find(field => field.name === 'status')?.options)
+            };
+        }
+    }
+};
 
 async function authValidation({ user }) {
     let pingResponse;
@@ -541,18 +594,13 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
         }
     }
     let extraDataTracking: any = {};
-    const commentActionList = await getOrRefreshAccountData({
-        rcAccountId: user.rcAccountId,
-        platformName: 'bullhorn',
-        dataKey: 'commentActionList',
-        forceRefresh: isForceRefreshAccountData,
-        fetchFn: async () => {
-            const res = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`, {
-                headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken }
-            });
-            return res?.data?.commentActionList?.map(a => ({ const: a, title: a })) || [];
-        }
+    const bullhornData = await getAccountData({
+        platform: 'bullhorn',
+        user,
+        dataKey: 'bullhornData',
+        forceRefresh: isForceRefreshAccountData
     });
+    const commentActionList = bullhornData.commentActionList ?? [];
     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     const matchedContactInfo = [];
     // check for Contact
@@ -638,60 +686,9 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
     };
 
     if (matchedContactInfo.length === 0) {
-        let leadStatuses = [];
-        try {
-            leadStatuses = await getOrRefreshAccountData({
-                rcAccountId: user.rcAccountId,
-                platformName: 'bullhorn',
-                dataKey: 'leadStatuses',
-                forceRefresh: isForceRefreshAccountData,
-                fetchFn: async () => {
-                    const res = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Lead?fields=status`, {
-                        headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken }
-                    });
-                    return res?.data?.fields?.find(f => f.name === 'status')?.options?.map(s => { return { const: s.value, title: s.label } }) || [];
-                }
-            });
-        }
-        catch (e) {
-            extraDataTracking['statusCode'] = e.response.status;
-        }
-        let candidateStatuses = [];
-        try {
-            candidateStatuses = await getOrRefreshAccountData({
-                rcAccountId: user.rcAccountId,
-                platformName: 'bullhorn',
-                dataKey: 'candidateStatuses',
-                forceRefresh: isForceRefreshAccountData,
-                fetchFn: async () => {
-                    const res = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Candidate?fields=status`, {
-                        headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken }
-                    });
-                    return res?.data?.fields?.find(f => f.name === 'status')?.options?.map(s => { return { const: s.value, title: s.label } }) || [];
-                }
-            });
-        }
-        catch (e) {
-            extraDataTracking['statusCode'] = e.response.status;
-        }
-        let contactStatuses = [];
-        try {
-            contactStatuses = await getOrRefreshAccountData({
-                rcAccountId: user.rcAccountId,
-                platformName: 'bullhorn',
-                dataKey: 'contactStatuses',
-                forceRefresh: isForceRefreshAccountData,
-                fetchFn: async () => {
-                    const res = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/ClientContact?fields=status`, {
-                        headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken }
-                    });
-                    return res?.data?.fields?.find(f => f.name === 'status')?.options?.map(s => { return { const: s.value, title: s.label } }) || [];
-                }
-            });
-        }
-        catch (e) {
-            extraDataTracking['statusCode'] = e.response.status;
-        }
+        const leadStatuses = bullhornData.leadStatuses ?? [];
+        const candidateStatuses = bullhornData.candidateStatuses ?? [];
+        const contactStatuses = bullhornData.contactStatuses ?? [];
         const newContactAdditionalInfo: any = {
             Lead: {
                 status: leadStatuses
@@ -726,33 +723,13 @@ async function createContact({ user, phoneNumber, newContactName, newContactType
     if (newContactType === '') {
         return null;
     }
-    let commentActionListResponse;
     let extraDataTracking: any = {};
-    try {
-        commentActionListResponse = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
-            });
-    }
-    catch (e) {
-        if (isAuthError(e.response.status)) {
-            user = await refreshSessionToken(user);
-            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
-                {
-                    headers: {
-                        BhRestToken: user.platformAdditionalInfo.bhRestToken
-                    }
-                });
-        }
-        else {
-            throw e;
-        }
-        extraDataTracking['statusCode'] = e.response.status;
-    }
-    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
+    const bullhornData = await getAccountData({
+        platform: 'bullhorn',
+        user,
+        dataKey: 'bullhornData'
+    });
+    const commentActionList = bullhornData.commentActionList ?? [];
     switch (newContactType) {
         case 'Lead':
             const leadPostBody = {
@@ -900,33 +877,13 @@ async function createContact({ user, phoneNumber, newContactName, newContactType
 }
 
 async function findContactWithName({ user, name }) {
-    let commentActionListResponse;
     let extraDataTracking: any = {};
-    try {
-        commentActionListResponse = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
-            });
-    }
-    catch (e) {
-        if (isAuthError(e.response.status)) {
-            user = await refreshSessionToken(user);
-            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
-                {
-                    headers: {
-                        BhRestToken: user.platformAdditionalInfo.bhRestToken
-                    }
-                });
-        }
-        else {
-            throw e;
-        }
-        extraDataTracking['statusCode'] = e.response.status;
-    }
-    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
+    const bullhornData = await getAccountData({
+        platform: 'bullhorn',
+        user,
+        dataKey: 'bullhornData'
+    });
+    const commentActionList = bullhornData.commentActionList ?? [];
     const matchedContactInfo = [];
     // Search by full name components
     const nameComponents = name.trim().split(' ');
@@ -2469,7 +2426,8 @@ exports.listAppointments = listAppointments;
 exports.createAppointment = createAppointment;
 exports.updateAppointment = updateAppointment;
 exports.refreshAppointment = refreshAppointment;
+exports.accountData = accountData;
 //exports.confirmAppointment = confirmAppointment;
 exports.cancelAppointment = cancelAppointment;
 
-export {};
+export { };

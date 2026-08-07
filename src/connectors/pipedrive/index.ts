@@ -64,7 +64,7 @@ async function getOauthInfo() {
         clientId: process.env.PIPEDRIVE_CLIENT_ID,
         clientSecret: process.env.PIPEDRIVE_CLIENT_SECRET,
         accessTokenUri: process.env.PIPEDRIVE_ACCESS_TOKEN_URI,
-        redirectUri: 'https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect'
+        redirectUri: process.env.PIPEDRIVE_REDIRECT_URI || 'https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect'
     }
 }
 
@@ -794,4 +794,4 @@ exports.findContactWithName = findContactWithName;
 exports.getLogFormatType = getLogFormatType;
 exports.accountData = accountData;
 
-export {};
+export { };
