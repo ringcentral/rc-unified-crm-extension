@@ -34,9 +34,11 @@
 }
 
 .md-banner {
+    /* Actual background is #2D1A0E, forced via !important in the
+       mkdocs-material-ringcentral plugin CSS (ringcentral.css) — this
+       rule can't override it, kept only for the text-align/font-weight. */
     text-align: center;
     font-weight: bold;
-    background-color: rgb(255, 122, 0);
 }
 .md-banner .upgrade-button {
     display: inline-block;
@@ -49,10 +51,24 @@
     color: #ffffff !important;
 }
 .md-banner .md-typeset a {
-    color: rgb(122, 36, 0);
+    color: #FFB347;
+    text-decoration: underline;
+}
+.md-banner .md-typeset a:hover {
+    color: #066fac;
 }
 .md-typeset a {
     color: #066fac;
+}
+
+/* mkdocs-material-ringcentral hardcodes .md-search__input color to #fff,
+   which makes typed search text invisible against the search box's white
+   background. Override to black. */
+.md-search__input {
+    color: #000 !important;
+}
+.md-search__input::placeholder {
+    color: rgba(0, 0, 0, 0.45) !important;
 }
 
 #config-table td:first-child {
@@ -511,15 +527,6 @@
     color: #fbbf24;
     border-color: rgba(245, 158, 11, 0.3);
 }
-.crm-mkt__card--coming-soon {
-    opacity: 0.72;
-    pointer-events: none;
-    cursor: default;
-}
-.crm-mkt__card--coming-soon .crm-mkt__cta {
-    color: #94a3b8 !important;
-}
-
 .crm-mkt__by--multi {
     background: rgba(99, 91, 255, 0.1);
     color: #4a42c8;
@@ -641,6 +648,87 @@
     .md-tabs__actions {
         display: none;
     }
+}
+
+/* ─── Automotive Connect — homepage banner ──────────────────── */
+/* Full-bleed band (breaks out of the content column); inner content
+   stays aligned to the same margins as the rest of the page. */
+.ac-v5-auto-banner {
+    display: block;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    background: #002755;
+    text-decoration: none !important;
+    transition: background 0.15s;
+}
+.ac-v5-auto-banner:hover {
+    background: #003a75;
+}
+.ac-v5-auto-banner__inner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.75rem 2.5rem;
+}
+.ac-v5-auto-banner__icon-wrap {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: rgba(255, 122, 0, 0.18);
+    border: 1.5px solid rgba(255, 122, 0, 0.45);
+}
+.ac-v5-auto-banner__icon {
+    width: 36px;
+    height: 36px;
+    fill: #FF7A00;
+}
+.ac-v5-auto-banner__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+}
+.ac-v5-auto-banner__title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.01em;
+}
+.ac-v5-auto-banner__sub {
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.5;
+}
+.ac-v5-auto-banner__arrow {
+    flex-shrink: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #FF7A00;
+}
+@media (max-width: 640px) {
+    .ac-v5-auto-banner__inner {
+        flex-wrap: wrap;
+        padding: 1.5rem 1.25rem;
+    }
+    .ac-v5-auto-banner__icon-wrap {
+        width: 52px;
+        height: 52px;
+    }
+    .ac-v5-auto-banner__icon {
+        width: 28px;
+        height: 28px;
+    }
+    .ac-v5-auto-banner__arrow { display: none; }
 }
 
 /* ─── CRM ticker — "don't see your CRM?" banner ─────────────── */

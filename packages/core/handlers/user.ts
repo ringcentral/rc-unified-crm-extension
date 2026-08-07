@@ -30,6 +30,14 @@ const Connector = /** @type {any} */ (ConnectorImport);
 async function refreshUserInfo({ platform, userId, tracer }) {
     tracer?.trace('refreshUserInfo:start', { platform, userId });
     try {
+        const platformModule = connectorRegistry.getConnector(platform);
+        if (typeof platformModule?.refreshUserInfo !== 'function') {
+            tracer?.trace('refreshUserInfo:notImplemented', { platform });
+            return {
+                successful: true
+            };
+        }
+
         let user = await UserModel.findOne({
             where: {
                 id: userId,
@@ -57,7 +65,6 @@ async function refreshUserInfo({ platform, userId, tracer }) {
             tracer?.trace('refreshUserInfo:proxyConfig', { proxyConfig });
         }
 
-        const platformModule = connectorRegistry.getConnector(platform);
         const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
         tracer?.trace('refreshUserInfo:authType', { authType });
 

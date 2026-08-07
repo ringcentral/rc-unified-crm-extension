@@ -115,6 +115,7 @@ nav:
   - 'Bullhorn': crm/bullhorn.md
   - 'Clio': crm/clio.md
   - 'ConnectWise': crm/connectwise.md
+  - 'Dominion': crm/dominion.md
   - 'Freshdesk': crm/freshdesk.md
   - 'GoHighLevel': crm/gohighlevel.md
   - 'Google Sheets': crm/google-sheets.md
@@ -126,9 +127,11 @@ nav:
   - 'Redtail CRM': crm/redtail.md
   - 'ServiceNow': crm/servicenow.md
   - 'Smokeball': crm/smokeball.md
+  - 'Vin Solutions': crm/vinsolutions.md
   - 'Zoho': crm/zoho.md
 - 'Solutions':
   - 'Overview': solutions/index.md
+  - 'Automotive': https://www.ringcentral.com/office/industry-solutions/automotive.html
   - 'Embedded communications': solutions/embedded-communications.md
   - 'Sales velocity': solutions/sales-velocity.md
   - 'Supervision &amp; monitoring': solutions/supervision.md

@@ -23,7 +23,7 @@ App Connect supports AgencyZoom through two certified partner integrations. Both
 
 <div class="crm-mkt__grid">
 
-  <a href="./gate6" class="crm-mkt__card crm-mkt__card--partner">
+  <a href="./gate6" class="crm-mkt__card">
     <div class="crm-mkt__logo"><img src="../../img/vendor-gate6.png" alt="Gate6"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Enterprise Integration Partner</div>
@@ -36,7 +36,7 @@ App Connect supports AgencyZoom through two certified partner integrations. Both
     </div>
   </a>
 
-  <a href="./aa" class="crm-mkt__card crm-mkt__card--partner">
+  <a href="./aa" class="crm-mkt__card">
     <div class="crm-mkt__logo"><img src="../../img/acceleratedautomation.svg" alt="Accelerated Automation"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Insurance Technology Partner</div>
