@@ -14,8 +14,6 @@ title: AgencyZoom by Accelerated Automation — App Connect
   </div>
 </div>
 
-## About this integration
-
 Accelerated Automation builds technology solutions specifically for insurance agencies. Their App Connect connector for AgencyZoom is designed from the ground up with insurance workflows in mind — tight integration with AgencyZoom's lead, policy, and renewal records, and a support team that understands how agencies operate.
 
 ## Features
@@ -33,7 +31,7 @@ Accelerated Automation builds technology solutions specifically for insurance ag
 - App Connect 2.0 or later
 - Accelerated Automation connector license
 
-## Setup
+## Setup and configuration
 
 Contact Accelerated Automation to get started. Their onboarding team provides hands-on support through installation and configuration.
 

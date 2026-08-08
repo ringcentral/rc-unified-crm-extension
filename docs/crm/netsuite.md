@@ -4,12 +4,14 @@ NetSuite is a cloud-based business management software that helps organizations 
 
 RingCentral's integration with NetSuite helps streamline communications with contacts, and helps staffing agents better support contacts through the entire sales order pipeline by helping to manage and store communication history for all contacts. 
 
+<iframe width="825" height="464" src="https://www.youtube.com/embed/yo4Q1Vj-sH4" title="App Connect for NetSuite - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+## Setup and configuration
+
 !!! warning "Prerequisites"
     * The current version of the NetSuite integration requires NetSuite version 2024.1 or later. 
     * NetSuite users must have [REST Web Services](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_1544787084.html#Related-Topics) enabled. 
 	* NetSuite OneWorld license holders will need to manually add the "Subsidiaries" permission to the role they use to connect to NetSuite. 
-
-## Setup and configuration
 
 ### Install the SuiteApp
 
@@ -25,11 +27,11 @@ If you see, "Not compatible" in place of an "Install" button, then you must be r
 
 Installing the app from the SuiteApp marketplace is a necessary step prior to installing the Chrome extension discussed below. 
 
-## Setup roles and permissions in NetSuite
+### Setup roles and permissions in NetSuite
 
 Upon installation of the SuiteApp, a role will be created automatically within your account called "RingCentral App Connect." This role has been specially tuned to contain the bare minimum number access level to fully operate the Chrome extension. You can see a detailed list of permissions below if you would like to incorporate these permissions into a custom role of your own. 
 
-### NetSuite OneWorld instructions
+#### NetSuite OneWorld instructions
 
 Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral App Connect"** will be automatically created in your account. If you are a OneWorld license holder, you will need to take these additional steps.
 
@@ -40,7 +42,7 @@ Use this cloned role when logging into and connecting App Connect to NetSuite.
 
 !!! info "The role is created by SuiteApp locked by default and cannot be edited. If you wish to make modifications, you may duplicate the role by clicking on 'Customize.'"
 
-### Turn on REST web services
+#### Turn on REST web services
 
 REST Web Services is default to be invisible. We'll need to turn on the feature so to make it selectable for roles. Here's how to do it:
 
@@ -48,7 +50,7 @@ REST Web Services is default to be invisible. We'll need to turn on the feature 
 2. Go to sub-tab, "SuiteCloud"
 3. Tick on "REST Web Services" and save
 
-### Create role with required permissions
+#### Create role with required permissions
 
 We recommend using the "RingCentral App Connect" role created for you when you install the SuiteApp. However, if you would like to create a custom role that includes the permissions necessary to allow this extension to operate fully, consult the table below. 
 
@@ -75,13 +77,11 @@ We recommend using the "RingCentral App Connect" role created for you when you i
 !!! note "Employees and Employee Record permissions"
     The Employees and Employee Record permissions are used for the [user mapping feature](../users/server-side-logging.md#activity-record-owner) used by server side call logging. If you have concerns about granting this permission, feel free to remove it and grant it only to the user who sets up server side call logging, typically an admin.
 
-## Install the Chrome/Edge extension
+### Install the Chrome/Edge extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/yo4Q1Vj-sH4" title="App Connect for NetSuite - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
-## Setup the extension
+### Connect to NetSuite
 
 Once the extension has been installed, follow these steps to setup and configure the extension for NetSuite. 
 
