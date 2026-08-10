@@ -1,4 +1,4 @@
-# Setting up App Connect for ConnectWise
+# ConnectWise by Captivo Labs
 
 !!! info "Requires App Connect 2.0"
     This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
@@ -20,7 +20,9 @@
 - Outbound calls directly from ConnectWise
 - Screen pop for inbound calls so agents open the right ticket before they even answer
 
-## Register an app in ConnectWise
+## Setup and configuration
+
+### Register an app in ConnectWise
 
 Before installing the extension, generate API credentials from within ConnectWise:
 
@@ -32,11 +34,11 @@ Before installing the extension, generate API credentials from within ConnectWis
 
 Also make a note of your **Company ID** and which environment you're on (North America, Australia, EU, or ConnectWise Sandbox), as you'll need these during setup.
 
-## Install the extension
+### Install the extension
 
 If you have not already done so, begin by [installing App Connect](https://appconnect.labs.ringcentral.com/2.0/) from the Chrome Web Store.
 
-## Setup the extension
+### Connect to ConnectWise
 
 Once the extension has been installed, follow these steps to setup and configure the extension for ConnectWise.
 
@@ -58,7 +60,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 When you login successfully, the browser extension will automatically update to show you are connected to ConnectWise. If you are connected, the button next to ConnectWise will say, "logout."
 
-## ConnectWise Settings
+### ConnectWise Settings
 
 Navigate to the ConnectWise options under App Connect's Settings area and enter your ConnectWise email address — this is especially important if it differs from your RingCentral email address, since it's used to match your identity between the two systems.
 

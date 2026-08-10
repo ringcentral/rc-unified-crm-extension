@@ -1,4 +1,4 @@
-# App Connect and Freshdesk
+# Freshdesk by Loyally
 
 !!! info "Requires App Connect 2.0"
     This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
@@ -9,11 +9,13 @@ RingCentral supports Freshdesk via a trusted third-party vendor and Premium Part
 
 !!! money "As a third-party integration, the Freshdesk integration comes at an additional cost"
 
-## Install the extension
+## Setup and configuration
+
+### Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-## Setup the extension
+### Connect to Freshdesk
 
 Once the App Connect extension has been installed, follow these steps to setup and configure the extension for Freshdesk. 
 

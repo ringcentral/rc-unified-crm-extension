@@ -1,4 +1,4 @@
-# Setting up App Connect for Zoho
+# Zoho CRM by RingClone
 
 !!! info "Requires App Connect 2.0"
     This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
@@ -11,11 +11,13 @@ RingClone's integration with Zoho helps streamline communications with customers
 
 !!! money "As a third-party integration, the Zoho integration comes at an additional cost"
 
-## Install the extension
+## Setup and configuration
+
+### Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome or Edge web stores. 
 
-## Setup the extension
+### Connect to Zoho
 
 Once the extension has been installed, follow these steps to configure Zoho in the extension. 
 

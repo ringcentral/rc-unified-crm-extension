@@ -1,16 +1,18 @@
-# Setting up App Connect for Redtail CRM
+# Redtail CRM
 
 Whether you are looking to strengthen your client relationships, improve your team’s collaboration efforts and overall efficiency, increase your revenues and profitability, decrease client attrition, or engage in any number of other business-building activities, Redtail CRM offers tools to assist in your efforts.
 
 RingCentral's integration with Redtail CRM helps streamline communications between customers, and helps sales staff to better support them through their entire lifecycle by helping to manage and store communication history with customers, capture important communication metadata and more.
 
-## Install the extension
+<iframe width="825" height="464" src="https://www.youtube.com/embed/1pbpbEvp5uQ?si=BUmLcaKk5att_XQf" title="App Connect for Redtail CRM - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+## Setup and configuration
+
+### Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/1pbpbEvp5uQ?si=BUmLcaKk5att_XQf" title="App Connect for Redtail CRM - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
-## Setup the extension
+### Connect to Redtail
 
 Once the extension has been installed, follow these steps to setup and configure the extension for Redtail. 
 

@@ -1,4 +1,4 @@
-# Setting up App Connect for Smokeball
+# Smokeball by Captivo Labs
 
 !!! info "Requires App Connect 2.0"
     This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
@@ -17,13 +17,15 @@ Smokeball is the leading legal practice management software that boosts your pro
 
 !!! tip "Please note, this integration only works with Australian Smokeball accounts. US and UK integrations are coming soon."
 
-## Install the extension
+<iframe width="825" height="464" src="https://www.youtube.com/embed/6mxT9D4chr0?si=EqiXQBOwacLlvZXX" title="Ring Central + Smokeball by Captivo Labs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+## Setup and configuration
+
+### Install the extension
 
 If you have not already done so, begin by [installing App Connect](https://appconnect.labs.ringcentral.com/2.0/) from the Chrome Web Store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/6mxT9D4chr0?si=EqiXQBOwacLlvZXX" title="Ring Central + Smokeball by Captivo Labs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
-## Setup the extension
+### Connect to Smokeball
 
 Once the extension has been installed, follow these steps to setup and configure the extension for Smokeball. 
 
