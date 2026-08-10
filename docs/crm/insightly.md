@@ -1,16 +1,18 @@
-# Setting up App Connect for Insightly
+# Insightly
 
 Growing businesses across the globe rely on Insightly to help them build lasting customer relationships. Insightly delivers a platform that can take businesses to the next level: a powerful CRM, plus marketing automation, a customer service app, and an integration tool.
 
 RingCentral's integration with Insightly helps streamline communications between customers, and helps sales staff to better support them through their entire lifecycle by helping to manage and store communication history with customers, capture important communication metadata and more.
 
-## Install the extension
+<iframe width="825" height="464" src="https://www.youtube.com/embed/5hWvVI12UAc?si=IX1PjO__Njki_60i" title="App Connect for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+## Setup and configuration
+
+### Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/5hWvVI12UAc?si=IX1PjO__Njki_60i" title="App Connect for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
-## Setup the extension
+### Connect to Insightly
 
 Once the extension has been installed, follow these steps to setup and configure the extension for Insightly. 
 

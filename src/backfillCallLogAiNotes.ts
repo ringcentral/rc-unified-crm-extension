@@ -10,6 +10,7 @@
 // 不是 RC 那通电话实际发生的时间。
 
 const { Op } = /** @type {any} */ (require('sequelize'));
+const axios = /** @type {any} */ (require('axios'));
 const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
 const { CallLogModel } = /** @type {any} */ (require('@app-connect/core/models/callLogModel'));
 const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
@@ -315,19 +316,68 @@ async function verifyBullhornSession({ bullhornUser }) {
 }
 
 // Patch 是账号级维护操作，不要求使用原始 CallLog.userId 对应的 Bullhorn session。
-// 找到该 RC 账号下第一个可用的 Bullhorn session 后，所有 Bullhorn 读写都复用它。
-async function findBullhornExecutorUser(bullhornUsers) {
-    for (const bullhornUser of bullhornUsers) {
-        const { sessionValid, user } = await verifyBullhornSession({ bullhornUser });
-        if (sessionValid) {
-            logger.info(`${LOG_TAG} selected Bullhorn executor session`, { bullhornExecutorUserId: user.id });
-            return user;
+// 优先找到该 RC 账号下拥有 Note 企业级读写权限的 session，后续 Bullhorn 读写都复用它。
+async function getBullhornNoteEntitlements({ bullhornUser }) {
+    const response = await axios.get(
+        `${bullhornUser.platformAdditionalInfo.restUrl}entitlements/Note`,
+        {
+            headers: {
+                BhRestToken: bullhornUser.platformAdditionalInfo.bhRestToken
+            }
         }
-        logger.warn(`${LOG_TAG} Bullhorn session unavailable, trying the next account user`, {
-            bullhornUserId: bullhornUser.id
+    );
+    return Array.isArray(response.data) ? response.data : [];
+}
+
+function hasCorporateNoteAccess(entitlements) {
+    return entitlements.includes('READ_CORPORATE') && entitlements.includes('UPDATE_CORPORATE');
+}
+
+// Bullhorn has no reliable isAdmin flag, so prefer the session with the exact
+// account-wide capability this job needs: corporate read/update access to Notes.
+// Retain the first valid session as a compatibility fallback.
+async function findBullhornExecutorUser(bullhornUsers, dependencies = {}) {
+    const executorDependencies: any = dependencies;
+    const verifySession = executorDependencies.verifySession || verifyBullhornSession;
+    const fetchNoteEntitlements = executorDependencies.fetchNoteEntitlements || getBullhornNoteEntitlements;
+    let fallbackUser = null;
+
+    for (const bullhornUser of bullhornUsers) {
+        const { sessionValid, user } = await verifySession({ bullhornUser });
+        if (!sessionValid) {
+            logger.warn(`${LOG_TAG} Bullhorn session unavailable, trying the next account user`, {
+                bullhornUserId: bullhornUser.id
+            });
+            continue;
+        }
+
+        fallbackUser ||= user;
+        try {
+            const entitlements = await fetchNoteEntitlements({ bullhornUser: user });
+            if (hasCorporateNoteAccess(entitlements)) {
+                logger.info(`${LOG_TAG} selected Bullhorn executor session with corporate Note access`, {
+                    bullhornExecutorUserId: user.id
+                });
+                return user;
+            }
+            logger.info(`${LOG_TAG} Bullhorn session lacks corporate Note access, trying the next account user`, {
+                bullhornUserId: user.id,
+                noteEntitlements: entitlements
+            });
+        } catch (error) {
+            logger.warn(`${LOG_TAG} failed to check Bullhorn Note entitlements, trying the next account user`, {
+                stack: error.stack,
+                bullhornUserId: user.id
+            });
+        }
+    }
+
+    if (fallbackUser) {
+        logger.warn(`${LOG_TAG} no Bullhorn session with corporate Note access found; using the first valid session`, {
+            bullhornExecutorUserId: fallbackUser.id
         });
     }
-    return null;
+    return fallbackUser;
 }
 
 // 调用 RC 的 AI notes 接口,按 telephonySessionId 查询。
@@ -916,6 +966,8 @@ exports.getJobStatus = getBackfillJobStatus;
 exports.cancelJob = cancelBackfillJob;
 exports.createAdminTokenManager = createAdminTokenManager;
 exports.findBullhornExecutorUser = findBullhornExecutorUser;
+exports.getBullhornNoteEntitlements = getBullhornNoteEntitlements;
+exports.hasCorporateNoteAccess = hasCorporateNoteAccess;
 exports.buildAiPatch = buildAiPatch;
 exports.processCallLog = processCallLog;
 

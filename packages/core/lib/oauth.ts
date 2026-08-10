@@ -2,7 +2,6 @@
 import type {
     OAuthAppLike,
     OAuthInfo,
-    OperationFailureResult,
     RefreshableOAuthUser
 } from '../types';
 
@@ -12,7 +11,63 @@ const { UserModel: UserModelImport } = require('../models/userModel');
 const UserModel = UserModelImport as any;
 const connectorRegistry = require('../connector/registry') as any;
 const logger = require('./logger');
-const { handleDatabaseError } = require('./errorHandler');
+
+type OAuthRefreshError = Error & {
+    body?: unknown;
+    response?: {
+        data?: unknown;
+    };
+};
+
+function getOAuthErrorCode(error: unknown): string | undefined {
+    if (!error || typeof error !== 'object') {
+        return undefined;
+    }
+    const refreshError = error as OAuthRefreshError;
+    const bodies = [refreshError.body, refreshError.response?.data];
+    for (const body of bodies) {
+        if (body && typeof body === 'object' && 'error' in body) {
+            const errorCode = (body as { error?: unknown }).error;
+            if (typeof errorCode === 'string') {
+                return errorCode;
+            }
+        }
+        if (typeof body === 'string') {
+            try {
+                const parsedBody = JSON.parse(body) as { error?: unknown };
+                if (typeof parsedBody.error === 'string') {
+                    return parsedBody.error;
+                }
+            }
+            catch {
+                const errorCode = new URLSearchParams(body).get('error');
+                if (errorCode) {
+                    return errorCode;
+                }
+            }
+        }
+    }
+    return undefined;
+}
+
+function isPermanentlyInvalidRefreshToken(error: unknown): boolean {
+    return getOAuthErrorCode(error)?.toLowerCase() === 'invalid_grant';
+}
+
+async function recoverConcurrentlyRefreshedUser(
+    error: unknown,
+    user: RefreshableOAuthUser
+): Promise<RefreshableOAuthUser | null> {
+    if (!isPermanentlyInvalidRefreshToken(error)) {
+        throw error;
+    }
+    const latestUser = await UserModel.findByPk(user.id);
+    if (latestUser?.refreshToken && latestUser.refreshToken !== user.refreshToken) {
+        logger.info('Using OAuth token refreshed by another process');
+        return latestUser;
+    }
+    return null;
+}
 
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
 // To change to other strategies, please refer to: https://github.com/mulesoft-labs/js-client-oauth2
@@ -38,7 +93,7 @@ async function checkAndRefreshAccessToken(
     oauthApp: OAuthAppLike,
     user: RefreshableOAuthUser,
     tokenLockTimeout = 20
-): Promise<RefreshableOAuthUser | OperationFailureResult | null> {
+): Promise<RefreshableOAuthUser | null> {
     const now = moment();
     const tokenExpiry = moment(user.tokenExpiry);
     const expiryBuffer = 2; // 2 minutes
@@ -127,27 +182,27 @@ async function checkAndRefreshAccessToken(
                 user.accessToken = accessToken;
                 user.refreshToken = refreshToken;
                 user.tokenExpiry = expires;
-                try {
-                    await user.save();
-                }
-                catch (error) {
-                    return handleDatabaseError(error, 'Error saving user');
-                }
-                if (newLock) {
-                    const deletionStartTime = moment();
-                    await newLock.delete();
-                    const deletionEndTime = moment();
-                    logger.info(`lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`);
-                }
+                await user.save();
                 const endRefreshTime = moment();
                 logger.info(`token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`);
             }
             catch (e) {
                 console.log('token refreshing failed', (e as any).stack);
                 if (newLock) {
-                    await newLock.delete();
+                    try {
+                        await newLock.delete();
+                    }
+                    catch (lockError) {
+                        logger.error('Failed to delete token refresh lock after refresh failure', { error: lockError });
+                    }
                 }
-                return null;
+                return recoverConcurrentlyRefreshedUser(e, user);
+            }
+            if (newLock) {
+                const deletionStartTime = moment();
+                await newLock.delete();
+                const deletionEndTime = moment();
+                logger.info(`lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`);
             }
         }
         // case: run withou token refresh lock
@@ -162,14 +217,9 @@ async function checkAndRefreshAccessToken(
             }
             catch (e) {
                 console.log('token refreshing failed', (e as any).stack);
-                return null;
+                return recoverConcurrentlyRefreshedUser(e, user);
             }
-            try {
-                await user.save();
-            }
-            catch (error) {
-                return handleDatabaseError(error, 'Error saving user');
-            }
+            await user.save();
             logger.info('token refreshing finished');
         }
 

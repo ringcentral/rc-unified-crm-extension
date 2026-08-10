@@ -73,6 +73,16 @@ RingCentral App Connect isn't just a dialer; it is a high-performance integratio
 	
     [Learn about Custom Integrations](integrations.md)
 
+-   __Legal Practice Management__
+
+    ---
+
+    Tie every client call and text to the right matter automatically. Purpose-built connectors for Clio and Smokeball keep billable time accurate and matter files complete without manual entry.
+
+    ---
+
+    [Learn about Legal](legal.md)
+
 </div>
 
 ## Why Leading Teams Choose App Connect

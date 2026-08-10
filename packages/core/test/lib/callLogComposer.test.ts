@@ -10,6 +10,7 @@ const {
   upsertCallDuration,
   upsertCallResult,
   upsertCallRecording,
+  upsertVoicemailRecording,
   upsertAiNote,
   upsertTranscript,
   upsertLegs,
@@ -49,6 +50,7 @@ describe('callLogComposer', () => {
       const params = {
         ...baseParams,
         recordingLink: 'https://recording.example.com/123',
+        voicemailLink: 'https://voicemail.example.com/123',
         aiNote: 'AI generated summary',
         transcript: 'Speaker 1: Hello',
         ringSenseTranscript: 'ACE transcript',
@@ -804,6 +806,40 @@ describe('callLogComposer', () => {
       });
 
       expect(result).toContain('**Call recording link**: https://new-link.com/456');
+      expect(result).not.toContain('old-link');
+    });
+  });
+
+  describe('upsertVoicemailRecording', () => {
+    test('should add voicemail recording link', () => {
+      const result = upsertVoicemailRecording({
+        body: '',
+        voicemailLink: 'https://voicemail.example.com/123',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      });
+
+      expect(result).toContain('Voicemail recording link: https://voicemail.example.com/123');
+    });
+
+    test('should add voicemail recording link in HTML format with anchor', () => {
+      const result = upsertVoicemailRecording({
+        body: '<ul></ul>',
+        voicemailLink: 'https://voicemail.example.com/123',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      });
+
+      expect(result).toContain('<b>Voicemail recording link</b>');
+      expect(result).toContain('<a target="_blank" href="https://voicemail.example.com/123">open</a>');
+    });
+
+    test('should replace existing voicemail recording link in Markdown format', () => {
+      const result = upsertVoicemailRecording({
+        body: '**Voicemail recording link**: https://old-link.example.com\n',
+        voicemailLink: 'https://voicemail.example.com/new',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+      });
+
+      expect(result).toContain('**Voicemail recording link**: https://voicemail.example.com/new');
       expect(result).not.toContain('old-link');
     });
   });

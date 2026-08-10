@@ -113,28 +113,34 @@ nav:
   - 'Overview': crm/index.md
   - 'AgencyZoom': crm/agencyzoom/index.md
   - 'Bullhorn': crm/bullhorn.md
-  - 'monday.com': crm/monday.md
   - 'Clio': crm/clio.md
   - 'ConnectWise': crm/connectwise.md
+  - 'Dominion': crm/dominion.md
   - 'Freshdesk': crm/freshdesk.md
   - 'GoHighLevel': crm/gohighlevel.md
   - 'Google Sheets': crm/google-sheets.md
   - 'Insightly': crm/insightly.md
+  - 'monday.com': crm/monday.md
   - 'NetSuite': crm/netsuite.md
   - 'Odoo': crm/odoo.md
   - 'Pipedrive': crm/pipedrive.md
   - 'Redtail CRM': crm/redtail.md
   - 'ServiceNow': crm/servicenow.md
   - 'Smokeball': crm/smokeball.md
+  - 'Vin Solutions': crm/vinsolutions.md
   - 'Zoho': crm/zoho.md
 - 'Solutions':
   - 'Overview': solutions/index.md
-  - 'Embedded communications': solutions/embedded-communications.md
-  - 'Sales velocity': solutions/sales-velocity.md
-  - 'Supervision &amp; monitoring': solutions/supervision.md
-  - 'Automated logging': solutions/communication-logging.md
-  - 'AI-generated insights': solutions/artificial-intelligence.md
-  - 'Universal connector': solutions/integrations.md
+  - 'Verticals': 
+    - 'Automotive': https://www.ringcentral.com/office/industry-solutions/automotive.html
+    - 'Legal': solutions/legal.md
+  - 'Use cases':  
+    - 'Embedded communications': solutions/embedded-communications.md
+    - 'Sales velocity': solutions/sales-velocity.md
+    - 'Supervision &amp; monitoring': solutions/supervision.md
+    - 'Automated logging': solutions/communication-logging.md
+    - 'AI-generated insights': solutions/artificial-intelligence.md
+    - 'Universal connector': solutions/integrations.md
 - 'Documentation':
   - 'Overview': users/access.md
   - 'Installation': getting-started.md

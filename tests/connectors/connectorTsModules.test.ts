@@ -78,6 +78,7 @@ describe('app connector TypeScript modules', () => {
         const pipedrive = require('../../src/connectors/pipedrive/index.ts');
 
         expect(Object.keys(pipedrive).sort()).toEqual([
+            'accountData',
             'createCallLog',
             'createContact',
             'createMessageLog',
@@ -223,6 +224,7 @@ describe('app connector TypeScript modules', () => {
         const bullhorn = require('../../src/connectors/bullhorn/index.ts');
 
         expect(Object.keys(bullhorn).sort()).toEqual([
+            'accountData',
             'authValidation',
             'cancelAppointment',
             'checkAndRefreshAccessToken',

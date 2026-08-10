@@ -26,6 +26,7 @@ function composeCallLog(params: ComposeCallLogParams): string {
         aiNote,
         transcript,
         recordingLink,
+        voicemailLink,
         subject,
         startTime,
         duration,
@@ -103,6 +104,10 @@ function composeCallLog(params: ComposeCallLogParams): string {
 
     if (recordingLink && (userSettings?.addCallLogRecording?.value ?? true)) {
         body = upsertCallRecording({ body, recordingLink, logFormat });
+    }
+
+    if (voicemailLink && (userSettings?.addCallLogRecording?.value ?? true)) {
+        body = upsertVoicemailRecording({ body, voicemailLink, logFormat });
     }
 
     if (aiNote && (userSettings?.addCallLogAiNote?.value ?? true)) {
@@ -526,6 +531,50 @@ function upsertCallRecording({ body, recordingLink, logFormat }) {
     return result;
 }
 
+function upsertVoicemailRecording({ body, voicemailLink, logFormat }) {
+    if (!voicemailLink) return body;
+
+    let result = body;
+    let voicemailLinkRegex = null;
+
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML: {
+            voicemailLinkRegex = /(?:<li>)?<b>Voicemail recording link<\/b>:\s*(?:<a[^>]*>[^<]*<\/a>|[^<]+)(?:<\/li>|(?=<|$))/i;
+            const text = voicemailLink.startsWith('http')
+                ? `<li><b>Voicemail recording link</b>: <a target="_blank" href="${voicemailLink}">open</a></li>`
+                : '<li><b>Voicemail recording link</b>: (pending...)</li>';
+            if (voicemailLinkRegex.test(result)) {
+                result = result.replace(voicemailLinkRegex, text);
+            } else if (result.indexOf('</ul>') === -1) {
+                result += text;
+            } else {
+                result = result.replace('</ul>', `${text}</ul>`);
+            }
+            break;
+        }
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            voicemailLinkRegex = /\*\*Voicemail recording link\*\*: [^\n]*\n*/;
+            if (voicemailLinkRegex.test(result)) {
+                result = result.replace(voicemailLinkRegex, `**Voicemail recording link**: ${voicemailLink}\n`);
+            } else {
+                result += `**Voicemail recording link**: ${voicemailLink}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            voicemailLinkRegex = /- Voicemail recording link: [^\n]*\n*/;
+            if (voicemailLinkRegex.test(result)) {
+                result = result.replace(voicemailLinkRegex, `- Voicemail recording link: ${voicemailLink}\n`);
+            } else {
+                if (result && !result.endsWith('\n')) {
+                    result += '\n';
+                }
+                result += `- Voicemail recording link: ${voicemailLink}\n`;
+            }
+            break;
+    }
+    return result;
+}
+
 function upsertAiNote({ body, aiNote, logFormat }) {
     if (!aiNote) return body;
 
@@ -877,6 +926,7 @@ export {
     upsertCallDuration,
     upsertCallResult,
     upsertCallRecording,
+    upsertVoicemailRecording,
     upsertAiNote,
     upsertTranscript,
     upsertLegs,

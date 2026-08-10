@@ -11,9 +11,48 @@ const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/mode
 const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/lib/errorHandler'));
+const { getAccountData } = /** @type {any} */ (require('@app-connect/core/lib/accountData'));
 
 function getAuthType() {
     return 'oauth';
+}
+
+// Account-level data registry. Consumed by @app-connect/core getAccountData (lazy 24h TTL refresh)
+// and the GET /accountData endpoint. See .scratch/account-level-data/PRD.md
+const accountData = {
+    activityTypes: {
+        fetch: async ({ user, authHeader }) => {
+            const res = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
+            return res.data.data.filter(t => t.active_flag).map(t => ({ const: t.key_string, title: t.name }));
+        }
+    }
+};
+
+// Resolution priority: admin-configured type (Admin tab -> Account settings) -> stale-config
+// force refresh -> keyword auto-match on cached list -> no-match force refresh (self-heal) -> null
+async function resolveActivityType({ user, authHeader, hashedAccountId, settingId, keyword }) {
+    let configuredKeyString = null;
+    if (hashedAccountId) {
+        const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+        configuredKeyString = adminConfig?.userSettings?.[settingId]?.value || null;
+    }
+    let activityTypes = await getAccountData({ platform: 'pipedrive', user, authHeader, dataKey: 'activityTypes' });
+    if (configuredKeyString) {
+        if (activityTypes.some(t => t.const === configuredKeyString)) {
+            return configuredKeyString;
+        }
+        // configured type no longer exists in cache; it may have been created/renamed recently
+        activityTypes = await getAccountData({ platform: 'pipedrive', user, authHeader, dataKey: 'activityTypes', forceRefresh: true });
+        if (activityTypes.some(t => t.const === configuredKeyString)) {
+            return configuredKeyString;
+        }
+    }
+    let matched = activityTypes.find(t => t.title.toLowerCase().includes(keyword));
+    if (!matched) {
+        activityTypes = await getAccountData({ platform: 'pipedrive', user, authHeader, dataKey: 'activityTypes', forceRefresh: true });
+        matched = activityTypes.find(t => t.title.toLowerCase().includes(keyword));
+    }
+    return matched?.const ?? null;
 }
 
 function getLogFormatType() {
@@ -25,7 +64,7 @@ async function getOauthInfo() {
         clientId: process.env.PIPEDRIVE_CLIENT_ID,
         clientSecret: process.env.PIPEDRIVE_CLIENT_SECRET,
         accessTokenUri: process.env.PIPEDRIVE_ACCESS_TOKEN_URI,
-        redirectUri: 'https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect'
+        redirectUri: process.env.PIPEDRIVE_REDIRECT_URI || 'https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect'
     }
 }
 
@@ -414,19 +453,18 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
     if (assigneeId) {
         postBody.owner_id = Number(assigneeId);
     }
-    const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
-    const callType = activityTypesResponse.data.data.find(t => t.name.toLowerCase().includes('call') && t.active_flag);
-    if (!callType?.key_string) {
+    const callTypeKeyString = await resolveActivityType({ user, authHeader, hashedAccountId, settingId: 'pipedriveCallActivityType', keyword: 'call' });
+    if (!callTypeKeyString) {
         return {
             logId: null,
             returnMessage: {
-                message: 'Call logging requires there is an active type containing the word "call" (case insensitive).',
+                message: 'Call logging requires an active activity type containing the word "call" (case insensitive), or one explicitly assigned by an admin under Admin > Account settings.',
                 messageType: 'error',
                 ttl: 2000
             }
         }
     }
-    postBody.type = callType.key_string;
+    postBody.type = callTypeKeyString;
     const addLogRes = await axios.post(
         `https://${user.hostname}/api/v2/activities`,
         postBody,
@@ -529,7 +567,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink, hashedAccountId }) {
     let extraDataTracking = {};
     let subject = '';
     let note = '';
@@ -547,13 +585,12 @@ async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLo
     const orgId = personResponse.data.data.org_id ?? '';
     const timeUtc = sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utcOffset(0).format('HH:mm') : moment(message.creationTime).utcOffset(0).format('HH:mm')
     const dateUtc = sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utcOffset(0).format('YYYY-MM-DD') : moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
-    const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
-    const smsType = activityTypesResponse.data.data.find(t => t.name.toLowerCase().includes('sms') && t.active_flag);
-    if (!smsType?.key_string) {
+    const smsTypeKeyString = await resolveActivityType({ user, authHeader, hashedAccountId, settingId: 'pipedriveSMSActivityType', keyword: 'sms' });
+    if (!smsTypeKeyString) {
         return {
             logId: null,
             returnMessage: {
-                message: 'Message logging requires there is an active type containing the word "sms" (case insensitive).',
+                message: 'Message logging requires an active activity type containing the word "sms" (case insensitive), or one explicitly assigned by an admin under Admin > Account settings.',
                 messageType: 'error',
                 ttl: 2000
             }
@@ -608,7 +645,7 @@ async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLo
         done: true,
         due_date: dateUtc,
         due_time: timeUtc,
-        type: smsType ? smsType.key_string : 'call',
+        type: smsTypeKeyString,
         participants: [
             {
                 person_id: Number(contactInfo.id),
@@ -755,5 +792,6 @@ exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
 exports.getLogFormatType = getLogFormatType;
+exports.accountData = accountData;
 
-export {};
+export { };

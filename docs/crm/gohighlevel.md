@@ -1,4 +1,4 @@
-# App Connect and HighLevel
+# GoHighLevel by Loyally
 
 !!! info "Requires App Connect 2.0"
     This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
@@ -9,19 +9,21 @@ HighLevel is the all-in-one sales & marketing platform that agencies can white-l
 
 !!! warning "The HighLevel connector is currently in beta. If you experience any diffculty, please reach out via the [App Connect community](https://community.ringcentral.com/groups/app-connect-22)"
 
-## Sign-up for the Beta
+<iframe width="560" height="315" src="https://www.youtube.com/embed/AAJbmt-CFDI?si=BjLdBYXiqRaaVXa-" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+## Setup and configuration
+
+### Sign-up for the Beta
 
 The GoHighLevel integration will be a paid integration. For that reason, access to the beta currently requires people to sign-up with Loyally. Please contact Loyally to join the beta now. 
 
 [Sign-up for HighLevel Beta](https://buy.stripe.com/9B614n1OBgat8d701LdUY0X){ .md-button .md-button--primary }
 
-## Install the extension
+### Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-## Setup the extension
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/AAJbmt-CFDI?si=BjLdBYXiqRaaVXa-" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+### Connect to HighLevel
 
 Once the App Connect extension has been installed, follow these steps to setup and configure the extension for Freshdesk. 
 

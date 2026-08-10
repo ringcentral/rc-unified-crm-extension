@@ -73,6 +73,9 @@ jest.mock('../../handlers/managedOAuth', () => ({
   clearPendingManagedOAuth: jest.fn(),
   resetManagedOAuth: jest.fn(),
 }));
+jest.mock('../../handlers/accountData', () => ({
+  getAccountDataByKeys: jest.fn(),
+}));
 jest.mock('../../connector/mock', () => ({
   createUser: jest.fn(),
   deleteUser: jest.fn(),
@@ -123,6 +126,7 @@ const calldown = require('../../handlers/calldown');
 const pluginCore = require('../../handlers/plugin');
 const managedAuthCore = require('../../handlers/managedAuth');
 const managedOAuthCore = require('../../handlers/managedOAuth');
+const accountDataCore = require('../../handlers/accountData');
 const mockConnector = require('../../connector/mock');
 const connectorRegistry = require('../../connector/registry');
 const analytics = require('../../lib/analytics');
@@ -305,6 +309,10 @@ describe('Core router broad route coverage', () => {
     managedOAuthCore.upsertPendingManagedOAuth.mockResolvedValue();
     managedOAuthCore.clearPendingManagedOAuth.mockResolvedValue();
     managedOAuthCore.resetManagedOAuth.mockResolvedValue();
+    accountDataCore.getAccountDataByKeys.mockResolvedValue({
+      successful: true,
+      data: { activityTypes: [{ const: 'call', title: 'Call' }] },
+    });
 
     authCore.getLicenseStatus.mockResolvedValue({ isLicenseValid: true });
     authCore.authValidation.mockResolvedValue({
@@ -1069,6 +1077,68 @@ describe('Core router broad route coverage', () => {
     await expectInvalidJwt(() => request(app).put('/callDisposition').query({ jwtToken: 'bad' }).send({ sessionId: 's1' }), 'Invalid JWT token');
     await expectInvalidJwt(() => request(app).post('/messageLog').query({ jwtToken: 'bad' }).send({ messages: [] }));
     await expectInvalidJwt(() => request(app).get('/custom/contact/search').query({ jwtToken: 'bad', name: 'Alice' }), 'Invalid JWT token');
+    await expectInvalidJwt(() => request(app).get('/accountData').query({ jwtToken: 'bad', keys: 'activityTypes' }));
+  });
+
+  test('gets account data for requested keys and forwards force refresh', async () => {
+    const response = await request(app)
+      .get('/accountData')
+      .query({ ...authQuery(), keys: 'activityTypes, users', forceRefresh: 'true' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      successful: true,
+      data: { activityTypes: [{ const: 'call', title: 'Call' }] },
+    });
+    expect(accountDataCore.getAccountDataByKeys).toHaveBeenCalledWith({
+      platform: 'testCRM',
+      userId: 'user-1',
+      keys: ['activityTypes', 'users'],
+      forceRefresh: true,
+      tracer: null,
+    });
+    expect(analytics.track).toHaveBeenCalledWith(expect.objectContaining({
+      eventName: 'Get account data',
+      interfaceName: 'getAccountData',
+      connectorName: 'testCRM',
+      success: true,
+    }));
+  });
+
+  test('validates account data requests and maps handler failures', async () => {
+    await expect(request(app).get('/accountData').query(authQuery())).resolves.toMatchObject({
+      status: 400,
+      text: 'Missing keys',
+    });
+
+    accountDataCore.getAccountDataByKeys.mockResolvedValueOnce({
+      successful: false,
+      isBadRequest: true,
+      returnMessage: { messageType: 'warning', message: 'Unknown account data key(s): unknown' },
+    });
+    await expect(request(app).get('/accountData').query({ ...authQuery(), keys: 'unknown' })).resolves.toMatchObject({
+      status: 400,
+      body: expect.objectContaining({ successful: false }),
+    });
+
+    accountDataCore.getAccountDataByKeys.mockResolvedValueOnce({
+      successful: false,
+      isRevokeUserSession: true,
+      returnMessage: { messageType: 'warning', message: 'Reconnect' },
+    });
+    await expect(request(app).get('/accountData').query({ ...authQuery(), keys: 'activityTypes' })).resolves.toMatchObject({
+      status: 401,
+      body: expect.objectContaining({
+        successful: false,
+        errorCode: 'CRM_SESSION_REVOKED',
+      }),
+    });
+
+    accountDataCore.getAccountDataByKeys.mockRejectedValueOnce(new Error('CRM unavailable'));
+    await expect(request(app).get('/accountData').query({ ...authQuery(), keys: 'activityTypes' })).resolves.toMatchObject({
+      status: 400,
+      body: { error: 'CRM unavailable' },
+    });
   });
 
   test('returns 401 when contact handlers request session revocation', async () => {
@@ -1105,6 +1175,7 @@ describe('Core router broad route coverage', () => {
       const req = request(app)[method](path).query(authQuery());
       const response = body === undefined ? await req : await req.send(body);
       expect(response.status).toBe(401);
+      expect(response.body.errorCode).toBe('CRM_SESSION_REVOKED');
     }
   });
 
@@ -1212,10 +1283,16 @@ describe('Core router broad route coverage', () => {
     await expect(request(app).delete('/admin/managedOAuth/account').query({ rcAccessToken: 'rc-token', platform: 'testCRM' })).resolves.toMatchObject({ status: 400 });
 
     adminCore.getUserMapping.mockResolvedValueOnce({ isRevokeUserSession: true });
-    await expect(request(app).post('/admin/userMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({ status: 401 });
+    await expect(request(app).post('/admin/userMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({
+      status: 401,
+      body: expect.objectContaining({ errorCode: 'CRM_SESSION_REVOKED' }),
+    });
 
     adminCore.reinitializeUserMapping.mockResolvedValueOnce({ isRevokeUserSession: true });
-    await expect(request(app).post('/admin/reinitializeUserMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({ status: 401 });
+    await expect(request(app).post('/admin/reinitializeUserMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({
+      status: 401,
+      body: expect.objectContaining({ errorCode: 'CRM_SESSION_REVOKED' }),
+    });
 
     adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
     await expect(request(app).post('/admin/userMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({ status: 403 });

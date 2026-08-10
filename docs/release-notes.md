@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.7.41
+
+- New: Account data share
+- Better: Call logs for voicemail now logs voicemail url
+- Fix: Meeting time format issue
+
 ## 1.7.40
 
 - Fix: Get implemented interface in time
@@ -193,6 +199,10 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.37
+
+- Fix: Meeting time format issue
 
 ## 1.6.35
 

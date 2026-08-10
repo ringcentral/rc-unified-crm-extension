@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "App Connect Connector Server API",
-    "version": "1.7.40",
+    "version": "1.7.41",
     "description": "HTTP API exposed by an App Connect connector server (called the CRM or adapter server in older code). The configured manifest serverUrl is the HTTPS base URL, without a trailing slash, to which App Connect appends these paths. The contract combines shared @app-connect/core routes with connector-specific routes implemented by this server; fields and supported capabilities can vary by connector where an operation delegates to a connector interface.\n\nAuthorization: userJwt is an App Connect CRM-session JWT issued by /apiKeyLogin or /oauth-callback; it is not a RingCentral OAuth token. X-RC-Access-Token carries a RingCentral OAuth credential for RingCentral user or administrator validation. Legacy jwtToken and rcAccessToken query parameters remain active for older clients, but credentials in URLs can leak through logs and browser history and should be avoided.\n\nLegacy response convention: some connector operations return HTTP 200 with successful: false and returnMessage when the request was processed but the CRM operation failed. Callers must inspect the response body rather than treating every 2xx response as business success. Payloads can contain CRM records, communications content, recording URLs, and access tokens; do not log credentials or retain personal data beyond the workflow that requires it.",
     "contact": {
       "name": "RingCentral Labs",
@@ -53,6 +53,10 @@
     {
       "name": "Admin",
       "description": "RingCentral account settings, managed credentials, server-side logging configuration, and CRM user mapping."
+    },
+    {
+      "name": "Account data",
+      "description": "Account-level CRM metadata (e.g. Pipedrive activity types) cached per RingCentral account and shared across its users."
     },
     {
       "name": "User",
@@ -290,7 +294,7 @@
                   "version": {
                     "summary": "Server version",
                     "value": {
-                      "version": "1.7.40"
+                      "version": "1.7.41"
                     }
                   }
                 }
@@ -4045,6 +4049,75 @@
           }
         ],
         "description": "Invokes a bundled, application-specific plugin for the current App Connect CRM user. The supported plugin IDs and response shape are hard-coded by this server; this legacy route is omitted from the public connector specification."
+      }
+    },
+    "/accountData": {
+      "get": {
+        "tags": [
+          "Account data"
+        ],
+        "summary": "Get account-level CRM data cached for the current CRM account",
+        "operationId": "getAccountData",
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "keys",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated connector-registered account data keys to fetch (e.g. activityTypes)."
+          },
+          {
+            "name": "forceRefresh",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Bypass the cached value and refetch from the CRM before returning."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requested account data keyed by data key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "successful": {
+                      "type": "boolean"
+                    },
+                    "returnMessage": {
+                      "$ref": "#/components/schemas/ReturnMessage"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Map of requested data key to its cached value."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
+          }
+        },
+        "description": "Returns account-level CRM metadata (e.g. Pipedrive activity types) registered by the connector's accountData descriptor table. Values are cached per (rcAccountId, platform, dataKey) with a lazy TTL refresh; pass forceRefresh=true to bypass the cache. Unknown keys return 400."
       }
     }
   },

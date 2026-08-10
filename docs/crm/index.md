@@ -33,7 +33,7 @@ hide:
      ═══════════════════════════════════════════════════════════ -->
 <div class="crm-mkt__grid">
 
-  <a href="agencyzoom/" class="crm-mkt__card crm-mkt__card--partner">
+  <a href="agencyzoom/" class="crm-mkt__card">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-agencyzoom.png" alt="AgencyZoom"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Insurance Agency Management</div>
@@ -72,7 +72,7 @@ hide:
     </div>
   </a>
 
-  <a href="connectwise/" class="crm-mkt__card crm-mkt__card--partner">
+  <a href="connectwise/" class="crm-mkt__card">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-connectwise.png" alt="ConnectWise"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Professional Services Automation</div>
@@ -81,6 +81,19 @@ hide:
     </div>
     <div class="crm-mkt__footer">
       <span class="crm-mkt__by crm-mkt__by--partner">By Captivo Labs</span>
+      <span class="crm-mkt__cta">View docs →</span>
+    </div>
+  </a>
+
+  <a href="dominion/" class="crm-mkt__card crm-mkt__card--partner">
+    <div class="crm-mkt__logo"><img src="../img/crm-logo-dominion.png" alt="Dominion"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Automotive / DMS</div>
+      <div class="crm-mkt__name">Dominion</div>
+      <p class="crm-mkt__desc">Log calls and texts against Dominion DMS records without leaving the platform.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--rc">By RingCentral</span>
       <span class="crm-mkt__cta">View docs →</span>
     </div>
   </a>
@@ -111,7 +124,7 @@ hide:
     </div>
   </a>
 
-  <a href="google-sheets/" class="crm-mkt__card">
+  <a href="google-sheets/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-googlesheets.png" alt="Google Sheets"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Spreadsheet / Universal</div>
@@ -137,7 +150,7 @@ hide:
     </div>
   </a>
 
-  <a href="monday/" class="crm-mkt__card crm-mkt__card--partner">
+  <a href="monday/" class="crm-mkt__card">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-monday.png" alt="monday.com"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Work OS / Project Management</div>
@@ -215,7 +228,7 @@ hide:
     </div>
   </a>
 
-  <a href="servicetitan/" class="crm-mkt__card crm-mkt__card--partner">
+  <a href="servicetitan/" class="crm-mkt__card">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-servicetitan.png" alt="ServiceTitan"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Field Service Management</div>
@@ -228,7 +241,7 @@ hide:
     </div>
   </a>
 
-  <a href="smokeball/" class="crm-mkt__card crm-mkt__card--partner">
+  <a href="smokeball/" class="crm-mkt__card">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-smokeball.png" alt="Smokeball"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Legal Practice Management</div>
@@ -237,6 +250,19 @@ hide:
     </div>
     <div class="crm-mkt__footer">
       <span class="crm-mkt__by crm-mkt__by--partner">By Captivo Labs</span>
+      <span class="crm-mkt__cta">View docs →</span>
+    </div>
+  </a>
+
+  <a href="vinsolutions/" class="crm-mkt__card crm-mkt__card--partner">
+    <div class="crm-mkt__logo"><img src="../img/crm-logo-vinsolutions.png" alt="Vin Solutions"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Automotive / DMS</div>
+      <div class="crm-mkt__name">Vin Solutions</div>
+      <p class="crm-mkt__desc">Click-to-dial, screen-pop, and automatic call logging directly inside Vin Solutions.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--rc">By RingCentral</span>
       <span class="crm-mkt__cta">View docs →</span>
     </div>
   </a>

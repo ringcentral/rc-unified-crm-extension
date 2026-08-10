@@ -1,16 +1,18 @@
-# Setting up App Connect for Google Sheets
+# Google Sheets
 
 Google Sheets is the CRM everyone in the world has access to. Is it a highly specialized CRM? No. But it is free, and in the right hands can be a flexible and invaluable tool. 
 
 RingCentral's integration with Google Sheets track selected communications and contacts with whom you do business with.
 
-## Install the extension
+<iframe width="560" height="315" src="https://www.youtube.com/embed/FvgVObKvoMM?si=VmAjQk2ayzMzr47T" title="App Connect for Google Sheets" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+## Setup and configuration
+
+### Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store or Microsoft Edge store. 
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/FvgVObKvoMM?si=VmAjQk2ayzMzr47T" title="App Connect for Google Sheets" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
-## Setup the extension
+### Connect to Google Sheets
 
 Once the extension has been installed, follow these steps to setup and configure the extension for Google Sheets. 
 

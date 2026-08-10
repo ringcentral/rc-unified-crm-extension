@@ -25,16 +25,17 @@ jest.mock('@app-connect/core/models/adminConfigModel', () => ({
     }
 }));
 
-jest.mock('@app-connect/core/models/accountDataModel', () => ({
-    AccountDataModel: {
-        findByPk: jest.fn().mockResolvedValue(null),
-        upsert: jest.fn().mockResolvedValue({})
-    },
-    getOrRefreshAccountData: jest.fn().mockImplementation(async ({ fetchFn }) => {
-        if (fetchFn) {
-            return await fetchFn();
+jest.mock('@app-connect/core/lib/accountData', () => ({
+    getAccountData: jest.fn().mockImplementation(async ({ dataKey }) => {
+        if (dataKey === 'bullhornData') {
+            return {
+                commentActionList: [{ const: 'Call', title: 'Call' }, { const: 'Email', title: 'Email' }],
+                leadStatuses: [{ const: 'Active', title: 'Active' }],
+                candidateStatuses: [{ const: 'Active', title: 'Active' }],
+                contactStatuses: [{ const: 'Active', title: 'Active' }]
+            };
         }
-        return ['Call', 'Email', 'Meeting', 'Note'];
+        return {};
     })
 }));
 
@@ -52,7 +53,7 @@ jest.mock('@app-connect/core/models/dynamo/lockSchema', () => ({
 
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
-const { getOrRefreshAccountData } = require('@app-connect/core/models/accountDataModel');
+const { getAccountData } = require('@app-connect/core/lib/accountData');
 const { encode, decoded } = require('@app-connect/core/lib/encode');
 const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
 
@@ -89,6 +90,17 @@ describe('Bullhorn Connector', () => {
                 tokenUrl: 'https://auth.bullhornstaffing.com/oauth/token'
             }
         });
+        getAccountData.mockImplementation(async ({ dataKey }) => {
+            if (dataKey === 'bullhornData') {
+                return {
+                    commentActionList: [{ const: 'Call', title: 'Call' }, { const: 'Email', title: 'Email' }],
+                    leadStatuses: [{ const: 'Active', title: 'Active' }],
+                    candidateStatuses: [{ const: 'Active', title: 'Active' }],
+                    contactStatuses: [{ const: 'Active', title: 'Active' }]
+                };
+            }
+            return {};
+        });
     });
 
     afterEach(() => {
@@ -107,6 +119,62 @@ describe('Bullhorn Connector', () => {
         it('should return HTML format type', () => {
             const result = bullhorn.getLogFormatType();
             expect(result).toBe('text/html');
+        });
+    });
+
+    describe('accountData registry', () => {
+        it('registers one Bullhorn account data key with all four properties', async () => {
+            nock(restUrl.slice(0, -1))
+                .get('/settings/commentActionList')
+                .reply(200, { commentActionList: ['Call', 'Email'] });
+            nock(restUrl.slice(0, -1))
+                .get('/meta/Lead')
+                .query({ fields: 'status' })
+                .reply(200, { fields: [{ name: 'status', options: [{ value: 'New', label: 'New lead' }] }] });
+            nock(restUrl.slice(0, -1))
+                .get('/meta/Candidate')
+                .query({ fields: 'status' })
+                .reply(200, { fields: [{ name: 'status', options: [{ value: 'Active', label: 'Active candidate' }] }] });
+            nock(restUrl.slice(0, -1))
+                .get('/meta/ClientContact')
+                .query({ fields: 'status' })
+                .reply(200, { fields: [{ name: 'status', options: [{ value: 'Approved', label: 'Approved contact' }] }] });
+
+            expect(Object.keys(bullhorn.accountData)).toEqual(['bullhornData']);
+            await expect(bullhorn.accountData.bullhornData.fetch({ user: mockUser })).resolves.toEqual({
+                commentActionList: [
+                    { const: 'Call', title: 'Call' },
+                    { const: 'Email', title: 'Email' }
+                ],
+                leadStatuses: [{ const: 'New', title: 'New lead' }],
+                candidateStatuses: [{ const: 'Active', title: 'Active candidate' }],
+                contactStatuses: [{ const: 'Approved', title: 'Approved contact' }]
+            });
+        });
+
+        it('refreshes the Bullhorn session before retrying an account data request', async () => {
+            nock(restUrl.slice(0, -1))
+                .get('/settings/commentActionList')
+                .reply(401, { error: 'Unauthorized' });
+            nock(loginUrl)
+                .post('/login')
+                .query(true)
+                .reply(200, { BhRestToken: 'new-bh-rest-token', restUrl });
+            nock(restUrl.slice(0, -1))
+                .get('/settings/commentActionList')
+                .matchHeader('BhRestToken', 'new-bh-rest-token')
+                .reply(200, { commentActionList: ['Call'] });
+            nock(restUrl.slice(0, -1)).get('/meta/Lead').query(true).reply(200, { fields: [] });
+            nock(restUrl.slice(0, -1)).get('/meta/Candidate').query(true).reply(200, { fields: [] });
+            nock(restUrl.slice(0, -1)).get('/meta/ClientContact').query(true).reply(200, { fields: [] });
+
+            await expect(bullhorn.accountData.bullhornData.fetch({ user: mockUser })).resolves.toEqual({
+                commentActionList: [{ const: 'Call', title: 'Call' }],
+                leadStatuses: [],
+                candidateStatuses: [],
+                contactStatuses: []
+            });
+            expect(mockUser.save).toHaveBeenCalled();
         });
     });
 
@@ -328,14 +396,16 @@ describe('Bullhorn Connector', () => {
     describe('findContact', () => {
         beforeEach(() => {
             // Mock commentActionList for all findContact tests - use fetchFn to simulate real behavior
-            getOrRefreshAccountData.mockImplementation(async ({ fetchFn, dataKey }) => {
-                if (dataKey === 'commentActionList') {
-                    return [{ const: 'Call', title: 'Call' }, { const: 'Email', title: 'Email' }];
+            getAccountData.mockImplementation(async ({ dataKey }) => {
+                if (dataKey === 'bullhornData') {
+                    return {
+                        commentActionList: [{ const: 'Call', title: 'Call' }, { const: 'Email', title: 'Email' }],
+                        leadStatuses: [{ const: 'Active', title: 'Active' }],
+                        candidateStatuses: [{ const: 'Active', title: 'Active' }],
+                        contactStatuses: [{ const: 'Active', title: 'Active' }]
+                    };
                 }
-                if (dataKey === 'leadStatuses' || dataKey === 'candidateStatuses' || dataKey === 'contactStatuses') {
-                    return [{ const: 'Active', title: 'Active' }];
-                }
-                return [];
+                return {};
             });
         });
 
@@ -528,17 +598,13 @@ describe('Bullhorn Connector', () => {
             expect(createNewOption.defaultContactType).toBe('Lead');
         });
 
-        it('should fetch lead, candidate, and contact statuses when using fetchFn', async () => {
-            // Make getOrRefreshAccountData call the fetchFn
-            getOrRefreshAccountData.mockImplementation(async ({ fetchFn, dataKey }) => {
-                if (fetchFn) {
-                    try {
-                        return await fetchFn();
-                    } catch (e) {
-                        return [];
-                    }
+        it('should fetch lead, candidate, and contact statuses from the account data registry', async () => {
+            getAccountData.mockImplementation(async ({ dataKey }) => {
+                try {
+                    return await bullhorn.accountData[dataKey].fetch({ user: mockUser });
+                } catch (e) {
+                    return {};
                 }
-                return [];
             });
 
             // Mock all searches return empty
@@ -1599,11 +1665,11 @@ describe('Bullhorn Connector', () => {
     // ==================== Error Scenarios ====================
     describe('Error Scenarios', () => {
         it('should handle 500 server errors in findContact', async () => {
-            getOrRefreshAccountData.mockImplementation(async ({ fetchFn, dataKey }) => {
-                if (dataKey === 'commentActionList') {
-                    return [{ const: 'Call', title: 'Call' }];
+            getAccountData.mockImplementation(async ({ dataKey }) => {
+                if (dataKey === 'bullhornData') {
+                    return { commentActionList: [{ const: 'Call', title: 'Call' }] };
                 }
-                return [];
+                return {};
             });
 
             nock(restUrl.slice(0, -1))
@@ -2011,6 +2077,7 @@ describe('Bullhorn Connector', () => {
     // ==================== createContact auth error handling ====================
     describe('createContact auth error handling', () => {
         it('should refresh session on auth error when fetching commentActionList', async () => {
+            getAccountData.mockImplementation(async ({ dataKey }) => bullhorn.accountData[dataKey].fetch({ user: mockUser }));
             // First call fails with 401
             nock(restUrl.slice(0, -1))
                 .get('/settings/commentActionList')
@@ -2031,6 +2098,9 @@ describe('Bullhorn Connector', () => {
                 .reply(200, {
                     commentActionList: ['Call']
                 }, mockBullhornRateLimitHeaders);
+            nock(restUrl.slice(0, -1)).get('/meta/Lead').query(true).reply(200, { fields: [] });
+            nock(restUrl.slice(0, -1)).get('/meta/Candidate').query(true).reply(200, { fields: [] });
+            nock(restUrl.slice(0, -1)).get('/meta/ClientContact').query(true).reply(200, { fields: [] });
 
             // Lead creation
             nock(restUrl.slice(0, -1))
@@ -2678,11 +2748,11 @@ describe('Bullhorn Connector', () => {
     // ==================== findContact with overriding format ====================
     describe('findContact with overriding format', () => {
         beforeEach(() => {
-            getOrRefreshAccountData.mockImplementation(async ({ fetchFn, dataKey }) => {
-                if (dataKey === 'commentActionList') {
-                    return [{ const: 'Call', title: 'Call' }];
+            getAccountData.mockImplementation(async ({ dataKey }) => {
+                if (dataKey === 'bullhornData') {
+                    return { commentActionList: [{ const: 'Call', title: 'Call' }] };
                 }
-                return [];
+                return {};
             });
         });
 
@@ -2717,23 +2787,18 @@ describe('Bullhorn Connector', () => {
         });
     });
 
-    // ==================== findContact status fetching errors ====================
-    describe('findContact with status fetching errors', () => {
-        it('should handle lead status fetch error gracefully', async () => {
-            // Make getOrRefreshAccountData throw for leadStatuses
-            getOrRefreshAccountData.mockImplementation(async ({ fetchFn, dataKey }) => {
-                if (dataKey === 'commentActionList') {
-                    return [{ const: 'Call', title: 'Call' }];
+    // ==================== findContact incomplete status data ====================
+    describe('findContact with incomplete status account data', () => {
+        it('should handle missing lead statuses gracefully', async () => {
+            getAccountData.mockImplementation(async ({ dataKey }) => {
+                if (dataKey === 'bullhornData') {
+                    return {
+                        commentActionList: [{ const: 'Call', title: 'Call' }],
+                        candidateStatuses: [{ const: 'Active', title: 'Active' }],
+                        contactStatuses: [{ const: 'Active', title: 'Active' }]
+                    };
                 }
-                if (dataKey === 'leadStatuses') {
-                    const error = new Error('Status fetch failed');
-                    error.response = { status: 500 };
-                    throw error;
-                }
-                if (dataKey === 'candidateStatuses' || dataKey === 'contactStatuses') {
-                    return [{ const: 'Active', title: 'Active' }];
-                }
-                return [];
+                return {};
             });
 
             nock(restUrl.slice(0, -1))
@@ -2764,20 +2829,16 @@ describe('Bullhorn Connector', () => {
             expect(createNewOption).toBeDefined();
         });
 
-        it('should handle candidate status fetch error gracefully', async () => {
-            getOrRefreshAccountData.mockImplementation(async ({ fetchFn, dataKey }) => {
-                if (dataKey === 'commentActionList') {
-                    return [{ const: 'Call', title: 'Call' }];
+        it('should handle missing candidate statuses gracefully', async () => {
+            getAccountData.mockImplementation(async ({ dataKey }) => {
+                if (dataKey === 'bullhornData') {
+                    return {
+                        commentActionList: [{ const: 'Call', title: 'Call' }],
+                        leadStatuses: [{ const: 'Active', title: 'Active' }],
+                        contactStatuses: [{ const: 'Active', title: 'Active' }]
+                    };
                 }
-                if (dataKey === 'candidateStatuses') {
-                    const error = new Error('Status fetch failed');
-                    error.response = { status: 500 };
-                    throw error;
-                }
-                if (dataKey === 'leadStatuses' || dataKey === 'contactStatuses') {
-                    return [{ const: 'Active', title: 'Active' }];
-                }
-                return [];
+                return {};
             });
 
             nock(restUrl.slice(0, -1))
@@ -2806,20 +2867,16 @@ describe('Bullhorn Connector', () => {
             expect(result.successful).toBe(true);
         });
 
-        it('should handle contact status fetch error gracefully', async () => {
-            getOrRefreshAccountData.mockImplementation(async ({ fetchFn, dataKey }) => {
-                if (dataKey === 'commentActionList') {
-                    return [{ const: 'Call', title: 'Call' }];
+        it('should handle missing contact statuses gracefully', async () => {
+            getAccountData.mockImplementation(async ({ dataKey }) => {
+                if (dataKey === 'bullhornData') {
+                    return {
+                        commentActionList: [{ const: 'Call', title: 'Call' }],
+                        leadStatuses: [{ const: 'Active', title: 'Active' }],
+                        candidateStatuses: [{ const: 'Active', title: 'Active' }]
+                    };
                 }
-                if (dataKey === 'contactStatuses') {
-                    const error = new Error('Status fetch failed');
-                    error.response = { status: 500 };
-                    throw error;
-                }
-                if (dataKey === 'leadStatuses' || dataKey === 'candidateStatuses') {
-                    return [{ const: 'Active', title: 'Active' }];
-                }
-                return [];
+                return {};
             });
 
             nock(restUrl.slice(0, -1))
@@ -2852,6 +2909,7 @@ describe('Bullhorn Connector', () => {
     // ==================== createContact non-auth error handling ====================
     describe('createContact non-auth error handling', () => {
         it('should throw on non-auth errors when fetching commentActionList', async () => {
+            getAccountData.mockImplementation(async ({ dataKey }) => bullhorn.accountData[dataKey].fetch({ user: mockUser }));
             // First call fails with 500 (non-auth error)
             nock(restUrl.slice(0, -1))
                 .get('/settings/commentActionList')
@@ -3366,11 +3424,16 @@ describe('Bullhorn Connector', () => {
     // ==================== findContact with multiple contact types in results ====================
     describe('findContact with multiple matches', () => {
         beforeEach(() => {
-            getOrRefreshAccountData.mockImplementation(async ({ fetchFn, dataKey }) => {
-                if (dataKey === 'commentActionList') {
-                    return [{ const: 'Call', title: 'Call' }];
+            getAccountData.mockImplementation(async ({ dataKey }) => {
+                if (dataKey === 'bullhornData') {
+                    return {
+                        commentActionList: [{ const: 'Call', title: 'Call' }],
+                        leadStatuses: [{ const: 'Active', title: 'Active' }],
+                        candidateStatuses: [{ const: 'Active', title: 'Active' }],
+                        contactStatuses: [{ const: 'Active', title: 'Active' }]
+                    };
                 }
-                return [{ const: 'Active', title: 'Active' }];
+                return {};
             });
         });
 

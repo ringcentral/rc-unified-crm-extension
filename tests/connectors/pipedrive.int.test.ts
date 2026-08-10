@@ -25,6 +25,16 @@ jest.mock('@app-connect/core/models/adminConfigModel', () => ({
     }
 }));
 
+// Bypass the account data cache/registry: call the connector's descriptor fetch on every
+// access so each test's nock interceptors keep their one-request-per-call semantics.
+jest.mock('@app-connect/core/lib/accountData', () => ({
+    getAccountData: jest.fn(async ({ user, authHeader, dataKey }) => {
+        const connector = require('../../src/connectors/pipedrive');
+        return connector.accountData[dataKey].fetch({ user, authHeader });
+    }),
+    getAccountDataKeys: jest.fn(() => ['activityTypes'])
+}));
+
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 
@@ -90,7 +100,7 @@ describe('Pipedrive Connector', () => {
                 clientId: 'test-client-id',
                 clientSecret: 'test-client-secret',
                 accessTokenUri: 'https://oauth.pipedrive.com/oauth/token',
-                redirectUri: 'https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect'
+                redirectUri: 'https://example.com/callback'
             });
         });
     });
@@ -550,6 +560,117 @@ describe('Pipedrive Connector', () => {
             });
 
             expect(result.logId).toBe(404);
+        });
+
+        it('should use admin-configured activity type when set', async () => {
+            nock.cleanAll();
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/101')
+                .reply(200, { data: { org_id: 201 } }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/activityTypes')
+                .reply(200, {
+                    data: [
+                        { name: 'Phone Call', key_string: 'special_call', active_flag: true },
+                        { name: 'Call', key_string: 'call', active_flag: true }
+                    ]
+                }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .post('/api/v2/activities', body => body.type === 'special_call')
+                .reply(201, {
+                    data: { id: 405 }
+                }, mockRateLimitHeaders);
+            AdminConfigModel.findByPk.mockResolvedValueOnce({ userSettings: { pipedriveCallActivityType: { value: 'special_call' } } });
+
+            const result = await pipedrive.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: null,
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(AdminConfigModel.findByPk).toHaveBeenCalledWith('hash-123');
+            expect(result.logId).toBe(405);
+        });
+
+        it('should force refresh when admin-configured activity type is not in cached list', async () => {
+            nock.cleanAll();
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/101')
+                .reply(200, { data: { org_id: 201 } }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/activityTypes')
+                .reply(200, {
+                    data: [
+                        { name: 'Call', key_string: 'call', active_flag: true }
+                    ]
+                }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/activityTypes')
+                .reply(200, {
+                    data: [
+                        { name: 'Phone Call', key_string: 'special_call', active_flag: true }
+                    ]
+                }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .post('/api/v2/activities', body => body.type === 'special_call')
+                .reply(201, {
+                    data: { id: 406 }
+                }, mockRateLimitHeaders);
+            AdminConfigModel.findByPk.mockResolvedValueOnce({ userSettings: { pipedriveCallActivityType: { value: 'special_call' } } });
+
+            const result = await pipedrive.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: null,
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(406);
+        });
+
+        it('should return error when no activity type matches even after refresh', async () => {
+            nock.cleanAll();
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/101')
+                .reply(200, { data: { org_id: 201 } }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/activityTypes')
+                .times(2)
+                .reply(200, {
+                    data: [
+                        { name: 'Meeting', key_string: 'meeting', active_flag: true }
+                    ]
+                }, mockRateLimitHeaders);
+            AdminConfigModel.findByPk.mockResolvedValue(undefined);
+
+            const result = await pipedrive.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: null,
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBeNull();
+            expect(result.returnMessage.messageType).toBe('error');
         });
     });
 
@@ -1222,6 +1343,7 @@ describe('Pipedrive Connector', () => {
                 .reply(200, { data: {} }, mockRateLimitHeaders);
             nock(`https://${hostname}`)
                 .get('/v1/activityTypes')
+                .times(2)
                 .reply(200, {
                     data: [
                         { name: 'Email', key_string: 'email', active_flag: true },
@@ -1282,6 +1404,7 @@ describe('Pipedrive Connector', () => {
                 .reply(200, { data: {} }, mockRateLimitHeaders);
             nock(`https://${hostname}`)
                 .get('/v1/activityTypes')
+                .times(2)
                 .reply(200, {
                     data: [
                         { name: 'SMS', key_string: 'sms', active_flag: false },

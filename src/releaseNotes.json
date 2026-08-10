@@ -1,4 +1,20 @@
 {
+    "1.7.41": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Account data share"
+            },
+            {
+                "type": "Better",
+                "description": "Call logs for voicemail now logs voicemail url"
+            },
+            {
+                "type": "Fix",
+                "description": "Meeting time format issue"
+            }
+        ]
+    },
     "1.7.40": {
         "global": [
             {
@@ -500,6 +516,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.37": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Meeting time format issue"
             }
         ]
     },

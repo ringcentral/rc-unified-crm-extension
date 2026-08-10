@@ -47,6 +47,22 @@
       "contactPageUrl": "https://{hostname}/person/{contactId}",
       "logPageUrl": "https://{hostname}/activities/{logId}",
       "settings": [],
+      "adminSettings": [
+        {
+          "id": "pipedriveCallActivityType",
+          "type": "option",
+          "name": "Activity type for call logs",
+          "accountDataKey": "activityTypes",
+          "defaultValue": ""
+        },
+        {
+          "id": "pipedriveSMSActivityType",
+          "type": "option",
+          "name": "Activity type for SMS logs",
+          "accountDataKey": "activityTypes",
+          "defaultValue": ""
+        }
+      ],
       "page": {
         "callLog": {
           "additionalFields": [
@@ -1211,7 +1227,13 @@
               "title": "Status",
               "type": "selection",
               "required": true,
-              "contactTypeDependent": true
+              "contactTypeDependent": true,
+              "accountDataKey": "bullhornData",
+              "accountDataPropertyByContactType": {
+                "Lead": "leadStatuses",
+                "Candidate": "candidateStatuses",
+                "Contact": "contactStatuses"
+              }
             }
           ]
         },
@@ -1221,6 +1243,8 @@
               "const": "noteActions",
               "title": "Note action",
               "type": "selection",
+              "accountDataKey": "bullhornData",
+              "accountDataProperty": "commentActionList",
               "contactDependent": false,
               "allowCustomValue": true,
               "defaultSettingId": "bullhornDefaultNoteAction",
@@ -1257,6 +1281,8 @@
               "const": "noteActions",
               "title": "Note action",
               "type": "selection",
+              "accountDataKey": "bullhornData",
+              "accountDataProperty": "commentActionList",
               "contactDependent": false,
               "allowCustomValue": true,
               "defaultSettingId": "bullhornDefaultNoteAction",
@@ -1902,5 +1928,5 @@
       ]
     }
   },
-  "version": "1.6.36"
+  "version": "1.6.37"
 }

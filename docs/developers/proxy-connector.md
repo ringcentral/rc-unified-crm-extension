@@ -152,9 +152,9 @@ Common variables:
 | `findContact` | `phoneNumber`, `parsedPhoneNumber.*`, `overridingFormat`, `isExtension` |
 | `createContact` | `phoneNumber`, `newContactName`, `newContactType`, `additionalSubmission.*` |
 | `findContactWithName` | `name` |
-| `createCallLog` | `contactInfo.*`, `callLog.*`, `subject`, `startTime`, `endTime`, `note`, `additionalSubmission.*`, `aiNote`, `transcript`, `composedLogDetails`, `hashedAccountId`, `isFromSSCL`, ACE/RingSense fields |
+| `createCallLog` | `contactInfo.*`, `callLog.*`, `subject`, `startTime`, `endTime`, `note`, `additionalSubmission.*`, `aiNote`, `transcript`, `voicemailLink`, `voicemailMessageId`, `composedLogDetails`, `hashedAccountId`, `isFromSSCL`, ACE/RingSense fields |
 | `getCallLog` | `thirdPartyLogId`, `contactId` |
-| `updateCallLog` | `thirdPartyLogId`, `existingCallLog`, `recordingLink`, `recordingDownloadLink`, `subject`, `note`, `startTime`, `endTime`, `duration`, `result`, `legs`, `additionalSubmission.*`, `composedLogDetails`, `existingCallLogDetails`, ACE/RingSense fields |
+| `updateCallLog` | `thirdPartyLogId`, `existingCallLog`, `recordingLink`, `recordingDownloadLink`, `voicemailLink`, `voicemailMessageId`, `subject`, `note`, `startTime`, `endTime`, `duration`, `result`, `legs`, `additionalSubmission.*`, `composedLogDetails`, `existingCallLogDetails`, ACE/RingSense fields |
 | `upsertCallDisposition` | `thirdPartyLogId`, `existingCallLog`, `dispositions.*` |
 | `createMessageLog` | `contactInfo.*`, `message.*`, `creationTime`, `additionalSubmission.*`, `recordingLink`, `faxDocLink`, `faxDownloadLink`, `imageLink`, `videoLink` |
 | `updateMessageLog` | `thirdPartyLogId`, `existingMessageLog`, `message.*`, `creationTime`, `additionalSubmission.*`, `imageLink`, `videoLink` |

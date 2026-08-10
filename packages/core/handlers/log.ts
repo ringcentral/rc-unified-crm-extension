@@ -292,6 +292,8 @@ function getCallbackUpdateData({ incomingData, existingCallLog, appendedNote }) 
     return {
         recordingLink: incomingData?.recordingLink ?? logInfo.recording?.link,
         recordingDownloadLink: incomingData?.recordingDownloadLink,
+        voicemailLink: incomingData?.voicemailLink ?? logInfo.voicemail?.link,
+        voicemailMessageId: incomingData?.voicemailMessageId ?? logInfo.voicemail?.messageId,
         subject: incomingData?.subject ?? logInfo.customSubject,
         note: appendedNote,
         startTime: incomingData?.startTime ?? logInfo.startTime,
@@ -592,6 +594,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 aiNote,
                 transcript,
                 recordingLink: callLog.recording?.link,
+                voicemailLink: incomingData.voicemailLink ?? callLog.voicemail?.link,
                 subject: callLog.customSubject,
                 startTime: callLog.startTime,
                 duration: callLog.duration,
@@ -614,6 +617,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             additionalSubmission,
             aiNote,
             transcript,
+            voicemailLink: incomingData.voicemailLink ?? callLog.voicemail?.link,
+            voicemailMessageId: incomingData.voicemailMessageId ?? callLog.voicemail?.messageId,
             ringSenseTranscript: incomingData.ringSenseTranscript,
             ringSenseSummary: incomingData.ringSenseSummary,
             ringSenseAIScore: incomingData.ringSenseAIScore,
@@ -881,6 +886,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                     aiNote: incomingData.aiNote,
                     transcript: incomingData.transcript,
                     recordingLink: incomingData.recordingLink,
+                    voicemailLink: incomingData.voicemailLink,
                     subject: incomingData.subject,
                     startTime: incomingData.startTime,
                     duration: incomingData.duration,
@@ -899,6 +905,8 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 authHeader,
                 recordingLink: incomingData.recordingLink,
                 recordingDownloadLink: incomingData.recordingDownloadLink,
+                voicemailLink: incomingData.voicemailLink,
+                voicemailMessageId: incomingData.voicemailMessageId,
                 subject: incomingData.subject,
                 note: incomingData.note,
                 startTime: incomingData.startTime,
@@ -945,7 +953,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
     }
 }
 
-async function createMessageLog({ platform, userId, incomingData }) {
+async function createMessageLog({ platform, userId, incomingData, hashedAccountId }) {
     try {
         let returnMessage = null;
         let extraDataTracking = {};
@@ -1152,7 +1160,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 returnMessage = updateMessageResult?.returnMessage;
             }
             else {
-                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, additionalSubmission, proxyConfig });
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, additionalSubmission, proxyConfig, hashedAccountId });
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;
                 if (createMessageLogResult.logId) {
@@ -1231,7 +1239,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     extraDataTracking = updateMessageResult.extraDataTracking;
                 }
                 else {
-                    const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, correspondents, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
+                    const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, correspondents, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig, hashedAccountId });
                     crmLogId = createMessageLogResult.logId;
                     returnMessage = createMessageLogResult?.returnMessage;
                     extraDataTracking = createMessageLogResult.extraDataTracking;

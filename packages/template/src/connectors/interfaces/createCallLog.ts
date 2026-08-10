@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // callLog: same as in https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, voicemailLink, voicemailMessageId, composedLogDetails }) {
     console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
     console.log(`body... \n${composedLogDetails}`);
     console.log(`with additional info... \n${JSON.stringify(additionalSubmission, null, 2)}`);

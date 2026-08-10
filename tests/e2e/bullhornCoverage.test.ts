@@ -147,6 +147,20 @@ describe('Bullhorn connector App-level E2E coverage', () => {
       .reply(200, { commentActionList: commentActions }, provider.rateLimitHeaders);
   }
 
+  function mockStatusMetadata() {
+    return [
+      ['Lead', 'New', 'New'],
+      ['Candidate', 'Submitted', 'Submitted'],
+      ['ClientContact', 'Active', 'Active'],
+    ].map(([entity, value, label]) => nock(provider.restBaseUrl)
+      .matchHeader('bhresttoken', provider.expectedBhRestToken)
+      .get(`${provider.restPath}/meta/${entity}`)
+      .query({ fields: 'status' })
+      .reply(200, {
+        fields: [{ name: 'status', options: [{ value, label }] }],
+      }, provider.rateLimitHeaders));
+  }
+
   function mockContactSearch(entity, data, bodySink = null) {
     return nock(provider.restBaseUrl)
       .matchHeader('bhresttoken', provider.expectedBhRestToken)
@@ -233,22 +247,7 @@ describe('Bullhorn connector App-level E2E coverage', () => {
       mockContactSearch('Candidate', [], body => { searchBodies.Candidate = body; }),
       mockContactSearch('Lead', [], body => { searchBodies.Lead = body; }),
     ];
-    const statusMetadata = [
-      ['Lead', 'New', 'New'],
-      ['Candidate', 'Submitted', 'Submitted'],
-      ['ClientContact', 'Active', 'Active'],
-    ];
-    for (const [entity, value, label] of statusMetadata) {
-      scopes.push(
-        nock(provider.restBaseUrl)
-          .matchHeader('bhresttoken', provider.expectedBhRestToken)
-          .get(`${provider.restPath}/meta/${entity}`)
-          .query({ fields: 'status' })
-          .reply(200, {
-            fields: [{ name: 'status', options: [{ value, label }] }],
-          }, provider.rateLimitHeaders),
-      );
-    }
+    scopes.push(...mockStatusMetadata());
 
     const response = await client.get('/contact', {
       ...requestConfig(),
@@ -291,6 +290,7 @@ describe('Bullhorn connector App-level E2E coverage', () => {
     const scopes = [
       mockHealthySession(),
       mockCommentActions(),
+      ...mockStatusMetadata(),
       mockContactSearch('ClientContact', [scenario.crmResponses.Contact]),
       mockContactSearch('Candidate', [scenario.crmResponses.Candidate]),
       mockContactSearch('Lead', [scenario.crmResponses.Lead]),
@@ -331,6 +331,7 @@ describe('Bullhorn connector App-level E2E coverage', () => {
     const scopes = [
       mockHealthySession(),
       mockCommentActions(),
+      ...mockStatusMetadata(),
       nock(provider.restBaseUrl)
         .matchHeader('bhresttoken', provider.expectedBhRestToken)
         .put(`${provider.restPath}/entity/Lead`, body => {

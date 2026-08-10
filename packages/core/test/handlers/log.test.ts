@@ -1036,7 +1036,9 @@ describe('Log Handler', () => {
         subject: 'Updated subject',
         startTime: new Date().toISOString(),
         duration: 180,
-        result: 'Completed'
+        result: 'Completed',
+        voicemailLink: 'https://ringcentral.github.io/ringcentral-media-reader/?media=voicemail-content',
+        voicemailMessageId: 'voicemail-123'
       };
 
       // Act
@@ -1052,7 +1054,13 @@ describe('Log Handler', () => {
       expect(result.successful).toBe(true);
       expect(result.logId).toBe('log-1');
       expect(result.updatedNote).toBe('Updated note');
-      expect(mockConnector.updateCallLog).toHaveBeenCalled();
+      expect(mockConnector.updateCallLog).toHaveBeenCalledWith(expect.objectContaining({
+        voicemailLink: incomingData.voicemailLink,
+        voicemailMessageId: incomingData.voicemailMessageId
+      }));
+      expect(composeCallLog).toHaveBeenCalledWith(expect.objectContaining({
+        voicemailLink: incomingData.voicemailLink
+      }));
     });
   });
 

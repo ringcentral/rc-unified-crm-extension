@@ -17,8 +17,6 @@ title: monday.com by Gate6 — App Connect
 !!! info "Requires App Connect 2.0"
     This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
 
-## About this integration
-
 monday.com is a Work OS that teams use to manage projects, track work, and coordinate across departments. Gate6's App Connect connector bridges RingEX with monday.com — automatically logging calls and SMS against the right board items, surfacing contact records on incoming calls, and keeping communication history alongside the work it belongs to.
 
 Gate6 specializes in enterprise-grade integrations, and their monday.com connector is built for teams that need reliable, configurable call logging at scale.
@@ -39,6 +37,6 @@ Gate6 specializes in enterprise-grade integrations, and their monday.com connect
 - App Connect 2.0 or later
 - Gate6 connector license
 
-## Setup
+## Setup and configuration
 
 The monday.com integration is available directly from within App Connect — no need to contact Gate6 first. Open the extension, go to **More > Settings**, select **monday.com** from the list of connectors, and click "Connect." Follow the on-screen instructions to finish setup.

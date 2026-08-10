@@ -510,6 +510,17 @@ describe('App Connect App-level E2E smoke', () => {
         commentActionList: ['Call', 'Email'],
       }, bullhornRateLimitHeaders);
 
+    const statusMetadataScopes = [
+      ['Lead', 'New', 'New'],
+      ['Candidate', 'Submitted', 'Submitted'],
+      ['ClientContact', 'Active', 'Active'],
+    ].map(([entity, value, label]) => nock(bullhornRestBaseUrl)
+      .get(`${bullhornRestPath}/meta/${entity}`)
+      .query({ fields: 'status' })
+      .reply(200, {
+        fields: [{ name: 'status', options: [{ value, label }] }],
+      }, bullhornRateLimitHeaders));
+
     let bullhornContactSearchBody;
     const contactSearchScope = nock(bullhornRestBaseUrl)
       .post(`${bullhornRestPath}/search/ClientContact`, body => {
@@ -561,6 +572,7 @@ describe('App Connect App-level E2E smoke', () => {
     expect(bullhornContactSearchBody.query).toContain('4155552345');
     expect(pingContactScope.isDone()).toBe(true);
     expect(actionListScope.isDone()).toBe(true);
+    expect(statusMetadataScopes.every(scope => scope.isDone())).toBe(true);
     expect(contactSearchScope.isDone()).toBe(true);
     expect(candidateSearchScope.isDone()).toBe(true);
     expect(leadSearchScope.isDone()).toBe(true);
