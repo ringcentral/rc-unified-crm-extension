@@ -141,6 +141,38 @@ describe('User Handler', () => {
     });
   });
 
+  test('refreshUserInfo does not revoke the session for transient OAuth refresh failures', async () => {
+    const user = {
+      id: 'user-1',
+      hostname: 'crm.example.com',
+      accessToken: 'expired-token',
+      platformAdditionalInfo: {}
+    };
+    const platformModule = {
+      getAuthType: jest.fn().mockResolvedValue('oauth'),
+      getOauthInfo: jest.fn().mockResolvedValue({ tokenUrl: 'https://token.example.com' }),
+      refreshUserInfo: jest.fn()
+    };
+    const transientError = Object.assign(new Error('Token endpoint unavailable'), {
+      response: { status: 503 }
+    });
+    UserModel.findOne.mockResolvedValue(user);
+    connectorRegistry.getConnector.mockReturnValue(platformModule);
+    oauth.checkAndRefreshAccessToken.mockRejectedValue(transientError);
+
+    const result = await userHandler.refreshUserInfo({
+      platform: 'testCRM',
+      userId: 'user-1'
+    });
+
+    expect(result).toMatchObject({
+      successful: false,
+      extraDataTracking: { statusCode: 503 }
+    });
+    expect(result).not.toHaveProperty('isRevokeUserSession');
+    expect(platformModule.refreshUserInfo).not.toHaveBeenCalled();
+  });
+
   test('refreshUserInfo supports apiKey auth and maps platform result', async () => {
     const user = {
       id: 'user-1',

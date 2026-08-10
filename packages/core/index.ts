@@ -186,6 +186,15 @@ function wrapDebugResponse(tracer: any, payload: any) {
     return payload;
 }
 
+const CRM_SESSION_REVOKED_ERROR_CODE = 'CRM_SESSION_REVOKED';
+
+function sendCrmSessionRevokeResponse(res: any, tracer: any, payload: Record<string, unknown>) {
+    return res.status(401).send(wrapDebugResponse(tracer, {
+        ...payload,
+        errorCode: CRM_SESSION_REVOKED_ERROR_CODE
+    }));
+}
+
 function getErrorResponse(e: any) {
     if (e && e.message) {
         return e.message;
@@ -866,7 +875,7 @@ function createCoreRouter() {
                 if (isValidated) {
                     const userMapping = await adminCore.getUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
                     if (userMapping?.isRevokeUserSession) {
-                        res.status(401).send(wrapDebugResponse(tracer, userMapping));
+                        sendCrmSessionRevokeResponse(res, tracer, userMapping);
                         success = false;
                     }
                     else {
@@ -929,7 +938,7 @@ function createCoreRouter() {
                 if (isValidated) {
                     const userMapping = await adminCore.reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
                     if (userMapping?.isRevokeUserSession) {
-                        res.status(401).send(wrapDebugResponse(tracer, userMapping));
+                        sendCrmSessionRevokeResponse(res, tracer, userMapping);
                         success = false;
                     }
                     else {
@@ -1589,7 +1598,7 @@ function createCoreRouter() {
                     isForceRefreshAccountData: req.query?.isForceRefreshAccountData === 'true'
                 });
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -1668,7 +1677,7 @@ function createCoreRouter() {
                     tracer
                 });
                 if (isRevokeUserSession) {
-                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else if (isBadRequest) {
@@ -1728,7 +1737,7 @@ function createCoreRouter() {
                 platformName = platform;
                 const { successful, returnMessage, contact, extraDataTracking, isRevokeUserSession } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType, additionalSubmission: req.body.additionalSubmission });
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -1807,7 +1816,7 @@ function createCoreRouter() {
                 const appointmentResult = await appointmentCore.listAppointments({ platform, userId, range });
                 const { successful, returnMessage, extraDataTracking, isRevokeUserSession } = appointmentResult;
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -1892,7 +1901,7 @@ function createCoreRouter() {
                 const appointmentResult = await appointmentCore.createAppointment({ platform, userId, payload });
                 const { successful, returnMessage, extraDataTracking, isRevokeUserSession } = appointmentResult;
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -1983,7 +1992,7 @@ function createCoreRouter() {
                 const appointmentResult = await appointmentCore.updateAppointment({ platform, userId, appointmentId, patchBody });
                 const { successful, returnMessage, extraDataTracking, isRevokeUserSession } = appointmentResult;
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2076,7 +2085,7 @@ function createCoreRouter() {
                 });
                 const { successful, returnMessage, extraDataTracking, isRevokeUserSession } = appointmentResult;
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2151,7 +2160,7 @@ function createCoreRouter() {
                 const appointmentResult = await appointmentCore.refreshAppointment({ platform, userId, appointmentId });
                 const { successful, returnMessage, extraDataTracking, isRevokeUserSession } = appointmentResult;
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2226,7 +2235,7 @@ function createCoreRouter() {
                 const appointmentResult = await appointmentCore.confirmAppointment({ platform, userId, appointmentId });
                 const { successful, returnMessage, extraDataTracking, isRevokeUserSession } = appointmentResult;
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2302,7 +2311,7 @@ function createCoreRouter() {
                 const appointmentResult = await appointmentCore.cancelAppointment({ platform, userId, appointmentId });
                 const { successful, returnMessage, extraDataTracking, isRevokeUserSession } = appointmentResult;
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2433,7 +2442,7 @@ function createCoreRouter() {
                     requireDetails: req.query.requireDetails === 'true'
                 });
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2497,7 +2506,7 @@ function createCoreRouter() {
                 platformName = platform;
                 const { successful, logId, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.createCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2561,7 +2570,7 @@ function createCoreRouter() {
                 platformName = platform;
                 const { successful, logId, updatedNote, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.updateCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2640,7 +2649,7 @@ function createCoreRouter() {
                     additionalSubmission: req.body.additionalSubmission
                 });
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2705,7 +2714,7 @@ function createCoreRouter() {
                 platformName = platform;
                 const { successful, returnMessage, logIds, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY) });
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {
@@ -2950,7 +2959,7 @@ function createCoreRouter() {
                 platformName = platform;
                 const { successful, returnMessage, contact, isRevokeUserSession } = await contactCore.findContactWithName({ platform, userId, name: req.query.name });
                 if (isRevokeUserSession) {
-                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
                 }
                 else {

@@ -162,6 +162,7 @@ describe('Disposition Routes', () => {
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
       successful: false,
+      errorCode: 'CRM_SESSION_REVOKED',
       returnMessage: {
         message: 'User session expired. Please connect again.',
         messageType: 'warning',

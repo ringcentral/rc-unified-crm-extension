@@ -1128,7 +1128,10 @@ describe('Core router broad route coverage', () => {
     });
     await expect(request(app).get('/accountData').query({ ...authQuery(), keys: 'activityTypes' })).resolves.toMatchObject({
       status: 401,
-      body: expect.objectContaining({ successful: false }),
+      body: expect.objectContaining({
+        successful: false,
+        errorCode: 'CRM_SESSION_REVOKED',
+      }),
     });
 
     accountDataCore.getAccountDataByKeys.mockRejectedValueOnce(new Error('CRM unavailable'));
@@ -1172,6 +1175,7 @@ describe('Core router broad route coverage', () => {
       const req = request(app)[method](path).query(authQuery());
       const response = body === undefined ? await req : await req.send(body);
       expect(response.status).toBe(401);
+      expect(response.body.errorCode).toBe('CRM_SESSION_REVOKED');
     }
   });
 
@@ -1279,10 +1283,16 @@ describe('Core router broad route coverage', () => {
     await expect(request(app).delete('/admin/managedOAuth/account').query({ rcAccessToken: 'rc-token', platform: 'testCRM' })).resolves.toMatchObject({ status: 400 });
 
     adminCore.getUserMapping.mockResolvedValueOnce({ isRevokeUserSession: true });
-    await expect(request(app).post('/admin/userMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({ status: 401 });
+    await expect(request(app).post('/admin/userMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({
+      status: 401,
+      body: expect.objectContaining({ errorCode: 'CRM_SESSION_REVOKED' }),
+    });
 
     adminCore.reinitializeUserMapping.mockResolvedValueOnce({ isRevokeUserSession: true });
-    await expect(request(app).post('/admin/reinitializeUserMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({ status: 401 });
+    await expect(request(app).post('/admin/reinitializeUserMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({
+      status: 401,
+      body: expect.objectContaining({ errorCode: 'CRM_SESSION_REVOKED' }),
+    });
 
     adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
     await expect(request(app).post('/admin/userMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({ status: 403 });
