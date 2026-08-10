@@ -111,24 +111,24 @@ nav:
 - 'Home': index.md
 - 'Integrations':
   - 'Overview': crm/index.md
-  - 'AgencyZoom': crm/agencyzoom/index.md
+  - 'AgencyZoom (2.0)': crm/agencyzoom/index.md
   - 'Bullhorn': crm/bullhorn.md
   - 'Clio': crm/clio.md
-  - 'ConnectWise': crm/connectwise.md
-  - 'Dominion': crm/dominion.md
+  - 'ConnectWise (2.0)': crm/connectwise.md
+  - 'Dominion (2.0)': crm/dominion.md
   - 'Freshdesk': crm/freshdesk.md
-  - 'GoHighLevel': crm/gohighlevel.md
+  - 'GoHighLevel (2.0)': crm/gohighlevel.md
   - 'Google Sheets': crm/google-sheets.md
   - 'Insightly': crm/insightly.md
   - 'monday.com': crm/monday.md
   - 'NetSuite': crm/netsuite.md
-  - 'Odoo': crm/odoo.md
+  - 'Odoo (2.0)': crm/odoo.md
   - 'Pipedrive': crm/pipedrive.md
   - 'Redtail CRM': crm/redtail.md
-  - 'ServiceNow': crm/servicenow.md
-  - 'Smokeball': crm/smokeball.md
-  - 'Vin Solutions': crm/vinsolutions.md
-  - 'Zoho': crm/zoho.md
+  - 'ServiceNow (2.0)': crm/servicenow.md
+  - 'Smokeball (2.0)': crm/smokeball.md
+  - 'Vin Solutions (2.0)': crm/vinsolutions.md
+  - 'Zoho (2.0)': crm/zoho.md
 - 'Solutions':
   - 'Overview': solutions/index.md
   - 'Verticals': 
@@ -148,14 +148,6 @@ nav:
   - 'App Connect 2.0 Beta':
     - "What's new": 2.0/index.md
     - 'Download': 2.0/download.md
-    - 'New CRMs':
-#      - 'JobAdder': crm/jobadder.md
-      - 'AgencyZoom': crm/agencyzoom/index.md
-      - 'monday.com': crm/monday.md
-      - 'Odoo': crm/odoo.md
-      - 'ServiceTitan': crm/servicetitan.md
-      - 'Smokeball': crm/smokeball.md
-      - 'Zoho': crm/zoho.md
     - 'Developers':
       - 'Connector migration guide': 2.0/migration.md
       - 'Proxy connector (new)': developers/proxy-connector.md
