@@ -224,6 +224,7 @@ describe('app connector TypeScript modules', () => {
         const bullhorn = require('../../src/connectors/bullhorn/index.ts');
 
         expect(Object.keys(bullhorn).sort()).toEqual([
+            'accountData',
             'authValidation',
             'cancelAppointment',
             'checkAndRefreshAccessToken',
