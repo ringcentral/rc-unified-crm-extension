@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "App Connect Connector Server API",
-    "version": "1.7.40",
+    "version": "1.7.41",
     "description": "HTTP API exposed by an App Connect connector server (called the CRM or adapter server in older code). The configured manifest serverUrl is the HTTPS base URL, without a trailing slash, to which App Connect appends these paths. The contract combines shared @app-connect/core routes with connector-specific routes implemented by this server; fields and supported capabilities can vary by connector where an operation delegates to a connector interface.\n\nAuthorization: userJwt is an App Connect CRM-session JWT issued by /apiKeyLogin or /oauth-callback; it is not a RingCentral OAuth token. X-RC-Access-Token carries a RingCentral OAuth credential for RingCentral user or administrator validation. Legacy jwtToken and rcAccessToken query parameters remain active for older clients, but credentials in URLs can leak through logs and browser history and should be avoided.\n\nLegacy response convention: some connector operations return HTTP 200 with successful: false and returnMessage when the request was processed but the CRM operation failed. Callers must inspect the response body rather than treating every 2xx response as business success. Payloads can contain CRM records, communications content, recording URLs, and access tokens; do not log credentials or retain personal data beyond the workflow that requires it.",
     "contact": {
       "name": "RingCentral Labs",
@@ -294,7 +294,7 @@
                   "version": {
                     "summary": "Server version",
                     "value": {
-                      "version": "1.7.40"
+                      "version": "1.7.41"
                     }
                   }
                 }

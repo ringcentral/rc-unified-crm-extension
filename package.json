@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "1.7.40",
+  "version": "1.7.41",
   "description": "RingCentral App Connect",
   "main": ".ts-build/src/index.js",
   "types": ".ts-build/src/index.d.ts",
