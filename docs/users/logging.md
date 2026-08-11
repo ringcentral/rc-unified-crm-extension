@@ -9,7 +9,7 @@ App Connect’s call logging system is designed to help users efficiently track 
 * **Automatic Call Logging** – Calls can be logged automatically based on user preferences and system configuration.
 * **Multi-Device Support** – Calls made or received on mobile devices, the RingCentral desktop app, or within App Connect itself are all logged automatically.
 * **Custom CRM Fields** – Adapt to your CRM’s specific requirements by ensuring the correct fields are completed for each logged call.
-* **Retroactive Call Logging** – Missed or unlogged calls are automatically recorded when you install or reopen App Connect after a period of inactivity.
+* **Retroactive Call Logging** – Missed or unlogged calls are automatically recorded when you install or reopen App Connect after a period of inactivity, with checks continuing while the App Connect window remains open.
 
 ## Call logging sequence
 

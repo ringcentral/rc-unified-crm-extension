@@ -43,10 +43,10 @@ If you wish to utilize [server-side call logging](server-side-logging.md), the s
 
 ### Retroactively logging calls
 
-Automatic call logging allows for calls to be logged, even if you are not actively using your CRM, or taking calls through App Connect. However, there is one key restriction everyone should be aware of: calls cannot be logged if App Connect is closed. Luckily, when you open App Connect, and if automatic call logging is enabled, then App Connect will attempt to log any calls that were not logged while it was closed. 
+Automatic call logging allows for calls to be logged, even if you are not actively using your CRM, or taking calls through App Connect. However, there is one key restriction everyone should be aware of: calls cannot be logged if App Connect is closed. When you open App Connect, and if automatic call logging is enabled, App Connect attempts to log calls that were not logged while it was closed. It continues checking for unlogged calls for as long as the App Connect window remains open.
 
 !!! info "Retroactively logging calls may take time"
-	To help prevent server overload, App Connect will retroactively log calls in the background slowly over time, processing calls in groups of ten every minute for ten minutes. Therefore, it will only attempt to log 100 calls in this way. If you failed to log more than 100, then the remainder will need to be logged manually. 
+	To help prevent server overload, App Connect retroactively logs calls in the background, checking every ten minutes and processing up to ten matched calls during each check. If more calls remain, App Connect continues processing them during later checks while its window is open.
 
 You can disable retroactive call logging under "Call and SMS logging" settings area. 
 
