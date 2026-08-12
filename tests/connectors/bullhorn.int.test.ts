@@ -176,6 +176,16 @@ describe('Bullhorn Connector', () => {
             });
             expect(mockUser.save).toHaveBeenCalled();
         });
+
+        it('does not refresh the Bullhorn session for permission errors', async () => {
+            nock(restUrl.slice(0, -1))
+                .get('/settings/commentActionList')
+                .reply(403, { error: 'Forbidden' });
+
+            await expect(bullhorn.accountData.bullhornData.fetch({ user: mockUser }))
+                .rejects.toMatchObject({ response: { status: 403 } });
+            expect(mockUser.save).not.toHaveBeenCalled();
+        });
     });
 
     // ==================== getOauthInfo ====================
@@ -661,6 +671,70 @@ describe('Bullhorn Connector', () => {
             const createNewOption = result.matchedContactInfo.find(c => c.id === 'createNewContact');
             expect(createNewOption).toBeDefined();
             expect(createNewOption.additionalInfo.Lead).toBeDefined();
+        });
+
+        it.each([
+            ['settings/commentActionList', '/settings/commentActionList'],
+            ['meta/Lead', '/meta/Lead'],
+            ['meta/Candidate', '/meta/Candidate'],
+            ['meta/ClientContact', '/meta/ClientContact']
+        ])('should find existing contacts when %s account data is forbidden', async (_endpointName, forbiddenPath) => {
+            getAccountData.mockImplementation(async ({ dataKey }) => bullhorn.accountData[dataKey].fetch({ user: mockUser }));
+
+            const accountDataRequests = [
+                { path: '/settings/commentActionList', response: { commentActionList: ['Call'] } },
+                { path: '/meta/Lead', response: { fields: [] } },
+                { path: '/meta/Candidate', response: { fields: [] } },
+                { path: '/meta/ClientContact', response: { fields: [] } }
+            ];
+            for (const request of accountDataRequests) {
+                const scope = nock(restUrl.slice(0, -1)).get(request.path);
+                if (request.path.startsWith('/meta/')) {
+                    scope.query({ fields: 'status' });
+                }
+                if (request.path === forbiddenPath) {
+                    scope.reply(403, { error: 'Forbidden' });
+                    break;
+                }
+                scope.reply(200, request.response);
+            }
+
+            nock(restUrl.slice(0, -1))
+                .post('/search/ClientContact')
+                .query(true)
+                .reply(200, {
+                    data: [{
+                        id: 101,
+                        name: 'John Doe',
+                        email: 'john@example.com',
+                        phone: '+14155551234',
+                        dateAdded: Date.now(),
+                        dateLastModified: Date.now(),
+                        dateLastVisit: Date.now()
+                    }]
+                }, mockBullhornRateLimitHeaders);
+            nock(restUrl.slice(0, -1))
+                .post('/search/Candidate')
+                .query(true)
+                .reply(200, { data: [] }, mockBullhornRateLimitHeaders);
+            nock(restUrl.slice(0, -1))
+                .post('/search/Lead')
+                .query(true)
+                .reply(200, { data: [] }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo).toEqual(expect.arrayContaining([
+                expect.objectContaining({ id: 101, name: 'John Doe', type: 'Contact' })
+            ]));
+            expect(mockUser.save).not.toHaveBeenCalled();
         });
     });
 
