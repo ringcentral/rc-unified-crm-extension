@@ -17,7 +17,7 @@ Returns searchable choices for one user-scoped managed API-key field before or a
 ## Signature
 
 ```js
-async function getManagedAuthOptions({ field, accountValues }) {
+async function getManagedAuthOptions({ fieldConst, accountValues }) {
   return [
     {
       value: 'crm-user-id',
@@ -31,7 +31,7 @@ async function getManagedAuthOptions({ field, accountValues }) {
 
 | Input | Purpose |
 | --- | --- |
-| `field` | Manifest definition for the dynamic user field being refreshed. Use `field.const` to select the correct option source. |
+| `fieldConst` | `const` of the dynamic user field being refreshed. Use it to select the correct option source. |
 | `accountValues` | Account-scoped managed values. During first login these are transient form values; after login they come from encrypted account storage. |
 
 Each returned option contains a persisted `value` and a display-only `label`. The interface MUST return the complete list used by client-side search. Server-side search and pagination are not part of this contract.

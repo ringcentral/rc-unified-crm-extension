@@ -220,7 +220,7 @@ describe('Managed Auth Handler', () => {
         { value: '101', label: 'Ada Lovelace' },
       ]);
       expect(getManagedAuthOptions).toHaveBeenCalledWith({
-        field: fields[1],
+        fieldConst: 'crmUserId',
         accountValues: { companyId: 'transient-company' },
       });
     });

@@ -150,7 +150,7 @@ async function getManagedAuthOptions({
         return [];
     }
     const options = await platformModule.getManagedAuthOptions({
-        field,
+        fieldConst,
         accountValues: resolvedAccountValues
     });
     if (!Array.isArray(options)) {

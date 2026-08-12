@@ -48,7 +48,7 @@ export interface GetManagedAuthOptionsParams extends ManagedAuthFieldDefinitionP
 }
 
 export interface ConnectorManagedAuthOptionsParams {
-  field: ManagedAuthFieldDefinition;
+  fieldConst: string;
   accountValues: ManagedAuthValues;
 }
 
