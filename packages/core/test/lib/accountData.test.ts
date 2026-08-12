@@ -26,6 +26,24 @@ describe('accountData lib', () => {
     await AccountDataModel.sync({ force: true });
   });
 
+  // A zero TTL only expires once the clock moves past updatedAt, so back-date the row
+  // instead of relying on a millisecond elapsing between create and read.
+  async function createExpiredRecord(dataKey: string, data: any) {
+    await AccountDataModel.create({
+      rcAccountId: user.rcAccountId,
+      platformName: platform,
+      dataKey,
+      data
+    });
+    await AccountDataModel.update(
+      { updatedAt: new Date(Date.now() - 60000) },
+      {
+        where: { rcAccountId: user.rcAccountId, platformName: platform, dataKey },
+        silent: true
+      }
+    );
+  }
+
   beforeEach(() => {
     fetchMock = jest.fn().mockResolvedValue([{ const: 'k1', title: 'Type 1' }]);
     connectorRegistry.getConnector.mockReturnValue({
@@ -71,12 +89,7 @@ describe('accountData lib', () => {
   });
 
   test('refetches when TTL expired', async () => {
-    await AccountDataModel.create({
-      rcAccountId: user.rcAccountId,
-      platformName: platform,
-      dataKey: 'expiredKey',
-      data: [{ const: 'stale', title: 'Stale' }]
-    });
+    await createExpiredRecord('expiredKey', [{ const: 'stale', title: 'Stale' }]);
 
     const result = await getAccountData({ platform, user, authHeader: 'Bearer x', dataKey: 'expiredKey' });
 
@@ -104,12 +117,7 @@ describe('accountData lib', () => {
 
   test('serves stale data when fetch fails and cached data exists', async () => {
     fetchMock.mockRejectedValue(new Error('CRM is down'));
-    await AccountDataModel.create({
-      rcAccountId: user.rcAccountId,
-      platformName: platform,
-      dataKey: 'expiredKey',
-      data: [{ const: 'stale', title: 'Stale' }]
-    });
+    await createExpiredRecord('expiredKey', [{ const: 'stale', title: 'Stale' }]);
 
     const result = await getAccountData({ platform, user, authHeader: 'Bearer x', dataKey: 'expiredKey' });
 

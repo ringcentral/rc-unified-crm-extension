@@ -86,7 +86,8 @@ function validateArtifactInChildProcess() {
 
 describe('flattened serverless artifact imports', () => {
   beforeAll(() => {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'app-connect-lambda-'));
+    // Resolve symlinks (macOS /var -> /private/var) so require.resolve results stay comparable.
+    tempRoot = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'app-connect-lambda-')));
     artifactRoot = path.join(tempRoot, 'var', 'task');
     fs.mkdirSync(artifactRoot, { recursive: true });
 

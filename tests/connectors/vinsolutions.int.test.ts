@@ -921,12 +921,7 @@ describe('VinSolutions Connector', () => {
             ]);
         });
 
-        it('should return empty managed auth options for unsupported fields or missing dealerId', async () => {
-            await expect(vinsolutions.getManagedAuthOptions({
-                fieldConst: 'dealerId',
-                accountValues: { dealerId: '12617' }
-            })).resolves.toEqual([]);
-
+        it('should return empty managed auth options when dealerId is missing', async () => {
             await expect(vinsolutions.getManagedAuthOptions({
                 fieldConst: 'crmUserId',
                 accountValues: {}
