@@ -18,7 +18,26 @@ export const ManagedAuthFieldDefinitionSchema = z.looseObject({
   managedScope: z.enum(['account', 'user']).describe(
     'Whether one value is shared by the RingCentral account or stored separately per extension.',
   ).optional(),
+  managedFieldType: z.enum(['input', 'dynamic']).describe(
+    'Whether the administrator types a value or loads connector-provided options.',
+  ).optional(),
 }).describe('Connector credential field that supports administrator-managed storage.');
+
+export const ManagedAuthOptionSchema = z.object({
+  value: z.string().describe('Connector value persisted for the managed authentication field.'),
+  label: z.string().describe('Human-readable option label displayed to the administrator.'),
+}).describe('One connector-provided option for a dynamic managed authentication field.');
+
+export const ManagedAuthOptionsRequestSchema = z.object({
+  fieldConst: z.string().min(1).describe('Manifest field identifier whose options should be refreshed.'),
+  accountValues: JsonMapSchema.describe(
+    'Transient account-scoped managed values used to load options before the first CRM login.',
+  ).optional(),
+}).describe('Request to load connector-provided options for one dynamic user-scoped field.');
+
+export const ManagedAuthOptionsResponseSchema = z.array(ManagedAuthOptionSchema).describe(
+  'Connector-provided options for a dynamic managed authentication field.',
+);
 
 export const StoredFieldValueSchema = z.looseObject({
   hasValue: z.boolean().describe('Whether a non-empty value is stored for the field.'),
@@ -98,6 +117,8 @@ export type AdminSuccessMessage = z.input<typeof AdminSuccessMessageSchema>;
 export type AdminSettingsUpdateRequest = z.input<typeof AdminSettingsUpdateRequestSchema>;
 export type ManagedAuthAdminResponse = z.input<typeof ManagedAuthAdminResponseSchema>;
 export type ManagedAuthUpdateRequest = z.input<typeof ManagedAuthUpdateRequestSchema>;
+export type ManagedAuthOptionsRequest = z.input<typeof ManagedAuthOptionsRequestSchema>;
+export type ManagedAuthOptionsResponse = z.input<typeof ManagedAuthOptionsResponseSchema>;
 export type AdminManagedOAuthCacheRequest = z.input<typeof AdminManagedOAuthCacheRequestSchema>;
 
 export const adminSettingsUpdateRequestExample = {
@@ -148,6 +169,16 @@ export const managedAuthUserUpdateExample = {
   values: { userToken: 'example-user-token' },
   fieldsToRemove: ['oldUserToken'],
 } satisfies ManagedAuthUpdateRequest;
+
+export const managedAuthOptionsRequestExample = {
+  fieldConst: 'userId',
+  accountValues: { companyId: 'company-123' },
+} satisfies ManagedAuthOptionsRequest;
+
+export const managedAuthOptionsResponseExample = [
+  { value: 'user-101', label: 'Ada Lovelace' },
+  { value: 'user-102', label: 'Grace Hopper' },
+] satisfies ManagedAuthOptionsResponse;
 
 export const managedOAuthCacheRequestExample = {
   values: {

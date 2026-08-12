@@ -178,6 +178,88 @@ describe('Managed Auth Handler', () => {
     });
   });
 
+  describe('getManagedAuthOptions', () => {
+    const fields = [
+      {
+        const: 'companyId',
+        title: 'Company ID',
+        managed: true,
+        managedScope: 'account',
+        managedFieldType: 'input',
+      },
+      {
+        const: 'crmUserId',
+        title: 'CRM user',
+        managed: true,
+        managedScope: 'user',
+        managedFieldType: 'dynamic',
+      },
+    ];
+
+    test('passes transient account values to the connector and normalizes options', async () => {
+      mockManifest(fields);
+      await managedAuthHandler.upsertOrgManagedAuthValues({
+        rcAccountId: 'options-account',
+        platform: defaultPlatform,
+        values: { companyId: 'stored-company' },
+      });
+      const getManagedAuthOptions = jest.fn().mockResolvedValue([
+        { value: 101, label: 'Ada Lovelace' },
+      ]);
+      connectorRegistry.getConnector.mockReturnValue({ getManagedAuthOptions });
+
+      await expect(managedAuthHandler.getManagedAuthOptions({
+        platform: defaultPlatform,
+        rcAccountId: 'options-account',
+        fieldConst: 'crmUserId',
+        accountValues: {
+          companyId: 'transient-company',
+          ignoredField: 'not-declared-as-account-managed',
+        },
+      })).resolves.toEqual([
+        { value: '101', label: 'Ada Lovelace' },
+      ]);
+      expect(getManagedAuthOptions).toHaveBeenCalledWith({
+        field: fields[1],
+        accountValues: { companyId: 'transient-company' },
+      });
+    });
+
+    test('uses stored account values and returns an empty list when the interface is absent', async () => {
+      mockManifest(fields);
+      await managedAuthHandler.upsertOrgManagedAuthValues({
+        rcAccountId: 'stored-options-account',
+        platform: defaultPlatform,
+        values: { companyId: 'stored-company' },
+      });
+      connectorRegistry.getConnector.mockReturnValue({});
+
+      await expect(managedAuthHandler.getManagedAuthOptions({
+        platform: defaultPlatform,
+        rcAccountId: 'stored-options-account',
+        fieldConst: 'crmUserId',
+      })).resolves.toEqual([]);
+    });
+
+    test('rejects unsupported fields and invalid connector responses', async () => {
+      mockManifest(fields);
+      connectorRegistry.getConnector.mockReturnValue({
+        getManagedAuthOptions: jest.fn().mockResolvedValue([{ value: '101' }]),
+      });
+
+      await expect(managedAuthHandler.getManagedAuthOptions({
+        platform: defaultPlatform,
+        rcAccountId: 'invalid-options-account',
+        fieldConst: 'companyId',
+      })).rejects.toThrow('is not a dynamic user field');
+      await expect(managedAuthHandler.getManagedAuthOptions({
+        platform: defaultPlatform,
+        rcAccountId: 'invalid-options-account',
+        fieldConst: 'crmUserId',
+      })).rejects.toThrow('invalid option at index 0');
+    });
+  });
+
   test('getManagedAuthAdminSettings returns decrypted account and user fields while storage stays encrypted', async () => {
     const fields = [
       { const: 'tenantId', managed: true, managedScope: 'account' },

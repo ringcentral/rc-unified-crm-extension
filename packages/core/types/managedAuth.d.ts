@@ -33,7 +33,23 @@ export interface ManagedAuthFieldDefinition {
   required?: boolean;
   managed?: boolean;
   managedScope?: 'account' | 'user' | (string & {});
+  managedFieldType?: 'input' | 'dynamic' | (string & {});
   [key: string]: unknown;
+}
+
+export interface ManagedAuthOption {
+  value: string;
+  label: string;
+}
+
+export interface GetManagedAuthOptionsParams extends ManagedAuthFieldDefinitionParams {
+  fieldConst: string;
+  accountValues?: ManagedAuthValues;
+}
+
+export interface ConnectorManagedAuthOptionsParams {
+  field: ManagedAuthFieldDefinition;
+  accountValues: ManagedAuthValues;
 }
 
 export interface ManagedAuthAccountParams {

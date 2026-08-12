@@ -53,6 +53,9 @@ export const ImplementedInterfacesResponseSchema = z.looseObject({
   ),
   findContactWithName: z.boolean().describe('Whether the connector implements findContactWithName.'),
   getUserList: z.boolean().describe('Whether the connector implements getUserList.'),
+  getManagedAuthOptions: z.boolean().describe(
+    'Whether the connector implements dynamic managed-auth option loading.',
+  ),
   getLicenseStatus: z.boolean().describe('Whether the connector implements getLicenseStatus.'),
   getLogFormatType: z.boolean().describe('Whether the connector implements getLogFormatType.'),
   refreshUserInfo: z.boolean().describe('Whether the connector implements refreshUserInfo.'),
@@ -116,6 +119,7 @@ export const implementedInterfacesResponseExample = {
   upsertCallDisposition: true,
   findContactWithName: true,
   getUserList: false,
+  getManagedAuthOptions: false,
   getLicenseStatus: true,
   getLogFormatType: true,
   refreshUserInfo: true,

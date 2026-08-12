@@ -29,6 +29,9 @@ export interface PageField {
   type?: string;
   required?: boolean;
   default?: JsonValue;
+  managed?: boolean;
+  managedScope?: 'account' | 'user';
+  managedFieldType?: 'input' | 'dynamic';
   [key: string]: JsonValue | undefined;
 }
 

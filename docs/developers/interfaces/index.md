@@ -49,6 +49,7 @@ These interfaces support App Connect's server-side logging service, which logs c
 |-------------------------------------------|-------------------------------------------------------------------------------------------|
 | [`getLicenseStatus`](getLicenseStatus.md) | Returns the license status for a given CRM user, used to gate server-side logging access. |
 | [`getUserList`](getUserList.md)           | Returns the list of CRM users for admin-managed user mapping in server-side logging.      |
+| [`getManagedAuthOptions`](getManagedAuthOptions.md) | Returns searchable choices for a dynamic user-scoped managed authentication field. |
 
 ## Appointments
 

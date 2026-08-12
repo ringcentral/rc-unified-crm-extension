@@ -121,7 +121,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
  * @param {ApiKeyLoginParams} params
  * @returns {Promise<AuthHandlerResult>}
  */
-async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, devRcAccountId, connectorId, isPrivate, hashedRcExtensionId, additionalInfo }) {
+async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, devRcAccountId, connectorId, isPrivate, canPersistManagedAuth = false, hashedRcExtensionId, additionalInfo }) {
     const platformModule = connectorRegistry.getConnector(platform);
     let resolvedAdditionalInfo = {
         ...(additionalInfo ?? {})
@@ -190,6 +190,29 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
         }
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo });
+        }
+        if (canPersistManagedAuth && managedFieldDefinitions.length > 0) {
+            /** @type {{ org: Record<string, unknown>, user: Record<string, unknown> }} */
+            const submittedManagedValues = { org: {}, user: {} };
+            managedFieldDefinitions.forEach(field => {
+                const fieldConst = String(field.const ?? '');
+                const submittedValue = additionalInfo?.[fieldConst];
+                if (!fieldConst || submittedValue === undefined || submittedValue === null || submittedValue === '') {
+                    return;
+                }
+                if (field.managedScope === 'account') {
+                    submittedManagedValues.org[fieldConst] = submittedValue;
+                }
+                else if (field.managedScope === 'user') {
+                    submittedManagedValues.user[fieldConst] = submittedValue;
+                }
+            });
+            await managedAuthCore.persistSubmittedManagedValues({
+                platform,
+                rcAccountId,
+                rcExtensionId,
+                submittedManagedValues
+            });
         }
         return {
             userInfo,

@@ -21,6 +21,8 @@ import type {
     ImplementedInterfacesResponse,
     ManagedAuthStateResponse,
     ManagedAuthAdminResponse,
+    ManagedAuthOptionsRequest,
+    ManagedAuthOptionsResponse,
     ManagedAuthUpdateRequest,
     ManagedOAuthStateResponse,
     MessageLogResponse,
@@ -372,6 +374,7 @@ function createCoreRouter() {
                     upsertCallDisposition: !!platformModule.upsertCallDisposition,
                     findContactWithName: !!platformModule.findContactWithName,
                     getUserList: !!platformModule.getUserList,
+                    getManagedAuthOptions: !!platformModule.getManagedAuthOptions,
                     getLicenseStatus: !!platformModule.getLicenseStatus,
                     getLogFormatType: !!platformModule.getLogFormatType,
                     refreshUserInfo: !!platformModule.refreshUserInfo,
@@ -724,6 +727,49 @@ function createCoreRouter() {
         catch (e) {
             logger.error('Get managed auth settings failed', { stack: e.stack });
             tracer?.traceError('getAdminManagedAuth:error', e);
+            res.status(400).send(wrapDebugResponse(tracer, { error: getErrorResponse(e) }));
+        }
+    });
+    router.post('/admin/managedAuth/options', async function (
+        req: Request<Record<string, never>, unknown, ManagedAuthOptionsRequest>,
+        res: Response,
+    ) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('getAdminManagedAuthOptions:start', {
+            query: req.query,
+            fieldConst: req.body?.fieldConst,
+        });
+        try {
+            const platform = req.query.platform;
+            if (typeof platform !== 'string' || !platform) {
+                res.status(400).send(wrapDebugResponse(tracer, 'Missing platform name'));
+                return;
+            }
+            if (!req.body?.fieldConst) {
+                res.status(400).send(wrapDebugResponse(tracer, 'Missing managed auth field'));
+                return;
+            }
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({
+                rcAccessToken: getRcAccessTokenFromRequest(req),
+            });
+            if (!isValidated) {
+                res.status(403).send(wrapDebugResponse(tracer, 'Admin validation failed'));
+                return;
+            }
+            const options: ManagedAuthOptionsResponse = await managedAuthCore.getManagedAuthOptions({
+                platform,
+                rcAccountId,
+                devRcAccountId: req.query.devRcAccountId,
+                connectorId: req.query.connectorId,
+                isPrivate: req.query.isPrivate === 'true',
+                fieldConst: req.body.fieldConst,
+                accountValues: req.body.accountValues,
+            });
+            res.status(200).send(wrapDebugResponse(tracer, options));
+        }
+        catch (e) {
+            logger.error('Get managed auth options failed', { stack: e.stack });
+            tracer?.traceError('getAdminManagedAuthOptions:error', e);
             res.status(400).send(wrapDebugResponse(tracer, { error: getErrorResponse(e) }));
         }
     });
@@ -1441,10 +1487,15 @@ function createCoreRouter() {
             }
             let rcAccountId = null;
             let rcExtensionId = null;
+            let canPersistManagedAuth = false;
             if (rcAccessToken) {
                 const rcUserTokenResult = await adminCore.validateRcUserToken({ rcAccessToken });
                 rcAccountId = rcUserTokenResult.rcAccountId;
                 rcExtensionId = rcUserTokenResult.rcExtensionId;
+                if (additionalInfo && typeof additionalInfo === 'object' && Object.keys(additionalInfo).length > 0) {
+                    const adminValidation = await adminCore.validateAdminRole({ rcAccessToken });
+                    canPersistManagedAuth = !!adminValidation?.isValidated;
+                }
             }
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({
                 platform,
@@ -1456,6 +1507,7 @@ function createCoreRouter() {
                 devRcAccountId,
                 connectorId,
                 isPrivate,
+                canPersistManagedAuth,
                 hashedRcExtensionId: hashedExtensionId,
                 additionalInfo
             });

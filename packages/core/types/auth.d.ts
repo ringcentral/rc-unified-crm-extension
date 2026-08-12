@@ -93,6 +93,7 @@ export interface ApiKeyLoginParams {
   devRcAccountId?: string | number;
   connectorId?: string;
   isPrivate?: boolean;
+  canPersistManagedAuth?: boolean;
   hashedRcExtensionId?: string;
   additionalInfo?: Record<string, unknown>;
 }

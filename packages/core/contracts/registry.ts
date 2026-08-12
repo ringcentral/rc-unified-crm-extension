@@ -6,6 +6,9 @@ import {
   ManagedAuthAdminResponseSchema,
   ManagedAuthAdminUserValueSchema,
   ManagedAuthFieldDefinitionSchema,
+  ManagedAuthOptionSchema,
+  ManagedAuthOptionsRequestSchema,
+  ManagedAuthOptionsResponseSchema,
   ManagedAuthUpdateRequestSchema,
   ManagedOAuthValuesSchema,
   StoredFieldValueSchema,
@@ -13,6 +16,8 @@ import {
   adminSettingsUpdatedExample,
   managedAuthAdminResponseExample,
   managedAuthOrgUpdateExample,
+  managedAuthOptionsRequestExample,
+  managedAuthOptionsResponseExample,
   managedAuthUpdatedExample,
   managedAuthUserUpdateExample,
   managedOAuthCacheRequestExample,
@@ -117,6 +122,9 @@ export const httpApiContractSchemas = {
   AdminSuccessMessage: AdminSuccessMessageSchema,
   AdminSettingsUpdateRequest: AdminSettingsUpdateRequestSchema,
   ManagedAuthFieldDefinition: ManagedAuthFieldDefinitionSchema,
+  ManagedAuthOption: ManagedAuthOptionSchema,
+  ManagedAuthOptionsRequest: ManagedAuthOptionsRequestSchema,
+  ManagedAuthOptionsResponse: ManagedAuthOptionsResponseSchema,
   StoredFieldValue: StoredFieldValueSchema,
   ManagedAuthAdminUserValue: ManagedAuthAdminUserValueSchema,
   ManagedAuthAdminResponse: ManagedAuthAdminResponseSchema,
@@ -644,6 +652,34 @@ export const httpApiOperationContracts: readonly OpenApiOperationContract[] = [
   },
   {
     method: 'post',
+    path: '/admin/managedAuth/options',
+    request: {
+      component: 'ManagedAuthOptions',
+      schema: 'ManagedAuthOptionsRequest',
+      description: 'Dynamic managed-auth field and transient account values used to load its options.',
+      required: true,
+      examples: {
+        users: {
+          summary: 'Load connector users',
+          value: managedAuthOptionsRequestExample,
+        },
+      },
+    },
+    responses: {
+      '200': {
+        schema: 'ManagedAuthOptionsResponse',
+        description: 'Connector-provided options for the requested dynamic user field.',
+        examples: {
+          users: {
+            summary: 'Dynamic managed-auth options',
+            value: managedAuthOptionsResponseExample,
+          },
+        },
+      },
+    },
+  },
+  {
+    method: 'post',
     path: '/admin/managedAuth',
     request: {
       component: 'ManagedAuthUpdate',
@@ -937,6 +973,8 @@ export const httpApiExamplesToValidate = [
   ['AdminSettingsUpdateRequest', AdminSettingsUpdateRequestSchema, adminSettingsUpdateRequestExample],
   ['AdminSettingsUpdated', AdminSuccessMessageSchema, adminSettingsUpdatedExample],
   ['ManagedAuthAdminResponse', ManagedAuthAdminResponseSchema, managedAuthAdminResponseExample],
+  ['ManagedAuthOptionsRequest', ManagedAuthOptionsRequestSchema, managedAuthOptionsRequestExample],
+  ['ManagedAuthOptionsResponse', ManagedAuthOptionsResponseSchema, managedAuthOptionsResponseExample],
   ['ManagedAuthOrgUpdate', ManagedAuthUpdateRequestSchema, managedAuthOrgUpdateExample],
   ['ManagedAuthUserUpdate', ManagedAuthUpdateRequestSchema, managedAuthUserUpdateExample],
   ['ManagedAuthUpdated', AdminSuccessMessageSchema, managedAuthUpdatedExample],

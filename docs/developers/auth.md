@@ -136,6 +136,7 @@ API-key form fields can be marked as managed:
   "required": true,
   "managed": true,
   "managedScope": "account",
+  "managedFieldType": "input",
   "hidden": true
 }
 ```
@@ -144,9 +145,12 @@ API-key form fields can be marked as managed:
 | --- | --- |
 | `managed` | Marks the field as admin-managed. |
 | `managedScope` | `account` stores one encrypted value per RingCentral account. `user` stores one encrypted value per RingCentral extension. |
+| `managedFieldType` | `input` renders a free-input field. `dynamic` renders a searchable connector-provided dropdown and is valid only for user-scoped fields. Existing fields default to `input`. |
 | `hidden` | Hides the field from normal users. |
 
 Core resolves managed values before `getUserInfo()` runs. If required managed values are missing, the login route returns a warning with `missingRequiredFieldConsts`. If a managed login fails, the next attempt can fall back to the full manual form.
+
+For a dynamic user field, implement [`getManagedAuthOptions`](interfaces/getManagedAuthOptions.md). The administrator selects **Update list** beside that field. During first login, Core passes the currently entered account values to the connector without persisting them. A successful administrator login persists the submitted values at their declared scopes; failed option loading or login does not change stored account values.
 
 ## Logout
 
@@ -160,5 +164,6 @@ Use the extension against a local or tunneled server and verify:
 2. OAuth redirects back and saves a user record.
 3. API-key login calls `getBasicAuth()` and `getUserInfo()` with resolved `additionalInfo`.
 4. Managed auth fields are filled from admin storage when configured.
-5. Logout clears or revokes credentials.
+5. Dynamic managed auth options load from transient account values without saving them.
+6. Logout clears or revokes credentials.
 

@@ -172,6 +172,7 @@
                       "upsertCallDisposition": true,
                       "findContactWithName": true,
                       "getUserList": false,
+                      "getManagedAuthOptions": false,
                       "getLicenseStatus": true,
                       "getLogFormatType": true,
                       "refreshUserInfo": true,
@@ -1110,6 +1111,100 @@
           }
         ],
         "description": "Stores or removes account-scoped or extension-scoped managed API-key values for the connector selected by userJwt. RingCentral administrator validation is required, and submitted credential values must be treated as secrets."
+      }
+    },
+    "/admin/managedAuth/options": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Load dynamic managed-auth options",
+        "operationId": "postAdminManagedAuthOptions",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "query",
+            "required": true,
+            "description": "Connector platform whose dynamic field options should be loaded.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectorId",
+            "in": "query",
+            "required": false,
+            "description": "Private or shared Developer Portal connector identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "devRcAccountId",
+            "in": "query",
+            "required": false,
+            "description": "RingCentral account that owns the private or shared Developer Portal connector.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isPrivate",
+            "in": "query",
+            "required": false,
+            "description": "Whether the connector is private or shared.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "x-app-connect-generated-contract": true,
+            "description": "Connector-provided options for the requested dynamic user field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedAuthOptionsResponse"
+                },
+                "examples": {
+                  "users": {
+                    "summary": "Dynamic managed-auth options",
+                    "value": [
+                      {
+                        "value": "user-101",
+                        "label": "Ada Lovelace"
+                      },
+                      {
+                        "value": "user-102",
+                        "label": "Grace Hopper"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ],
+        "description": "Validates the RingCentral administrator, then loads connector-provided choices for one dynamic user-scoped managed authentication field. Transient account values are not persisted.",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/ManagedAuthOptions"
+        }
       }
     },
     "/admin/managedOAuth/cache": {
@@ -3338,6 +3433,9 @@
       "AdminSuccessMessage",
       "AdminSettingsUpdateRequest",
       "ManagedAuthFieldDefinition",
+      "ManagedAuthOption",
+      "ManagedAuthOptionsRequest",
+      "ManagedAuthOptionsResponse",
       "StoredFieldValue",
       "ManagedAuthAdminUserValue",
       "ManagedAuthAdminResponse",
@@ -3390,6 +3488,7 @@
       "CallDisposition",
       "UserSettingsUpdate",
       "AdminSettingsUpdate",
+      "ManagedAuthOptions",
       "ManagedAuthUpdate",
       "AdminManagedOAuthCache",
       "AppointmentCreate",
@@ -3577,6 +3676,15 @@
           "query:devRcAccountId"
         ],
         "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/admin/managedAuth/options",
+        "parameters": [],
+        "requestBody": true,
         "responses": [
           "200"
         ]
@@ -4174,6 +4282,29 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/CallDownPatchRequest"
+            }
+          }
+        }
+      },
+      "ManagedAuthOptions": {
+        "x-app-connect-generated-contract": true,
+        "required": true,
+        "description": "Dynamic managed-auth field and transient account values used to load its options.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ManagedAuthOptionsRequest"
+            },
+            "examples": {
+              "users": {
+                "summary": "Load connector users",
+                "value": {
+                  "fieldConst": "userId",
+                  "accountValues": {
+                    "companyId": "company-123"
+                  }
+                }
+              }
             }
           }
         }
@@ -5937,6 +6068,10 @@
             "type": "boolean",
             "description": "Whether the connector implements getUserList."
           },
+          "getManagedAuthOptions": {
+            "type": "boolean",
+            "description": "Whether the connector implements dynamic managed-auth option loading."
+          },
           "getLicenseStatus": {
             "type": "boolean",
             "description": "Whether the connector implements getLicenseStatus."
@@ -5974,6 +6109,7 @@
           "upsertCallDisposition",
           "findContactWithName",
           "getUserList",
+          "getManagedAuthOptions",
           "getLicenseStatus",
           "getLogFormatType",
           "refreshUserInfo",
@@ -6320,6 +6456,14 @@
               "user"
             ],
             "description": "Whether one value is shared by the RingCentral account or stored separately per extension."
+          },
+          "managedFieldType": {
+            "type": "string",
+            "enum": [
+              "input",
+              "dynamic"
+            ],
+            "description": "Whether the administrator types a value or loads connector-provided options."
           }
         },
         "required": [
@@ -7525,6 +7669,54 @@
           }
         },
         "additionalProperties": false
+      },
+      "ManagedAuthOption": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Connector value persisted for the managed authentication field."
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable option label displayed to the administrator."
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ],
+        "description": "One connector-provided option for a dynamic managed authentication field.",
+        "x-app-connect-generated-contract": true
+      },
+      "ManagedAuthOptionsRequest": {
+        "type": "object",
+        "properties": {
+          "fieldConst": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Manifest field identifier whose options should be refreshed."
+          },
+          "accountValues": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true,
+            "description": "Transient account-scoped managed values used to load options before the first CRM login."
+          }
+        },
+        "required": [
+          "fieldConst"
+        ],
+        "description": "Request to load connector-provided options for one dynamic user-scoped field.",
+        "x-app-connect-generated-contract": true
+      },
+      "ManagedAuthOptionsResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ManagedAuthOption"
+        },
+        "description": "Connector-provided options for a dynamic managed authentication field.",
+        "x-app-connect-generated-contract": true
       }
     },
     "headers": {

@@ -230,6 +230,7 @@ Use:
 | Manifest area | Purpose |
 | --- | --- |
 | `auth.apiKey.page.content[]` | API-key login form fields, including managed-auth fields. |
+| `auth.apiKey.page.content[].managedFieldType` | `input` for free entry or `dynamic` for connector-provided choices. Dynamic fields require `managedScope: user` and [`getManagedAuthOptions`](interfaces/getManagedAuthOptions.md). |
 | `page.callLog.additionalFields[]` | Custom call log form fields. |
 | `page.messageLog.additionalFields[]` | Custom message log form fields. |
 | `page.feedback` | Feedback form and target URL. |

@@ -232,6 +232,7 @@ nav:
         - 'getBasicAuth': developers/interfaces/getBasicAuth.md
         - 'getOauthInfo': developers/interfaces/getOauthInfo.md
         - 'getUserInfo': developers/interfaces/getUserInfo.md
+        - 'getManagedAuthOptions': developers/interfaces/getManagedAuthOptions.md
         - 'refreshUserInfo': developers/interfaces/refreshUserInfo.md
         - 'unAuthorize': developers/interfaces/unAuthorize.md
       - 'Call logging':

@@ -2,10 +2,12 @@
 
 /** @typedef {import('../types').AppConnectManifest} AppConnectManifest */
 /** @typedef {import('../types').DeveloperPortalManifestProvider} DeveloperPortalManifestProvider */
+/** @typedef {import('../types').GetManagedAuthOptionsParams} GetManagedAuthOptionsParams */
 /** @typedef {import('../types').ManagedAuthAdminSettingsParams} ManagedAuthAdminSettingsParams */
 /** @typedef {import('../types').ManagedAuthFieldDefinition} ManagedAuthFieldDefinition */
 /** @typedef {import('../types').ManagedAuthFieldDefinitionParams} ManagedAuthFieldDefinitionParams */
 /** @typedef {import('../types').ManagedAuthLoginFailureParams} ManagedAuthLoginFailureParams */
+/** @typedef {import('../types').ManagedAuthOption} ManagedAuthOption */
 /** @typedef {import('../types').ManagedAuthRecord} ManagedAuthRecord */
 /** @typedef {import('../types').ManagedAuthState} ManagedAuthState */
 /** @typedef {import('../types').ManagedAuthStateParams} ManagedAuthStateParams */
@@ -20,7 +22,7 @@
 /** @typedef {import('../types').UpsertOrgManagedAuthValuesParams} UpsertOrgManagedAuthValuesParams */
 /** @typedef {import('../types').UpsertUserManagedAuthValuesParams} UpsertUserManagedAuthValuesParams */
 
-const connectorRegistry = /** @type {{ getManifest(platform: string, fallback?: boolean): AppConnectManifest }} */ (/** @type {unknown} */ (require('../connector/registry')));
+const connectorRegistry = /** @type {{ getManifest(platform: string, fallback?: boolean): AppConnectManifest, getConnector(platform: string): Record<string, any> }} */ (/** @type {unknown} */ (require('../connector/registry')));
 const developerPortal = /** @type {DeveloperPortalManifestProvider} */ (/** @type {unknown} */ (require('../connector/developerPortal')));
 const { AccountDataModel: RawAccountDataModel } = require('../models/accountDataModel');
 const AccountDataModel = /** @type {{ findOne(options: Record<string, unknown>): Promise<ManagedAuthRecord | null>, findAll(options: Record<string, unknown>): Promise<ManagedAuthRecord[]>, create(values: Record<string, unknown>): Promise<ManagedAuthRecord>, destroy(options: Record<string, unknown>): Promise<number> }} */ (RawAccountDataModel);
@@ -87,6 +89,86 @@ async function getApiKeyFieldDefinitions({ rcAccountId, devRcAccountId, platform
 async function getManagedFieldDefinitions({ rcAccountId, devRcAccountId, platform, connectorId, isPrivate = false }) {
     const fieldDefinitions = await getApiKeyFieldDefinitions({ rcAccountId, devRcAccountId, platform, connectorId, isPrivate });
     return fieldDefinitions.filter(field => field?.managed);
+}
+
+/**
+ * Load connector-provided options for one dynamic, user-scoped managed auth field.
+ * Submitted account values are transient and override stored values for this request only.
+ *
+ * @param {GetManagedAuthOptionsParams} params
+ * @returns {Promise<ManagedAuthOption[]>}
+ */
+async function getManagedAuthOptions({
+    platform,
+    rcAccountId,
+    devRcAccountId,
+    connectorId,
+    isPrivate = false,
+    fieldConst,
+    accountValues
+}) {
+    if (!platform) {
+        throw new Error('platform is required for managed auth options');
+    }
+    const fieldDefinitions = await getApiKeyFieldDefinitions({
+        platform,
+        rcAccountId,
+        devRcAccountId,
+        connectorId,
+        isPrivate
+    });
+    const field = fieldDefinitions.find(definition => definition?.const === fieldConst);
+    if (!field || !field.managed || field.managedScope !== 'user' || field.managedFieldType !== 'dynamic') {
+        throw new Error(`Managed auth field "${fieldConst}" is not a dynamic user field`);
+    }
+
+    /** @type {Set<string>} */
+    const accountFieldConsts = new Set(
+        fieldDefinitions
+            .filter(definition => (
+                definition?.managed &&
+                definition.managedScope === 'account' &&
+                definition.managedFieldType !== 'dynamic'
+            ))
+            .map(definition => String(definition.const))
+    );
+    const storedAccountValues = await getOrgManagedAuthValues({ rcAccountId, platform });
+    /** @type {ManagedAuthValues} */
+    const resolvedAccountValues = {};
+    accountFieldConsts.forEach(rawFieldKey => {
+        const fieldKey = String(rawFieldKey);
+        if (Object.prototype.hasOwnProperty.call(storedAccountValues, fieldKey)) {
+            resolvedAccountValues[fieldKey] = storedAccountValues[fieldKey];
+        }
+        if (accountValues && Object.prototype.hasOwnProperty.call(accountValues, fieldKey)) {
+            resolvedAccountValues[fieldKey] = accountValues[fieldKey];
+        }
+    });
+
+    const platformModule = connectorRegistry.getConnector(platform);
+    if (typeof platformModule.getManagedAuthOptions !== 'function') {
+        return [];
+    }
+    const options = await platformModule.getManagedAuthOptions({
+        field,
+        accountValues: resolvedAccountValues
+    });
+    if (!Array.isArray(options)) {
+        throw new Error('getManagedAuthOptions must return an array');
+    }
+    return options.map((option, index) => {
+        if (
+            !option ||
+            (typeof option.value !== 'string' && typeof option.value !== 'number') ||
+            typeof option.label !== 'string'
+        ) {
+            throw new Error(`getManagedAuthOptions returned an invalid option at index ${index}`);
+        }
+        return {
+            value: String(option.value),
+            label: option.label
+        };
+    });
 }
 
 /**
@@ -549,6 +631,7 @@ exports.MANAGED_AUTH_ORG_DATA_KEY = MANAGED_AUTH_ORG_DATA_KEY;
 exports.MANAGED_AUTH_USER_DATA_KEY = MANAGED_AUTH_USER_DATA_KEY;
 exports.getApiKeyFieldDefinitions = getApiKeyFieldDefinitions;
 exports.getManagedFieldDefinitions = getManagedFieldDefinitions;
+exports.getManagedAuthOptions = getManagedAuthOptions;
 exports.getManagedAuthAdminSettings = getManagedAuthAdminSettings;
 exports.getManagedAuthState = getManagedAuthState;
 exports.hasManagedAuthLoginFailure = hasManagedAuthLoginFailure;
