@@ -174,6 +174,47 @@ function buildCallTrackingHeaders({ accessToken, user, withContentType = true })
     return headers;
 }
 
+async function getManagedAuthOptions({ fieldConst, accountValues}){
+
+    console.log({m:'getManagedAuthOptions', fieldConst, accountValues});
+    const dealerId = accountValues?.dealerId;
+    if (!dealerId) {
+        return [];
+    }
+
+    try {
+        const tokenData = await fetchAccessToken(TOKEN_TYPES.LEAD_MANAGEMENT);
+        const headers = buildGatewayHeaders({
+            accessToken: tokenData.accessToken,
+            user: null,
+            withContentType: true
+        });
+        const response = await axios.get(`${API_BASE_URL}/gateway/v1/tenant/user`, {
+            headers,
+            params: { dealerId }
+        });
+
+        return (response.data || []).map((entry) => {
+            const fullName = entry.FullName
+                || `${entry.FirstName || ''} ${entry.LastName || ''}`.trim()
+                || String(entry.UserId);
+            const email = (entry.EmailAddress || '').trim();
+            return {
+                value: String(entry.UserId),
+                label: email ? `${fullName} + ${email}` : fullName
+            };
+        });
+    }
+    catch (error) {
+        logger.error('VinSolutions getManagedAuthOptions failed', {
+            stack: error.stack,
+            dealerId,
+            fieldConst
+        });
+        throw error;
+    }
+}
+
 async function fetchAllAccessTokens() {
     const entries = await Promise.all(
         Object.keys(TOKEN_PROFILES).map(async (tokenType) => {
@@ -1300,5 +1341,6 @@ exports.updateCallLog = updateCallLog;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getUserList = getUserList;
+exports.getManagedAuthOptions = getManagedAuthOptions;
 
 export {};
