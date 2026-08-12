@@ -22,6 +22,20 @@ function getBasicAuth({ apiKey }) {
     return Buffer.from(`${apiKey}`).toString('base64');
 }
 
+export async function getManagedAuthOptions({ fieldConst, accountValues }) {
+    console.log('getManagedAuthOptions', fieldConst, accountValues);
+    return [
+        {
+            value: 'crm-user-id',
+            label: 'Jane Smith (jane.smith@example.com)'
+        },
+        {
+            value: 'crm-user-id2',
+            label: 'John Doe'
+        }
+    ];
+}
+
 function getAuthHeader({ userKey }) {
     return Buffer.from(`${process.env.REDTAIL_API_KEY}:${userKey}`).toString('base64');
 }
@@ -634,4 +648,4 @@ exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
 exports.getLogFormatType = getLogFormatType;
 
-export {};
+export { };
