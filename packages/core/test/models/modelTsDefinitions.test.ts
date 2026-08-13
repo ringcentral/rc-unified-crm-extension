@@ -165,7 +165,8 @@ describe('TypeScript model definitions', () => {
 
   test('messageLogAssociationModel.ts uses user-scoped message identity and lookup indexes', () => {
     const { define } = loadSequelizeModel('../../models/messageLogAssociationModel.ts');
-    const [, attributes, options] = define.mock.calls[0] as [string, any, any];
+    const defineCalls = define.mock.calls as unknown as Array<[string, any, any]>;
+    const [, attributes, options] = defineCalls[0];
 
     expect(attributes.messageId).toEqual(expect.objectContaining({ primaryKey: true }));
     expect(attributes.userId).toEqual(expect.objectContaining({ primaryKey: true }));
