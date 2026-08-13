@@ -2449,6 +2449,104 @@ describe('Log Handler', () => {
       expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
       expect(result.messageLogs).toEqual({ 'msg-1': 'crm-existing' });
     });
+
+    test('returns a database warning when existing selected-message associations cannot be read', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      jest.spyOn(MessageLogAssociationModel, 'findAll').mockRejectedValueOnce(new Error('association lookup failed'));
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result).toEqual({
+        successful: false,
+        returnMessage: {
+          message: 'Database operation failed',
+          messageType: 'warning',
+          ttl: 5000,
+        },
+      });
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
+    test('uses connector log format when composing the selected-message entry', async () => {
+      await seedUser();
+      const mockConnector = {
+        ...buildSelectiveConnector(),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result.successful).toBe(true);
+      expect(mockConnector.getLogFormatType).toHaveBeenCalledWith('testCRM', null);
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        sharedSMSLogContent: expect.objectContaining({
+          body: expect.stringContaining('First'),
+        }),
+      }));
+    });
+
+    test('returns a default warning when selected messages are created without a CRM log id', async () => {
+      await seedUser();
+      const mockConnector = {
+        ...buildSelectiveConnector(),
+        createMessageLog: jest.fn().mockResolvedValue({
+          extraDataTracking: { providerRequestId: 'request-without-log-id' },
+        }),
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result).toEqual({
+        successful: false,
+        returnMessage: {
+          message: 'Failed to log selected messages.',
+          messageType: 'warning',
+          ttl: 3000,
+        },
+        extraDataTracking: { providerRequestId: 'request-without-log-id' },
+      });
+      const associations = await MessageLogAssociationModel.findAll({ where: { conversationId: 'conv-123' } });
+      expect(associations.length).toBe(0);
+    });
+
+    test('returns a database warning when selected-message associations cannot be saved', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      jest.spyOn(MessageLogAssociationModel, 'bulkCreate').mockRejectedValueOnce(new Error('association save failed'));
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result).toEqual({
+        successful: false,
+        returnMessage: {
+          message: 'Database operation failed',
+          messageType: 'warning',
+          ttl: 5000,
+        },
+      });
+      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('getMessageLog', () => {
@@ -2498,6 +2596,22 @@ describe('Log Handler', () => {
       expect(result.logs.map((l) => l.messageId).sort()).toEqual(['msg-1', 'msg-2']);
     });
 
+    test('can look up selected message ids without a conversation id', async () => {
+      await seedUserAndAssociations();
+
+      const result = await logHandler.getMessageLog({
+        userId: 'test-user-id',
+        platform: 'testCRM',
+        messageIds: ['msg-1', 'msg-unknown'],
+      });
+
+      expect(result.successful).toBe(true);
+      expect(result.logs).toEqual([
+        { messageId: 'msg-1', matched: true, logId: 'crm-1' },
+        { messageId: 'msg-unknown', matched: false },
+      ]);
+    });
+
     test('fails when neither conversationId nor messageIds are provided', async () => {
       await seedUserAndAssociations();
 
@@ -2513,6 +2627,64 @@ describe('Log Handler', () => {
 
       expect(result.successful).toBe(false);
       expect(emptyArrayResult.successful).toBe(false);
+    });
+
+    test('returns a database warning when message association lookup fails', async () => {
+      await seedUserAndAssociations();
+      jest.spyOn(MessageLogAssociationModel, 'findAll').mockRejectedValueOnce(new Error('message association lookup failed'));
+
+      const result = await logHandler.getMessageLog({
+        userId: 'test-user-id',
+        platform: 'testCRM',
+        conversationId: 'conv-123',
+        messageIds: ['msg-1'],
+      });
+
+      expect(result).toEqual({
+        successful: false,
+        returnMessage: {
+          message: 'Database operation failed',
+          messageType: 'warning',
+          ttl: 5000,
+        },
+      });
+    });
+
+    test('returns contact-not-found when the user is missing', async () => {
+      const result = await logHandler.getMessageLog({
+        userId: 'missing-user-id',
+        platform: 'testCRM',
+        conversationId: 'conv-123',
+        messageIds: ['msg-1'],
+      });
+
+      expect(result).toEqual({
+        successful: false,
+        message: 'Contact not found',
+      });
+    });
+
+    test('maps unexpected getMessageLog failures through the API error handler', async () => {
+      jest.spyOn(UserModel, 'findByPk').mockRejectedValueOnce(new Error('unexpected user lookup failure'));
+
+      const result = await logHandler.getMessageLog({
+        userId: 'test-user-id',
+        platform: 'testCRM',
+        conversationId: 'conv-123',
+        messageIds: ['msg-1'],
+      });
+
+      expect(result).toMatchObject({
+        successful: false,
+        returnMessage: {
+          message: 'Error performing getMessageLog',
+          messageType: 'warning',
+          ttl: 5000,
+        },
+        extraDataTracking: {
+          statusCode: 'unknown',
+        },
+      });
     });
   });
 
