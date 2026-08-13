@@ -2794,7 +2794,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, logIds, messageLogs, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
+                const { successful, returnMessage, logIds, messageLogs, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY) });
                 if (isRevokeUserSession) {
                     sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
