@@ -60,6 +60,14 @@ function findLatestModifiedTime(messages: SharedSMSMessage[]): any {
     return result;
 }
 
+function getSortableTime(time: any): number {
+    if (typeof time === 'number') {
+        return time;
+    }
+    const parsed = new Date(time).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function composeSubject({
     logFormat,
     contactName,
@@ -222,7 +230,7 @@ function processEntities({
         }
     }
 
-    processedEntries.sort((a, b) => b.creationTime - a.creationTime);
+    processedEntries.sort((a, b) => getSortableTime(a.creationTime) - getSortableTime(b.creationTime));
 
     return processedEntries;
 }

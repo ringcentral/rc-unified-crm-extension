@@ -765,6 +765,11 @@ describe('sharedSMSComposer', () => {
       expect(allContent).toContain('First message');
       expect(allContent).toContain('Second message');
       expect(allContent).toContain('Third message');
+      expect(result.map(r => r.content)).toEqual([
+        expect.stringContaining('First message'),
+        expect.stringContaining('Second message'),
+        expect.stringContaining('Third message'),
+      ]);
     });
 
     test('should apply timezone offset to timestamps', () => {
