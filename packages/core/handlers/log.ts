@@ -49,6 +49,12 @@ const ASYNC_PLUGIN_CACHE_KEY = 'asyncPluginTask';
 const ASYNC_PLUGIN_CALLBACK_PATH = '/plugin/async-callback';
 const ASYNC_PLUGIN_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+function normalizeMessageIdArray(messageIds) {
+    return Array.isArray(messageIds)
+        ? messageIds.map(id => String(id).trim()).filter(Boolean)
+        : [];
+}
+
 function mergePluginWarnings({ returnMessage, warningMessages }) {
     if (!warningMessages.length) {
         return returnMessage;
@@ -1364,6 +1370,7 @@ async function logSelectedMessagesAsSingleEntry({
             where: {
                 userId,
                 platform,
+                conversationId,
                 messageId: { [Op.in]: [...selectedIdSet] }
             }
         });
@@ -1456,23 +1463,26 @@ async function logSelectedMessagesAsSingleEntry({
     }
 
     // Point every logged message at the single CRM record.
-    for (const message of messagesToLog) {
-        const messageId = message.id.toString();
-        try {
-            await MessageLogAssociationModel.upsert({
-                messageId,
-                conversationId,
-                conversationLogId,
-                thirdPartyLogId: crmLogId,
-                userId,
-                rcAccountId,
-                platform
-            });
-            messageLogs[messageId] = crmLogId;
+    const associationRows = messagesToLog.map(message => ({
+        messageId: message.id.toString(),
+        conversationId,
+        conversationLogId,
+        thirdPartyLogId: crmLogId,
+        userId,
+        rcAccountId,
+        platform
+    }));
+    try {
+        console.log({message:"Creating Bulk records",conversationId,conversationLogId,crmLogId, rcAccountId});
+        await MessageLogAssociationModel.bulkCreate(associationRows, {
+            updateOnDuplicate: ['conversationId', 'conversationLogId', 'thirdPartyLogId', 'rcAccountId']
+        });
+        for (const row of associationRows) {
+            messageLogs[row.messageId] = crmLogId;
         }
-        catch (error) {
-            return handleDatabaseError(error, 'Error creating message association');
-        }
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error creating message associations');
     }
 
     return {
@@ -1485,27 +1495,24 @@ async function logSelectedMessagesAsSingleEntry({
 }
 
 // Returns which of the requested message ids are already logged (via the
-// selective association table) and their CRM log record ids. Mirrors the
-// getCallLog(?sessionIds=) lookup pattern so the client can render logged icons.
+// selective association table) and their CRM log record ids so the client can
+// render logged icons.
 async function getMessageLog({ userId, platform, conversationId, messageIds }) {
     try {
         const user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
             return { successful: false, message: `Contact not found` };
         }
-        if (!conversationId && !messageIds) {
+        const requestedIds: string[] = normalizeMessageIdArray(messageIds);
+        if (!conversationId && requestedIds.length === 0) {
             return { successful: false, message: `No conversationId or messageIds provided` };
         }
         const where: any = { userId, platform };
         if (conversationId) {
             where.conversationId = conversationId;
         }
-        let requestedIds: string[] | null = null;
-        if (messageIds) {
-            requestedIds = messageIds.split(',').map(id => id.trim()).filter(Boolean);
-            if (requestedIds.length > 0) {
-                where.messageId = { [Op.in]: requestedIds };
-            }
+        if (requestedIds.length > 0) {
+            where.messageId = { [Op.in]: requestedIds };
         }
         let associations = [];
         try {
@@ -1519,7 +1526,7 @@ async function getMessageLog({ userId, platform, conversationId, messageIds }) {
             messageLogs[assoc.messageId] = assoc.thirdPartyLogId;
         }
         let logs;
-        if (requestedIds && requestedIds.length > 0) {
+        if (requestedIds.length > 0) {
             logs = requestedIds.map(id => messageLogs[id]
                 ? { messageId: id, matched: true, logId: messageLogs[id] }
                 : { messageId: id, matched: false });

@@ -163,6 +163,25 @@ describe('TypeScript model definitions', () => {
     }
   });
 
+  test('messageLogAssociationModel.ts uses user-scoped message identity and lookup indexes', () => {
+    const { define } = loadSequelizeModel('../../models/messageLogAssociationModel.ts');
+    const [, attributes, options] = define.mock.calls[0] as [string, any, any];
+
+    expect(attributes.messageId).toEqual(expect.objectContaining({ primaryKey: true }));
+    expect(attributes.userId).toEqual(expect.objectContaining({ primaryKey: true }));
+    expect(attributes.platform).toEqual(expect.objectContaining({ primaryKey: true }));
+    expect(options.indexes).toEqual(expect.arrayContaining([
+      { fields: ['conversationId'] },
+      expect.objectContaining({
+        unique: true,
+        fields: ['messageId', 'userId', 'platform']
+      }),
+      expect.objectContaining({
+        fields: ['userId', 'platform', 'conversationId', 'messageId']
+      })
+    ]));
+  });
+
   const loadSequelizeConfig = (databaseUrl: string, databaseSsl?: string) => {
     jest.resetModules();
     const previousDatabaseUrl = process.env.DATABASE_URL;

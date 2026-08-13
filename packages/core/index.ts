@@ -23,6 +23,7 @@ import type {
     ManagedAuthAdminResponse,
     ManagedAuthUpdateRequest,
     ManagedOAuthStateResponse,
+    MessageLogMatchResponse,
     MessageLogResponse,
     PluginMutationResponse,
     PluginRegisterRequest,
@@ -42,6 +43,7 @@ import {
     AppointmentRangeSchema,
     AppointmentRecordResponseSchema,
     AppointmentStatusRequestSchema,
+    MessageLogMatchRequestSchema,
 } from './contracts';
 
 const express = /** @type {any} */ (require('express'));
@@ -2694,10 +2696,13 @@ function createCoreRouter() {
             eventAddedVia
         });
     });
-    router.get('/messageLog', async function (req, res) {
+    router.post('/messageLog/match', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
-        tracer?.trace('getMessageLog:start', { query: req.query });
+        tracer?.trace('matchMessageLog:start', {
+            conversationId: req.body?.conversationId,
+            messageIdsCount: Array.isArray(req.body?.messageIds) ? req.body.messageIds.length : undefined,
+        });
         let platformName = null;
         let success = false;
         let extraData: any = {};
@@ -2707,40 +2712,53 @@ function createCoreRouter() {
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
-                    tracer?.trace('getMessageLog:invalidToken', {});
+                    tracer?.trace('matchMessageLog:invalidToken', {});
                     res.status(400).send(wrapDebugResponse(tracer, 'Please go to Settings and authorize CRM platform'));
+                    return;
+                }
+                const parsedBody = MessageLogMatchRequestSchema.safeParse(req.body ?? {});
+                if (!parsedBody.success) {
+                    tracer?.trace('matchMessageLog:invalidBody', { issues: parsedBody.error.issues });
+                    extraData.statusCode = 400;
+                    res.status(400).send(wrapDebugResponse(tracer, {
+                        successful: false,
+                        returnMessage: {
+                            message: 'Invalid message log match request',
+                            messageType: 'warning',
+                        },
+                    }));
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
+                const { conversationId, messageIds } = parsedBody.data;
                 const { successful, logs, messageLogs, returnMessage } = await logCore.getMessageLog({
                     userId,
                     platform,
-                    conversationId: req.query.conversationId,
-                    messageIds: req.query.messageIds,
+                    conversationId: String(conversationId),
+                    messageIds,
                 });
-
-                console.log('getMessageLog:response', { successful, logs, messageLogs, returnMessage });
-                res.status(200).send(wrapDebugResponse(tracer, { successful, logs, messageLogs, returnMessage }));
+                const response = { successful, logs, messageLogs, returnMessage } satisfies MessageLogMatchResponse;
+                res.status(200).send(wrapDebugResponse(tracer, response));
                 success = true;
             }
             else {
-                tracer?.trace('getMessageLog:noToken', {});
+                tracer?.trace('matchMessageLog:noToken', {});
                 res.status(400).send(wrapDebugResponse(tracer, 'Please go to Settings and authorize CRM platform'));
                 success = false;
             }
         }
         catch (e) {
-            logger.error('Get message log failed', { platform: platformName, stack: e.stack });
+            logger.error('Match message log failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(wrapDebugResponse(tracer, { error: getErrorResponse(e) }));
-            tracer?.traceError('getMessageLog:error', e, { platform: platformName });
+            tracer?.traceError('matchMessageLog:error', e, { platform: platformName });
             success = false;
         }
         const requestEndTime = new Date().getTime();
         analytics.track({
-            eventName: 'Get message log',
-            interfaceName: 'getMessageLog',
+            eventName: 'Match message log',
+            interfaceName: 'matchMessageLog',
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,

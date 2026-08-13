@@ -2339,6 +2339,7 @@ describe('Log Handler', () => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      const bulkCreateSpy = jest.spyOn(MessageLogAssociationModel, 'bulkCreate');
 
       const result = await logHandler.createMessageLog({
         platform: 'testCRM',
@@ -2359,6 +2360,12 @@ describe('Log Handler', () => {
       }));
       // Per-message mapping points every selected message at the same CRM record.
       expect(result.messageLogs).toEqual({ 'msg-1': 'crm-entry-1', 'msg-3': 'crm-entry-1' });
+      expect(bulkCreateSpy).toHaveBeenCalledWith(expect.arrayContaining([
+        expect.objectContaining({ messageId: 'msg-1', thirdPartyLogId: 'crm-entry-1' }),
+        expect.objectContaining({ messageId: 'msg-3', thirdPartyLogId: 'crm-entry-1' }),
+      ]), expect.objectContaining({
+        updateOnDuplicate: expect.arrayContaining(['thirdPartyLogId']),
+      }));
 
       // Associations persisted in the dedicated table, not the daily-digest table.
       const associations = await MessageLogAssociationModel.findAll({ where: { conversationId: 'conv-123' } });
@@ -2367,6 +2374,24 @@ describe('Log Handler', () => {
       // The daily-digest table is left untouched by this path.
       const dailyRows = await MessageLogModel.findAll({ where: { conversationId: 'conv-123' } });
       expect(dailyRows.length).toBe(0);
+    });
+
+    test('composes selected message body oldest first when incoming messages are newest first', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      const incomingData = buildIncomingData(['msg-3', 'msg-2', 'msg-1']);
+      incomingData.logInfo.messages = [...incomingData.logInfo.messages].reverse();
+
+      await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData,
+      });
+
+      const body = mockConnector.createMessageLog.mock.calls[0][0].sharedSMSLogContent.body;
+      expect(body.indexOf('First')).toBeLessThan(body.indexOf('Second'));
+      expect(body.indexOf('Second')).toBeLessThan(body.indexOf('Third'));
     });
 
     test('normalizes a numeric connector logId to a string', async () => {
@@ -2441,14 +2466,14 @@ describe('Log Handler', () => {
       ]);
     }
 
-    test('returns matched/unmatched status for the requested message ids', async () => {
+    test('returns matched/unmatched status for the requested message id array', async () => {
       await seedUserAndAssociations();
 
       const result = await logHandler.getMessageLog({
         userId: 'test-user-id',
         platform: 'testCRM',
         conversationId: 'conv-123',
-        messageIds: 'msg-1,msg-2,msg-unknown',
+        messageIds: ['msg-1', 'msg-2', 'msg-unknown'],
       });
 
       expect(result.successful).toBe(true);
@@ -2480,8 +2505,14 @@ describe('Log Handler', () => {
         userId: 'test-user-id',
         platform: 'testCRM',
       });
+      const emptyArrayResult = await logHandler.getMessageLog({
+        userId: 'test-user-id',
+        platform: 'testCRM',
+        messageIds: [],
+      });
 
       expect(result.successful).toBe(false);
+      expect(emptyArrayResult.successful).toBe(false);
     });
   });
 
