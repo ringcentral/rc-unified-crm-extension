@@ -14,7 +14,7 @@ const MessageLogAssociationModel = sequelize.define('messageLogAssociations', {
         type: Sequelize.STRING,
         primaryKey: true,
     },
-    // Thread scope; drives the GET /messageLog lookup
+    // Thread scope; drives the POST /messageLog/match lookup
     conversationId: {
         type: Sequelize.STRING,
     },
@@ -29,17 +29,28 @@ const MessageLogAssociationModel = sequelize.define('messageLogAssociations', {
     },
     userId: {
         type: Sequelize.STRING,
+        primaryKey: true,
     },
     rcAccountId: {
         type: Sequelize.STRING,
     },
     platform: {
         type: Sequelize.STRING,
+        primaryKey: true,
     }
 }, {
     tableName: 'message_log_association',
     indexes: [
-        { fields: ['conversationId'] }
+        { fields: ['conversationId'] },
+        {
+            name: 'message_log_assoc_message_user_platform_unique',
+            unique: true,
+            fields: ['messageId', 'userId', 'platform']
+        },
+        {
+            name: 'message_log_assoc_user_platform_conversation_message',
+            fields: ['userId', 'platform', 'conversationId', 'messageId']
+        }
     ]
 });
 
