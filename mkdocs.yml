@@ -126,6 +126,7 @@ nav:
   - 'Pipedrive': crm/pipedrive.md
   - 'Redtail CRM': crm/redtail.md
   - 'ServiceNow (2.0)': crm/servicenow.md
+  - 'ServiceTitan (2.0)': crm/servicetitan.md
   - 'Smokeball (2.0)': crm/smokeball.md
   - 'Vin Solutions (2.0)': crm/vinsolutions.md
   - 'Zoho (2.0)': crm/zoho.md
@@ -147,11 +148,6 @@ nav:
 
   - 'App Connect 2.0 Beta':
     - "What's new": 2.0/index.md
-    - 'Download': 2.0/download.md
-    - 'Developers':
-      - 'Connector migration guide': 2.0/migration.md
-      - 'Proxy connector (new)': developers/proxy-connector.md
-      - 'Plugins (new)': users/plugins.md
 
   - 'App Connect features':
     - 'AI Assistant': users/ai.md
@@ -194,7 +190,6 @@ nav:
   - 'Is your CRM compatible?': developers/proprietary-crm.md
   - 'Plugins':
     - 'Getting started': developers/plugins/index.md
-    - 'API reference': developers/plugin-server-openapi.json
 
   - 'Connectors': 
     - 'Getting started': developers/getting-started.md
@@ -255,7 +250,9 @@ nav:
         - 'getServerLoggingSettings': developers/interfaces/getServerLoggingSettings.md
         - 'updateServerLoggingSettings': developers/interfaces/updateServerLoggingSettings.md
         - 'postSaveUserInfo': developers/interfaces/postSaveUserInfo.md
-    - 'API reference': developers/crm-server-openapi-public.json
+  - 'API Reference':
+    - 'Connectors': developers/crm-server-openapi-public.json
+    - 'Plugins': developers/plugin-server-openapi.json
 
 - 'MCP': https://mcp.labs.ringcentral.com/docs/servers/app-connect/
 
