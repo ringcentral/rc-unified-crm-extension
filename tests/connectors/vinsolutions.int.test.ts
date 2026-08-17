@@ -884,6 +884,63 @@ describe('VinSolutions Connector', () => {
             await expect(vinsolutions.getUserList({ user: mockUser })).resolves.toEqual([]);
         });
 
+        it('should load managed auth crmUserId options for a dealer', async () => {
+            mockTokenRequest({ tokenType: 'leadManagement', accessTokenValue: 'managed-auth-token' });
+            nock(apiBase)
+                .get('/gateway/v1/tenant/user')
+                .query({ dealerId: '12617' })
+                .matchHeader('authorization', 'Bearer managed-auth-token')
+                .matchHeader('api_key', 'lead-api-key')
+                .matchHeader('accept', 'application/json')
+                .reply(200, [
+                    {
+                        UserId: 753043,
+                        FullName: 'Aaron Holthaus',
+                        EmailAddress: 'test@datagatewaymotors.motosnap.com'
+                    },
+                    {
+                        UserId: 753044,
+                        FullName: 'Anjali Kotthapally',
+                        EmailAddress: ''
+                    },
+                    {
+                        UserId: 2,
+                        FirstName: 'Split',
+                        LastName: 'Name',
+                        EmailAddress: 'split@example.com'
+                    }
+                ]);
+
+            await expect(vinsolutions.getManagedAuthOptions({
+                fieldConst: 'crmUserId',
+                accountValues: { dealerId: '12617' }
+            })).resolves.toEqual([
+                { value: '753043', label: 'Aaron Holthaus + test@datagatewaymotors.motosnap.com' },
+                { value: '753044', label: 'Anjali Kotthapally' },
+                { value: '2', label: 'Split Name + split@example.com' }
+            ]);
+        });
+
+        it('should return empty managed auth options when dealerId is missing', async () => {
+            await expect(vinsolutions.getManagedAuthOptions({
+                fieldConst: 'crmUserId',
+                accountValues: {}
+            })).resolves.toEqual([]);
+        });
+
+        it('should throw when managed auth user lookup fails', async () => {
+            mockTokenRequest({ tokenType: 'leadManagement', accessTokenValue: 'managed-auth-token' });
+            nock(apiBase)
+                .get('/gateway/v1/tenant/user')
+                .query({ dealerId: '12617' })
+                .reply(500, { message: 'tenant unavailable' });
+
+            await expect(vinsolutions.getManagedAuthOptions({
+                fieldConst: 'crmUserId',
+                accountValues: { dealerId: '12617' }
+            })).rejects.toThrow();
+        });
+
         it('should map voicemail result and return error response on createCallLog failure', async () => {
             nock(apiBase)
                 .post('/calldetails', body => body.callResult === 'LEFT_MESSAGE')

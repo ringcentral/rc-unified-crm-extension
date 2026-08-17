@@ -111,6 +111,7 @@ describe('app connector TypeScript modules', () => {
             'getBasicAuth',
             'getCallLog',
             'getLogFormatType',
+            'getManagedAuthOptions',
             'getOauthInfo',
             'getUserInfo',
             'getUserList',
