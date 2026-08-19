@@ -7,7 +7,7 @@ HighLevel is the all-in-one sales & marketing platform that agencies can white-l
 
 !!! money "As a third-party integration, the HighLevel integration comes at an additional cost"
 
-!!! warning "The HighLevel connector is currently in beta. If you experience any diffculty, please reach out via the [App Connect community](https://community.ringcentral.com/groups/app-connect-22)"
+!!! warning "The HighLevel connector is currently in beta. If you experience any diffculty, please reach out via the [App Connect community](https://community.ringcentral.com/integrations-app-connect-33)"
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/AAJbmt-CFDI?si=BjLdBYXiqRaaVXa-" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
