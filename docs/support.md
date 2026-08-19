@@ -2,11 +2,11 @@
 
 <div class="grid cards rc-bar" markdown>
 
--    **[:material-forum: Search the Community](https://community.ringcentral.com/groups/app-connect-22)**
+-    **[:material-forum: Search the Community](https://community.ringcentral.com/integrations-app-connect-33)**
      
      Search for answers from the community knowledge base.
 
--    **[:material-help: Ask a question](https://community.ringcentral.com/topic/new?fid=22)**
+-    **[:material-help: Ask a question](https://community.ringcentral.com/topic/new?fid=33)**
      
      Ask the community for help - you will find all of us very helpful.
 
