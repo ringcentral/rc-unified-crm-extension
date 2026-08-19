@@ -73,10 +73,14 @@ import {
   CallDispositionRequestSchema,
   CallLogMutationResponseSchema,
   ContactInfoSchema,
+  MessageLogMatchRequestSchema,
+  MessageLogMatchResponseSchema,
   MessageLogResponseSchema,
   basicMutationResponseExample,
   callDispositionRequestExample,
   callLogMutationResponseExample,
+  messageLogMatchRequestExample,
+  messageLogMatchResponseExample,
   messageLogNoOpResponseExample,
   messageLogResponseExample,
 } from './logging';
@@ -157,6 +161,8 @@ export const httpApiContractSchemas = {
   ContactInfo: ContactInfoSchema,
   CallLogMutationResponse: CallLogMutationResponseSchema,
   MessageLogResponse: MessageLogResponseSchema,
+  MessageLogMatchRequest: MessageLogMatchRequestSchema,
+  MessageLogMatchResponse: MessageLogMatchResponseSchema,
   CallDispositionRequest: CallDispositionRequestSchema,
   UserSetting: UserSettingSchema,
   UserSettings: UserSettingsSchema,
@@ -401,6 +407,34 @@ export const httpApiOperationContracts: readonly OpenApiOperationContract[] = [
           alreadyLogged: {
             summary: 'All messages were already logged',
             value: messageLogNoOpResponseExample,
+          },
+        },
+      },
+    },
+  },
+  {
+    method: 'post',
+    path: '/messageLog/match',
+    request: {
+      component: 'MessageLogMatch',
+      schema: 'MessageLogMatchRequest',
+      description: 'Conversation and message ids to check for existing CRM log associations.',
+      required: true,
+      examples: {
+        selectedMessages: {
+          summary: 'Lookup logged state for selected SMS messages',
+          value: messageLogMatchRequestExample,
+        },
+      },
+    },
+    responses: {
+      '200': {
+        schema: 'MessageLogMatchResponse',
+        description: 'Per-message logged-state lookup result.',
+        examples: {
+          matched: {
+            summary: 'Some messages have already been logged',
+            value: messageLogMatchResponseExample,
           },
         },
       },
@@ -972,6 +1006,8 @@ export const httpApiExamplesToValidate = [
   ['CallLogMutationResponse', CallLogMutationResponseSchema, callLogMutationResponseExample],
   ['MessageLogResponse', MessageLogResponseSchema, messageLogResponseExample],
   ['MessageLogNoOpResponse', MessageLogResponseSchema, messageLogNoOpResponseExample],
+  ['MessageLogMatchRequest', MessageLogMatchRequestSchema, messageLogMatchRequestExample],
+  ['MessageLogMatchResponse', MessageLogMatchResponseSchema, messageLogMatchResponseExample],
   ['CallDispositionRequest', CallDispositionRequestSchema, callDispositionRequestExample],
   ['BasicMutationResponse', BasicMutationResponseSchema, basicMutationResponseExample],
   ['UserSettings', UserSettingsSchema, userSettingsExample],

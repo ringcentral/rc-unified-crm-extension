@@ -12,6 +12,7 @@ jest.mock('../../models/sequelize', () => {
 
 const { CallLogModel } = require('../../models/callLogModel');
 const { MessageLogModel } = require('../../models/messageLogModel');
+const { MessageLogAssociationModel } = require('../../models/messageLogAssociationModel');
 const { UserModel } = require('../../models/userModel');
 const { CacheModel } = require('../../models/cacheModel');
 const { AdminConfigModel } = require('../../models/adminConfigModel');
@@ -26,6 +27,7 @@ describe('Core Models', () => {
   beforeAll(async () => {
     await CallLogModel.sync({ force: true });
     await MessageLogModel.sync({ force: true });
+    await MessageLogAssociationModel.sync({ force: true });
     await UserModel.sync({ force: true });
     await CacheModel.sync({ force: true });
     await AdminConfigModel.sync({ force: true });
@@ -34,6 +36,7 @@ describe('Core Models', () => {
   afterEach(async () => {
     await CallLogModel.destroy({ where: {} });
     await MessageLogModel.destroy({ where: {} });
+    await MessageLogAssociationModel.destroy({ where: {} });
     await UserModel.destroy({ where: {} });
     await CacheModel.destroy({ where: {} });
     await AdminConfigModel.destroy({ where: {} });
@@ -356,6 +359,72 @@ describe('Core Models', () => {
       });
       expect(migratedLog).not.toBeNull();
       expect(migratedLog.thirdPartyLogId).toBe('third-party-ts-legacy');
+    });
+
+    test('should add message association conflict index for legacy SQLite tables', async () => {
+      await MessageLogAssociationModel.drop();
+      await sequelize.query(`
+        CREATE TABLE message_log_association (
+          messageId VARCHAR(255) NOT NULL,
+          conversationId VARCHAR(255),
+          conversationLogId VARCHAR(255),
+          thirdPartyLogId VARCHAR(255),
+          userId VARCHAR(255),
+          rcAccountId VARCHAR(255),
+          platform VARCHAR(255),
+          createdAt DATETIME NOT NULL,
+          updatedAt DATETIME NOT NULL,
+          PRIMARY KEY (messageId)
+        );
+      `);
+
+      await MessageLogAssociationModel.sync();
+
+      const indexes = await sequelize.getQueryInterface().showIndex('message_log_association');
+      expect(indexes).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          name: 'message_log_assoc_message_user_platform_unique',
+          unique: true,
+        }),
+      ]));
+
+      await MessageLogAssociationModel.bulkCreate([
+        {
+          messageId: 'msg-1',
+          conversationId: 'conv-1',
+          conversationLogId: 'conv-log-1',
+          thirdPartyLogId: 'crm-log-1',
+          userId: 'user-1',
+          rcAccountId: 'account-1',
+          platform: 'testCRM',
+        },
+      ], {
+        updateOnDuplicate: ['conversationId', 'conversationLogId', 'thirdPartyLogId', 'rcAccountId'],
+      });
+
+      await MessageLogAssociationModel.bulkCreate([
+        {
+          messageId: 'msg-1',
+          conversationId: 'conv-1',
+          conversationLogId: 'conv-log-2',
+          thirdPartyLogId: 'crm-log-2',
+          userId: 'user-1',
+          rcAccountId: 'account-1',
+          platform: 'testCRM',
+        },
+      ], {
+        updateOnDuplicate: ['conversationId', 'conversationLogId', 'thirdPartyLogId', 'rcAccountId'],
+      });
+
+      const association = await MessageLogAssociationModel.findOne({
+        where: {
+          messageId: 'msg-1',
+          userId: 'user-1',
+          platform: 'testCRM',
+        },
+      });
+      expect(association.thirdPartyLogId).toBe('crm-log-2');
+      expect(association.conversationLogId).toBe('conv-log-2');
     });
 
     test('should find call logs by session ID', async () => {

@@ -48,7 +48,36 @@ export const MessageLogResponseSchema = z.looseObject({
   logIds: z.array(EntityIdSchema).describe(
     'RingCentral message or local conversation-mapping identifiers recorded by this request; an empty list can indicate a no-op.',
   ).optional(),
+  messageLogs: z.record(z.string(), EntityIdSchema).describe(
+    'Per-message mapping of RingCentral message id to CRM log record id, returned by the selective single-entry logging path so the client can render logged icons.',
+  ).optional(),
 }).describe('Result of logging an SMS, MMS, fax, voicemail, or message conversation.');
+
+export const MESSAGE_LOG_MATCH_MAX_MESSAGE_IDS = 100;
+const MessageLogMatchConversationIdSchema = z.union([
+  z.string().min(1),
+  z.number(),
+]).describe('RingCentral conversation identifier to scope the lookup.');
+
+export const MessageLogMatchRequestSchema = z.looseObject({
+  conversationId: MessageLogMatchConversationIdSchema,
+  messageIds: z.array(EntityIdSchema).max(MESSAGE_LOG_MATCH_MAX_MESSAGE_IDS).describe(
+    'RingCentral message identifiers to match against already logged CRM records.',
+  ).optional(),
+}).describe('Bulk lookup request for selective SMS logged-state matching.');
+
+export const MessageLogMatchResponseSchema = z.looseObject({
+  successful: z.boolean().describe('Whether the lookup completed without an App Connect error.'),
+  logs: z.array(z.looseObject({
+    messageId: EntityIdSchema.describe('RingCentral message identifier from the request.'),
+    matched: z.boolean().describe('Whether this message has already been logged.'),
+    logId: EntityIdSchema.describe('CRM log record identifier for matched messages.').optional(),
+  })).describe('Matched/unmatched status for the requested message ids.').optional(),
+  messageLogs: z.record(z.string(), EntityIdSchema).describe(
+    'Per-message mapping of RingCentral message id to CRM log record id.',
+  ).optional(),
+  returnMessage: ReturnMessageSchema.describe('Optional lookup status message.').optional(),
+}).describe('Bulk lookup result for selective SMS logged-state matching.');
 
 export const CallDispositionRequestSchema = z.looseObject({
   sessionId: z.string().min(1).describe('RingCentral call session identifier.'),
@@ -69,6 +98,8 @@ export const CallDispositionRequestSchema = z.looseObject({
 export type ContactInfo = z.input<typeof ContactInfoSchema>;
 export type CallLogMutationResponse = z.input<typeof CallLogMutationResponseSchema>;
 export type MessageLogResponse = z.input<typeof MessageLogResponseSchema>;
+export type MessageLogMatchRequest = z.input<typeof MessageLogMatchRequestSchema>;
+export type MessageLogMatchResponse = z.input<typeof MessageLogMatchResponseSchema>;
 export type CallDispositionRequest = z.input<typeof CallDispositionRequestSchema>;
 
 export const callLogMutationResponseExample = {
@@ -96,6 +127,24 @@ export const messageLogNoOpResponseExample = {
   logIds: [],
   returnMessage: null,
 } satisfies MessageLogResponse;
+
+export const messageLogMatchRequestExample = {
+  conversationId: '8031152018338945901',
+  messageIds: ['6424569101', '6424569102', '6424569105'],
+} satisfies MessageLogMatchRequest;
+
+export const messageLogMatchResponseExample = {
+  successful: true,
+  logs: [
+    { messageId: '6424569101', matched: true, logId: 'crm-entry-1' },
+    { messageId: '6424569102', matched: false },
+    { messageId: '6424569105', matched: true, logId: 'crm-entry-1' },
+  ],
+  messageLogs: {
+    '6424569101': 'crm-entry-1',
+    '6424569105': 'crm-entry-1',
+  },
+} satisfies MessageLogMatchResponse;
 
 export const callDispositionRequestExample = {
   sessionId: 's-a1b2c3d4',

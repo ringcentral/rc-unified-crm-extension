@@ -146,7 +146,8 @@ describe('TypeScript model definitions', () => {
     const modules: Array<[string, string, string, string[]]> = [
       ['../../models/adminConfigModel.ts', 'AdminConfigModel', 'adminConfigs', ['id', 'userSettings', 'adminAccessToken']],
       ['../../models/llmSessionModel.ts', 'LlmSessionModel', 'llmSessions', ['id', 'jwtToken', 'expiry']],
-      ['../../models/messageLogModel.ts', 'MessageLogModel', 'messageLogs', ['id', 'conversationId', 'conversationLogId']]
+      ['../../models/messageLogModel.ts', 'MessageLogModel', 'messageLogs', ['id', 'conversationId', 'conversationLogId']],
+      ['../../models/messageLogAssociationModel.ts', 'MessageLogAssociationModel', 'messageLogAssociations', ['messageId', 'conversationId', 'conversationLogId', 'thirdPartyLogId', 'rcAccountId']]
     ];
 
     for (const [modulePath, exportName, modelName, expectedFields] of modules) {
@@ -160,6 +161,26 @@ describe('TypeScript model definitions', () => {
         expect(attributes[field]).toBeDefined();
       }
     }
+  });
+
+  test('messageLogAssociationModel.ts uses user-scoped message identity and lookup indexes', () => {
+    const { define } = loadSequelizeModel('../../models/messageLogAssociationModel.ts');
+    const defineCalls = define.mock.calls as unknown as Array<[string, any, any]>;
+    const [, attributes, options] = defineCalls[0];
+
+    expect(attributes.messageId).toEqual(expect.objectContaining({ primaryKey: true }));
+    expect(attributes.userId).toEqual(expect.objectContaining({ primaryKey: true }));
+    expect(attributes.platform).toEqual(expect.objectContaining({ primaryKey: true }));
+    expect(options.indexes).toEqual(expect.arrayContaining([
+      { fields: ['conversationId'] },
+      expect.objectContaining({
+        unique: true,
+        fields: ['messageId', 'userId', 'platform']
+      }),
+      expect.objectContaining({
+        fields: ['userId', 'platform', 'conversationId', 'messageId']
+      })
+    ]));
   });
 
   const loadSequelizeConfig = (databaseUrl: string, databaseSsl?: string) => {

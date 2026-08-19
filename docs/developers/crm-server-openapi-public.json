@@ -2647,6 +2647,74 @@
         "description": "Logs RingCentral SMS, MMS, fax, voicemail, or text records to the CRM. Messages can be written individually or grouped into a shared conversation activity, and previously processed RingCentral message IDs are de-duplicated. Fax and MMS payloads can include a RingCentral access token for attachment downloads; treat it as secret and do not persist it."
       }
     },
+    "/messageLog/match": {
+      "post": {
+        "tags": [
+          "Message Logs"
+        ],
+        "summary": "Match SMS messages to existing CRM logs",
+        "operationId": "postMessageLogMatch",
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/MessageLogMatch"
+        },
+        "responses": {
+          "200": {
+            "x-app-connect-generated-contract": true,
+            "description": "Per-message logged-state lookup result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageLogMatchResponse"
+                },
+                "examples": {
+                  "matched": {
+                    "summary": "Some messages have already been logged",
+                    "value": {
+                      "successful": true,
+                      "logs": [
+                        {
+                          "messageId": "6424569101",
+                          "matched": true,
+                          "logId": "crm-entry-1"
+                        },
+                        {
+                          "messageId": "6424569102",
+                          "matched": false
+                        },
+                        {
+                          "messageId": "6424569105",
+                          "matched": true,
+                          "logId": "crm-entry-1"
+                        }
+                      ],
+                      "messageLogs": {
+                        "6424569101": "crm-entry-1",
+                        "6424569105": "crm-entry-1"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
+          }
+        },
+        "description": "Checks whether selected RingCentral SMS message IDs already have CRM log associations. This body-based lookup avoids long query strings for large conversations."
+      }
+    },
     "/calldown": {
       "get": {
         "tags": [
@@ -3378,6 +3446,8 @@
       "ContactInfo",
       "CallLogMutationResponse",
       "MessageLogResponse",
+      "MessageLogMatchRequest",
+      "MessageLogMatchResponse",
       "CallDispositionRequest",
       "UserSetting",
       "UserSettings",
@@ -3387,6 +3457,7 @@
     "requestBodies": [
       "ApiKeyLogin",
       "PluginRegister",
+      "MessageLogMatch",
       "CallDisposition",
       "UserSettingsUpdate",
       "AdminSettingsUpdate",
@@ -3483,6 +3554,15 @@
         "path": "/messageLog",
         "parameters": [],
         "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/messageLog/match",
+        "parameters": [],
+        "requestBody": true,
         "responses": [
           "200"
         ]
@@ -4174,6 +4254,31 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/CallDownPatchRequest"
+            }
+          }
+        }
+      },
+      "MessageLogMatch": {
+        "x-app-connect-generated-contract": true,
+        "required": true,
+        "description": "Conversation and message ids to check for existing CRM log associations.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MessageLogMatchRequest"
+            },
+            "examples": {
+              "selectedMessages": {
+                "summary": "Lookup logged state for selected SMS messages",
+                "value": {
+                  "conversationId": "8031152018338945901",
+                  "messageIds": [
+                    "6424569101",
+                    "6424569102",
+                    "6424569105"
+                  ]
+                }
+              }
             }
           }
         }
@@ -5771,6 +5876,21 @@
               "description": "Connector-defined entity identifier, represented as a string or number."
             },
             "description": "RingCentral message or local conversation-mapping identifiers recorded by this request; an empty list can indicate a no-op."
+          },
+          "messageLogs": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
+            },
+            "description": "Per-message mapping of RingCentral message id to CRM log record id, returned by the selective single-entry logging path so the client can render logged icons."
           }
         },
         "required": [
@@ -7525,6 +7645,123 @@
           }
         },
         "additionalProperties": false
+      },
+      "MessageLogMatchRequest": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "RingCentral conversation identifier to scope the lookup."
+          },
+          "messageIds": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
+            },
+            "description": "RingCentral message identifiers to match against already logged CRM records."
+          }
+        },
+        "required": [
+          "conversationId"
+        ],
+        "additionalProperties": true,
+        "description": "Bulk lookup request for selective SMS logged-state matching.",
+        "x-app-connect-generated-contract": true
+      },
+      "MessageLogMatchResponse": {
+        "type": "object",
+        "properties": {
+          "successful": {
+            "type": "boolean",
+            "description": "Whether the lookup completed without an App Connect error."
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "messageId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "description": "RingCentral message identifier from the request."
+                },
+                "matched": {
+                  "type": "boolean",
+                  "description": "Whether this message has already been logged."
+                },
+                "logId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "description": "CRM log record identifier for matched messages."
+                }
+              },
+              "required": [
+                "messageId",
+                "matched"
+              ],
+              "additionalProperties": true
+            },
+            "description": "Matched/unmatched status for the requested message ids."
+          },
+          "messageLogs": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
+            },
+            "description": "Per-message mapping of RingCentral message id to CRM log record id."
+          },
+          "returnMessage": {
+            "description": "Optional lookup status message.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReturnMessage"
+              }
+            ]
+          }
+        },
+        "required": [
+          "successful"
+        ],
+        "additionalProperties": true,
+        "description": "Bulk lookup result for selective SMS logged-state matching.",
+        "x-app-connect-generated-contract": true
       }
     },
     "headers": {

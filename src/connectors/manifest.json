@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+  "serverUrl": "https://dairy-artificial-linda-gale.trycloudflare.com",
   "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
   "author": {
     "name": "RingCentral Labs",
@@ -444,6 +444,7 @@
       "embedUrls": [
         "https://*.clio.com/*"
       ],
+      "isSelectedMessageLogSupported":true,
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
         "useAdminAssignedUserToken": true,

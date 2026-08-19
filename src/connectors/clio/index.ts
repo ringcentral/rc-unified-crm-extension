@@ -825,7 +825,7 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
                         messageSubject = `[Message]: ${messageSubject ?? 'N/A'}\n[Link - failed to upload]: ${imageDownloadLink}`;
                     }
                 }
-                logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')}`;
+                logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY hh:mm A')}`;
                 logBody =
                     '\nConversation summary\n' +
                     `${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('dddd, MMMM DD, YYYY')}\n` +
@@ -843,7 +843,7 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
                     '--- Created via RingCentral App Connect';
                 break;
             case 'Voicemail':
-                logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')}`;
+                logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY hh:mm A')}`;
                 logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
                 break;
             case 'Fax':
