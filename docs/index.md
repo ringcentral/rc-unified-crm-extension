@@ -151,7 +151,7 @@ Logging to your CRM in real time
 <div class="ac-v5-fc">
 <p class="ac-v5-fc__title">Call logging</p>
 <hr class="ac-v5-fc__sep">
-<p class="ac-v5-fc__desc">Every call logged — inbound, outbound, missed. No manual entry, ever.</p>
+<p class="ac-v5-fc__desc">Every call logged — inbound, outbound, missed. Call transcripts and summaries. No manual entry.</p>
 <a href="users/logging/" class="ac-v5-fc__link">Learn about call logging →</a>
 </div>
 
