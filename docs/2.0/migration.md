@@ -2,7 +2,7 @@
 
 This guide covers migrating from version 1.6.x to 1.7.x, which introduces a new way to manage manifests. The primary changes are on the manifest management side - there is NO change required for server adapter (connector). 
 
-New features can be found in [this post](https://community.ringcentral.com/app-connect-22/announcing-the-major-evolution-of-app-connect-11306).
+New features can be found in [this post](https://community.ringcentral.com/integrations-app-connect-33/announcing-the-major-evolution-of-app-connect-11306).
 
 !!! tip "It's recommended to use a local test instance to try the migration process before applying changes on your production environment."
 

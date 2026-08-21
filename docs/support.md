@@ -6,7 +6,7 @@
      
      Search for answers from the community knowledge base.
 
--    **[:material-help: Ask a question](https://community.ringcentral.com/topic/new?fid=22)**
+-    **[:material-help: Ask a question](https://community.ringcentral.com/topic/new?fid=33)**
      
      Ask the community for help - you will find all of us very helpful.
 
