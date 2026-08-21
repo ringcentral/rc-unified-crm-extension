@@ -22,7 +22,8 @@ function composeSharedSMSLog({
     logFormat = LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
     conversation,
     contactName,
-    timezoneOffset
+    timezoneOffset,
+    customSubject
 }: ComposeSharedSMSLogParams): SharedSMSLogContent {
     const conversationCreatedDate = moment(conversation?.creationTime);
     const conversationUpdatedDate = moment(findLatestModifiedTime(conversation.messages));
@@ -34,7 +35,8 @@ function composeSharedSMSLog({
     const subject = composeSubject({
         logFormat,
         contactName,
-        conversationCreatedDate
+        conversationCreatedDate,
+        customSubject
     });
 
     const body = composeBody({
@@ -71,18 +73,21 @@ function getSortableTime(time: any): number {
 function composeSubject({
     logFormat,
     contactName,
-    conversationCreatedDate
+    conversationCreatedDate,
+    customSubject
 }: {
     logFormat: SharedSMSLogFormat;
     contactName: string;
     conversationCreatedDate?: any;
+    customSubject?: string | null;
 }): string {
+    const trimmedCustomSubject = typeof customSubject === 'string' ? customSubject.trim() : '';
     // Include date and time so CRM list views (e.g. Clio communications) show
     // when the conversation/selected messages occurred, not just the contact name.
     const dateTimeSuffix = conversationCreatedDate?.isValid?.()
         ? ` - ${conversationCreatedDate.format('MM/DD/YYYY hh:mm A')}`
         : '';
-    const title = `SMS conversation with ${contactName}${dateTimeSuffix}`;
+    const title = trimmedCustomSubject || `SMS conversation with ${contactName}${dateTimeSuffix}`;
 
     switch (logFormat) {
         case LOG_DETAILS_FORMAT_TYPE.HTML:
