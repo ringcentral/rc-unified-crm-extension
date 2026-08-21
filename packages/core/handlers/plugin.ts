@@ -6,6 +6,7 @@ const axios = /** @type {any} */ (require('axios'));
 const { AccountDataModel: AccountDataModelImport } = require('../models/accountDataModel');
 const AccountDataModel = /** @type {any} */ (AccountDataModelImport);
 const logger = require('../lib/logger');
+const userCore = /** @type {any} */ (require('./user'));
 
 /** @typedef {import('../types').InstalledPlugin} InstalledPlugin */
 /** @typedef {import('../types').JsonObject} JsonObject */
@@ -49,6 +50,23 @@ function getPluginConfigFromUserSettings({ userSettings, pluginId }) {
         return null;
     }
     return targetPluginSettingsValue.config;
+}
+
+/**
+ * Resolve the effective plugin config for a user, including current admin overrides.
+ *
+ * @param {{ user: { rcAccountId?: string | number, userSettings?: UserSettings } | null, pluginId: string }} params
+ * @returns {Promise<JsonObject | null>}
+ */
+async function getPluginConfigForUser({ user, pluginId }) {
+    if (!user) {
+        return null;
+    }
+    const userSettings = await userCore.getUserSettings({
+        user,
+        rcAccountId: user.rcAccountId,
+    });
+    return getPluginConfigFromUserSettings({ userSettings, pluginId });
 }
 
 /**
@@ -228,6 +246,7 @@ async function unregisterPluginAccount({ pluginId, rcAccountId }) {
 
 exports.getPluginsFromRcAccountId = getPluginsFromRcAccountId;
 exports.getPluginConfigFromUserSettings = getPluginConfigFromUserSettings;
+exports.getPluginConfigForUser = getPluginConfigForUser;
 exports.getPluginLicenseStatus = getPluginLicenseStatus;
 exports.getRefreshedJwtTokenFromHeaders = getRefreshedJwtTokenFromHeaders;
 exports.resolvePluginManifest = resolvePluginManifest;

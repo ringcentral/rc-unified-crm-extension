@@ -14,6 +14,7 @@ jest.mock('axios');
 const pluginHandler = require('../../handlers/plugin');
 const { CacheModel } = require('../../models/cacheModel');
 const { AccountDataModel } = require('../../models/accountDataModel');
+const { AdminConfigModel } = require('../../models/adminConfigModel');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 const logger = require('../../lib/logger');
@@ -27,11 +28,13 @@ describe('Plugin Handler', () => {
     process.env.HASH_KEY = 'unit-test-hash-key';
     await CacheModel.sync({ force: true });
     await AccountDataModel.sync({ force: true });
+    await AdminConfigModel.sync({ force: true });
   });
 
   afterEach(async () => {
     await CacheModel.destroy({ where: {} });
     await AccountDataModel.destroy({ where: {} });
+    await AdminConfigModel.destroy({ where: {} });
     jest.clearAllMocks();
     jest.restoreAllMocks();
   });
@@ -191,6 +194,66 @@ describe('Plugin Handler', () => {
         },
         pluginId: 'plugin-one'
       })).toEqual({ queueId: 'q-1' });
+    });
+
+    test('should resolve current admin overrides when handling a plugin request', async () => {
+      const user = {
+        rcAccountId: 'hashed-account-id',
+        userSettings: {
+          'plugin_plugin-one': {
+            customizable: true,
+            value: {
+              config: {
+                queueId: { value: 'user-queue', customizable: true },
+                region: { value: 'user-region', customizable: true }
+              }
+            }
+          }
+        }
+      };
+      await AdminConfigModel.create({
+        id: user.rcAccountId,
+        userSettings: {
+          'plugin_plugin-one': {
+            customizable: true,
+            value: {
+              config: {
+                queueId: { value: 'admin-queue', customizable: false },
+                region: { value: 'admin-region', customizable: true }
+              }
+            }
+          }
+        }
+      });
+
+      await expect(pluginHandler.getPluginConfigForUser({
+        user,
+        pluginId: 'plugin-one'
+      })).resolves.toEqual({
+        queueId: { value: 'admin-queue', customizable: false },
+        region: { value: 'user-region', customizable: true }
+      });
+
+      const adminConfig = await AdminConfigModel.findByPk(user.rcAccountId);
+      await adminConfig.update({
+        userSettings: {
+          'plugin_plugin-one': {
+            customizable: false,
+            value: {
+              config: {
+                queueId: { value: 'updated-admin-queue', customizable: false }
+              }
+            }
+          }
+        }
+      });
+
+      await expect(pluginHandler.getPluginConfigForUser({
+        user,
+        pluginId: 'plugin-one'
+      })).resolves.toEqual({
+        queueId: { value: 'updated-admin-queue', customizable: false }
+      });
     });
 
     test('should update existing plugin data and log persist failures without throwing', async () => {

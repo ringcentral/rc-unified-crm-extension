@@ -119,7 +119,7 @@ async function runSyncCallPlugins({ syncCallPlugins, incomingData, user, platfor
         if (!pluginEndpointUrl) {
             throw new Error('Plugin URL is not set');
         }
-        const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
+        const userConfig = await pluginCore.getPluginConfigForUser({ user, pluginId });
         const processedResultResponse = await axios.post(pluginEndpointUrl, {
             data: processedIncomingData,
             config: userConfig,
@@ -200,7 +200,7 @@ async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, o
         const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
         await axios.post(pluginEndpointUrl, {
             data: getAsyncPluginRequestData({ operation, incomingData }),
-            config: pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId }),
+            config: await pluginCore.getPluginConfigForUser({ user, pluginId }),
             asyncTaskId: taskId,
             callbackUrl,
             hashedExtensionId: user.hashedRcExtensionId,
@@ -1058,7 +1058,7 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
             if (!pluginEndpointUrl) {
                 throw new Error('Plugin URL is not set');
             }
-            const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
+            const userConfig = await pluginCore.getPluginConfigForUser({ user, pluginId });
             if (plugin.data.isAsync) {
                 try {
                     const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
