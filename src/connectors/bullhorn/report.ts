@@ -6,6 +6,11 @@ const oauth = /** @type {any} */ (require('@app-connect/core/lib/oauth'));
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { getOauthInfo } = /** @type {any} */ (require('./index'));
 const { checkAndRefreshAccessToken } = /** @type {any} */ (require('./index'));
+const LOOKUP_STATUS = {
+    SUCCESS: 'success',
+    NOT_FOUND: 'Not Found',
+    TOKEN_INVALID: 'Token Invalid'
+};
 // ===================== Monthly CSV Report Helpers =====================
 async function fetchBullhornUserProfile({ user }) {
     try {
@@ -14,16 +19,29 @@ async function fetchBullhornUserProfile({ user }) {
         if (checkAndRefreshAccessToken) {
             currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser, 20, true);
         }
+        if (!currentUser) {
+            return { email: '', name: '', lookupStatus: LOOKUP_STATUS.TOKEN_INVALID };
+        }
         const masterUserId = currentUser.id.replace('-bullhorn', '');
         const resp = await axios.get(
             `${currentUser.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name,email&where=masterUserID=${masterUserId}`,
             { headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken } }
         );
         const data = resp?.data?.data?.[0] ?? {};
-        return { email: data.email || '', name: data.name || '' };
+        const hasProfile = Boolean(data.email || data.name);
+        return {
+            email: data.email || '',
+            name: data.name || '',
+            lookupStatus: hasProfile ? LOOKUP_STATUS.SUCCESS : LOOKUP_STATUS.NOT_FOUND
+        };
     } catch (error) {
         logger.error('Error fetching Bullhorn user profile', { stack: error.stack });
-        return { email: '', name: '' };
+        const statusCode = error?.response?.status ?? error?.status;
+        return {
+            email: '',
+            name: '',
+            lookupStatus: statusCode === 401 ? LOOKUP_STATUS.TOKEN_INVALID : LOOKUP_STATUS.NOT_FOUND
+        };
     }
 }
 
@@ -200,6 +218,9 @@ async function fetchMonthlySalesforceReportRows(){
     // Map email -> Bullhorn master user id(s) (strip `-bullhorn`)
     // Note: one email may map to multiple Bullhorn users.
     const bullhornMasterUserIdsByEmail = new Map();
+    // Map RingCentral account id -> Bullhorn lookup status. Successful lookups take
+    // precedence when more than one Bullhorn user belongs to the same RC account.
+    const bullhornLookupStatusByRcAccountId = new Map();
 
     // Bullhorn user id looks like `${masterUserId}-bullhorn`. Strip suffix and fetch email from Bullhorn.
     // (Requested: use id to fetch emailId/email from Bullhorn)
@@ -245,6 +266,17 @@ async function fetchMonthlySalesforceReportRows(){
                     continue;
                 }
                 const email = r?.value?.profile?.email;
+                const rcAccountId = r?.value?.currentUser?.rcAccountId
+                    ? String(r.value.currentUser.rcAccountId).trim()
+                    : '';
+                const lookupStatus = r?.value?.profile?.lookupStatus ||
+                    (email || r?.value?.profile?.name ? LOOKUP_STATUS.SUCCESS : LOOKUP_STATUS.NOT_FOUND);
+                if (rcAccountId) {
+                    const existingStatus = bullhornLookupStatusByRcAccountId.get(rcAccountId);
+                    if (!existingStatus || lookupStatus === LOOKUP_STATUS.SUCCESS) {
+                        bullhornLookupStatusByRcAccountId.set(rcAccountId, lookupStatus);
+                    }
+                }
                 if (email && typeof email === 'string') {
                     const normalized = email.trim().toLowerCase();
                     if (normalized) {
@@ -324,6 +356,19 @@ async function fetchMonthlySalesforceReportRows(){
         )
     ];
 
+    const buildFailedLookupRows = (successfulRcAccountIds = new Set()) =>
+        filteredUserRcAccountIdList
+            .filter((rcAccountId) => !successfulRcAccountIds.has(rcAccountId))
+            .map((rcAccountId) => {
+                const bullhornStatus = bullhornLookupStatusByRcAccountId.get(rcAccountId);
+                return {
+                    'RC Account ID': rcAccountId,
+                    'Look Up Status': bullhornStatus === LOOKUP_STATUS.TOKEN_INVALID
+                        ? LOOKUP_STATUS.TOKEN_INVALID
+                        : LOOKUP_STATUS.NOT_FOUND
+                };
+            });
+
 
     if (!filteredUserRcAccountIdList.length) {
         logger.warn('No rcAccountId values found for Bullhorn users; skipping Salesforce query');
@@ -356,7 +401,7 @@ async function fetchMonthlySalesforceReportRows(){
     } catch (error) {
         logger.error('Failed to fetch Salesforce Account data:', { stack: error.stack, error });
         //  await sendErrorReportEmail(error, 'fetchMonthlySalesforceReportRows/salesforce-query');
-        return [];
+        return buildFailedLookupRows();
     }
     
 
@@ -387,7 +432,7 @@ accounts.forEach(acc => {
 console.log({m:'acc18List are',Length: acc18List.length});
 if(acc18List.length === 0) {
     logger.warn('No accounts found for Bullhorn users; skipping Salesforce query');
-    return [];
+    return buildFailedLookupRows();
 }
 // Query contacts for these accounts (chunked to avoid 414 URI Too Long)
 const CONTACT_ACCOUNT_CHUNK_SIZE = 700;
@@ -423,17 +468,23 @@ try {
 } catch (error) {
     logger.error('Failed to fetch Salesforce Contact data:',{Stack:error.stack});
     // await sendErrorReportEmail(error, 'fetchMonthlySalesforceReportRows/contacts-query');
-    return [];
+    return buildFailedLookupRows();
 }
 
 // Prepare the final list of objects as requested
 const results = [];
+const successfulRcAccountIds = new Set();
 
 logger.info({ message: 'Salesforce contacts fetched', count: contacts.length });
 
 // Merge fields for each contact, and supplement with RC_Cancel_Date__c and RC_User_ID__c from account
 contacts.forEach(contact => {
     const account = accountIdMap[contact.AccountId] || {};
+    const rcAccountId = account.RC_User_ID__c ? String(account.RC_User_ID__c).trim() : '';
+    if (bullhornLookupStatusByRcAccountId.get(rcAccountId) !== LOOKUP_STATUS.SUCCESS) {
+        return;
+    }
+    successfulRcAccountIds.add(rcAccountId);
     results.push({
         'Bullhorn Master User ID': (() => {
             const email = String(contact.Email || '').trim().toLowerCase();
@@ -452,9 +503,13 @@ contacts.forEach(contact => {
         'Seats': contact.Account_Number_of_DLs__c,
         'Opp Status': contact.Account_Status__c,
         'Cancel Date': account.RC_Cancel_Date__c,
-        'RC Account ID': account.RC_User_ID__c,
+        'RC Account ID': rcAccountId,
+        'Look Up Status': LOOKUP_STATUS.SUCCESS,
     });
 });
+
+// Keep successful report rows first and append unresolved RC account IDs last.
+results.push(...buildFailedLookupRows(successfulRcAccountIds));
 
 console.log({message:"CUmulative data", Length:results.length});
 
@@ -486,6 +541,7 @@ async function generateMonthlyCsvReportWithSalesforceData() {
         'Opp Status',
         'Cancel Date',
         'RC Account ID',
+        'Look Up Status',
     ];
 
     const rows = [header];

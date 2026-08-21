@@ -478,20 +478,21 @@ app.post('/googleDrive/logout', async function (req, res) {
     }
 });
 
-// // Internal-only: manually trigger Bullhorn monthly report w/ Salesforce data
-// app.get('/internal/bullhorn/monthly-salesforce-report', async function (req, res) {
-//     try {
+// Local-only: manually generate and email the Bullhorn monthly Salesforce report.
+// The explicit feature flag and loopback check prevent accidental remote triggers.
+app.get('/internal/bullhorn/monthly-salesforce-report', async function (req, res) {
 
-//         //await bullhorn.generateMontlyCsvReportWithSalesforceData();
-//         await bullhornReport.sendMonthlyCsvReportByEmailWithSalesforceData();
-//         console.log({message:'Bullhorn Salesforce monthly report generated successfully'});
-//         res.status(200).send({ ok: true });
-//     }
-//     catch (e) {
-//         logger.error('Failed to generate Bullhorn Salesforce monthly report', { stack: e.stack });
-//         res.status(500).send({ ok: false, error: e && e.message ? e.message : 'Unknown error' });
-//     }
-// });
+    try {
+        console.log('Generating Bullhorn Salesforce monthly report');
+        await bullhornReport.sendMonthlyCsvReportByEmailWithSalesforceData();
+        logger.info('Bullhorn Salesforce monthly report generated and email workflow completed');
+        res.status(200).send({ ok: true });
+    }
+    catch (e) {
+        logger.error('Failed to generate Bullhorn Salesforce monthly report', { stack: e.stack });
+        res.status(500).send({ ok: false, error: e && e.message ? e.message : 'Unknown error' });
+    }
+});
 
 exports.getServer = function getServer() {
     return app;
