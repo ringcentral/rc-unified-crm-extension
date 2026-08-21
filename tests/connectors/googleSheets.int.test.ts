@@ -426,6 +426,48 @@ describe('Google Sheets Connector', () => {
             expect(result.returnMessage.messageType).toBe('success');
         });
 
+        it('should return the existing call log without appending when session ID is already present', async () => {
+            const callLogHeaders = ['ID', 'Sheet Id', 'Subject', 'Notes', 'Contact name', 'Phone', 'Start time', 'End time', 'Duration', 'Session Id', 'Direction'];
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}`)
+                .reply(200, {
+                    sheets: [
+                        { properties: { title: 'Call Logs', sheetId: 1 } }
+                    ]
+                });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
+                .reply(200, {
+                    values: [
+                        callLogHeaders,
+                        ['7', spreadsheetId, 'Existing call', '', 'John Doe', '+14155551234', '', '', '60', mockCallLogData.sessionId, 'Outbound']
+                    ]
+                });
+
+            const result = await googleSheets.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: null,
+                aiNote: null,
+                transcript: null
+            });
+
+            expect(result).toMatchObject({
+                successful: true,
+                logId: '7',
+                returnMessage: {
+                    message: 'Call was already logged',
+                    messageType: 'success'
+                }
+            });
+            expect(nock.isDone()).toBe(true);
+        });
+
         it('should return error when no spreadsheet configured', async () => {
             const userWithoutSheet = createMockUser({
                 ...mockUser,

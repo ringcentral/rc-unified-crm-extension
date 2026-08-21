@@ -37,6 +37,10 @@ With the integration enabled inside Vin Solutions, installation continues with t
 
 ### Step 3: Connect your account
 
+!!! hint "Where do I find my dealer ID?"
+    Your dealer ID is located in the upper-righthand corner of the Vin Solutions application after you login. It is in the form of "&lt;dealership name&gt; #&lt;dealer ID&gt;". See the screenshot below. Based on the screenshot, the dealer ID is "12345."
+    ![Dealer ID](../img/vin-solutions-dealerid.png)
+
 Once Cox Automotive is selected, log in using:
 
 * **Dealer ID** — found in the upper right-hand corner of the Vin Solutions app.

@@ -129,4 +129,4 @@ npm run dev        # Start development server
 
 For support and questions:
 - Check the [App Connect documentation](https://ringcentral.github.io/rc-unified-crm-extension/developers/getting-started/)
-- Open a question on [RingCentral Community App Connect group](https://community.ringcentral.com/groups/app-connect-22)
+- Open a question on [RingCentral Community App Connect group](https://community.ringcentral.com/integrations-app-connect-33)

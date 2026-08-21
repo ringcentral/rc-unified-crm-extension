@@ -89,4 +89,4 @@ Check [AWS serverless deployment](https://ringcentral.github.io/rc-unified-crm-e
 For support and questions:
 
 - Check the full [App Connect documentation]([../packages/core/README.md](https://ringcentral.github.io/rc-unified-crm-extension/developers/getting-started/))
-- Open an question on [RingCentral Community App Connect group](https://community.ringcentral.com/groups/app-connect-22)
+- Open an question on [RingCentral Community App Connect group](https://community.ringcentral.com/integrations-app-connect-33)

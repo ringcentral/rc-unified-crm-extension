@@ -89,6 +89,24 @@ const accountData = {
     }
 };
 
+async function getOptionalAccountDataForContactSearch({ user, forceRefresh = false }) {
+    try {
+        return await getAccountData({
+            platform: 'bullhorn',
+            user,
+            dataKey: 'bullhornData',
+            forceRefresh
+        });
+    }
+    catch (e) {
+        logger.error('Bullhorn account data fetch failed during contact search', {
+            status: e.response?.status,
+            stack: e.stack
+        });
+        return {};
+    }
+}
+
 async function authValidation({ user }) {
     let pingResponse;
     try {
@@ -594,10 +612,8 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
         }
     }
     let extraDataTracking: any = {};
-    const bullhornData = await getAccountData({
-        platform: 'bullhorn',
+    const bullhornData = await getOptionalAccountDataForContactSearch({
         user,
-        dataKey: 'bullhornData',
         forceRefresh: isForceRefreshAccountData
     });
     const commentActionList = bullhornData.commentActionList ?? [];
@@ -878,11 +894,7 @@ async function createContact({ user, phoneNumber, newContactName, newContactType
 
 async function findContactWithName({ user, name }) {
     let extraDataTracking: any = {};
-    const bullhornData = await getAccountData({
-        platform: 'bullhorn',
-        user,
-        dataKey: 'bullhornData'
-    });
+    const bullhornData = await getOptionalAccountDataForContactSearch({ user });
     const commentActionList = bullhornData.commentActionList ?? [];
     const matchedContactInfo = [];
     // Search by full name components
@@ -1650,7 +1662,7 @@ async function refreshSessionToken(user) {
 }
 
 function isAuthError(statusCode) {
-    return statusCode >= 400 && statusCode < 500;
+    return statusCode === 401;
 }
 
 
