@@ -2332,6 +2332,7 @@ describe('Log Handler', () => {
           correspondents: [{ phoneNumber: '+1234567890' }],
           conversationId: 'conv-123',
           conversationLogId: 'conv-log-123',
+          customSubject: undefined as string | undefined,
         },
         contactId: 'contact-123',
         contactType: 'Contact',
@@ -2379,6 +2380,26 @@ describe('Log Handler', () => {
       // The daily-digest table is left untouched by this path.
       const dailyRows = await MessageLogModel.findAll({ where: { conversationId: 'conv-123' } });
       expect(dailyRows.length).toBe(0);
+    });
+
+    test('uses logInfo.customSubject as the CRM entry title', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      const incomingData = buildIncomingData(['msg-1', 'msg-3']);
+      incomingData.logInfo.customSubject = 'Updated  title - SMS conversation with Testsushil Labsaccount - 08/21/2026 07:28 AM';
+
+      await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData,
+      });
+
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        sharedSMSLogContent: expect.objectContaining({
+          subject: 'Updated  title - SMS conversation with Testsushil Labsaccount - 08/21/2026 07:28 AM',
+        }),
+      }));
     });
 
     test('composes selected message body oldest first when incoming messages are newest first', async () => {

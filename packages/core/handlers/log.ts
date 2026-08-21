@@ -1194,7 +1194,7 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
                     conversationLogId: incomingData.logInfo.conversationLogId
                 }
             });
-            const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset });
+            const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset, customSubject: incomingData.logInfo?.customSubject });
             if (existingMessageLog) {
                 const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog: existingMessageLog, authHeader, additionalSubmission, proxyConfig });
                 returnMessage = updateMessageResult?.returnMessage;
@@ -1437,6 +1437,7 @@ async function logSelectedMessagesAsSingleEntry({
         },
         contactName: contactInfo.name,
         timezoneOffset: user.timezoneOffset,
+        customSubject: incomingData.logInfo?.customSubject,
     });
     // Connectors that key the CRM record date off the conversation read this.
     sharedSMSLogContent.conversationCreatedDate = conversationCreatedDate;

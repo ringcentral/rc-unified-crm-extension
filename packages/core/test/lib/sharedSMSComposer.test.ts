@@ -114,6 +114,30 @@ describe('sharedSMSComposer', () => {
       expect(result.body).toContain('END');
     });
 
+    test('should use customSubject when provided', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        customSubject: 'Updated  title - SMS conversation with Testsushil Labsaccount - 08/21/2026 07:28 AM'
+      });
+
+      expect(result.subject).toBe('Updated  title - SMS conversation with Testsushil Labsaccount - 08/21/2026 07:28 AM');
+    });
+
+    test('should ignore blank customSubject and keep the default title', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        customSubject: '   '
+      });
+
+      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
+    });
+
     test('should compose SMS log in HTML format', () => {
       const result = composeSharedSMSLog({
         logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,

@@ -773,6 +773,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 }
 
 async function createMessageLog({ user, contactInfo, correspondents = [], sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink }) {
+    console.log('createMessageLog function called', { contactInfo, correspondents, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink });
     let extraDataTracking = {};
     let logBody = '';
     let logSubject = '';
@@ -825,7 +826,7 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
                         messageSubject = `[Message]: ${messageSubject ?? 'N/A'}\n[Link - failed to upload]: ${imageDownloadLink}`;
                     }
                 }
-                logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY hh:mm A')}`;
+                logSubject = sharedSMSLogContent?.subject ?? `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY hh:mm A')}`;
                 logBody =
                     '\nConversation summary\n' +
                     `${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('dddd, MMMM DD, YYYY')}\n` +
