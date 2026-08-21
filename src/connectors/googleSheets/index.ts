@@ -362,7 +362,35 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 'Content-Type': 'application/json',
             }
         });
-        const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
+        const existingRows = spreadsheetData.data?.values ?? [];
+        const shouldLogSessionId = user?.userSettings?.addCallSessionId?.value ?? true;
+        const callSessionId = String(callLog.sessionId ?? '').trim();
+
+        if (shouldLogSessionId && callSessionId && existingRows.length > 0) {
+            const sheetHeaders = existingRows[0];
+            const idColumnIndex = sheetHeaders.indexOf("ID");
+            const sessionIdColumnIndex = sheetHeaders.indexOf("Session Id");
+
+            if (sessionIdColumnIndex !== -1 && idColumnIndex !== -1) {
+                const existingRow = existingRows.slice(1).find(row => (
+                    String(row[sessionIdColumnIndex] ?? '').trim() === callSessionId
+                ));
+
+                if (existingRow && existingRow[idColumnIndex] !== undefined) {
+                    return {
+                        logId: existingRow[idColumnIndex],
+                        successful: true,
+                        returnMessage: {
+                            message: 'Call was already logged',
+                            messageType: 'success',
+                            ttl: 2000
+                        }
+                    };
+                }
+            }
+        }
+
+        const nextLogRow = existingRows.length === 0 ? 1 : existingRows.length + 1;
         // const data = {
         //     values: [
         //         [nextLogRow, spreadsheetId, title, note, contactInfo.name, contactInfo.phoneNumber, callStartTime, callEndTime, callLog.duration, callLog.sessionId, callLog.direction]
@@ -429,7 +457,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         if (user?.userSettings?.addCallLogNote?.value ?? true) {
             requestData.Notes = note;
         }
-        if (user?.userSettings?.addCallSessionId?.value ?? true) {
+        if (shouldLogSessionId) {
             requestData["Session Id"] = callLog.sessionId;
         }
         if (user?.userSettings?.addCallLogSubject?.value ?? true) {
