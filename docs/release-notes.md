@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.7.42
+
+- New: Dynamic managed authentication options
+- Better: Proxy connector request failure logging
+- Fix: Bullhorn contact search continues when optional account data cannot be loaded
+- Fix: Prevent duplicate Google Sheets call logs
+- Fix: Apply admin plugin configuration overrides immediately
+
 ## 1.7.41
 
 - New: Account data share

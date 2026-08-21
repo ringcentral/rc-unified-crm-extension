@@ -1,4 +1,20 @@
 {
+    "1.7.42": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Dynamic managed authentication options"
+            },
+            {
+                "type": "Better",
+                "description": "Proxy connector request failure logging"
+            },
+            {
+                "type": "Fix",
+                "description": "Apply admin plugin configuration overrides immediately"
+            }
+        ]
+    },
     "1.7.41": {
         "global": [
             {

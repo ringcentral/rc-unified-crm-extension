@@ -1,4 +1,32 @@
 {
+    "1.7.42": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Dynamic managed authentication options"
+            },
+            {
+                "type": "Better",
+                "description": "Proxy connector request failure logging"
+            },
+            {
+                "type": "Fix",
+                "description": "Apply admin plugin configuration overrides immediately"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "Contact search continues when optional account data cannot be loaded"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "Fix",
+                "description": "Prevent duplicate Google Sheets call logs"
+            }
+        ]
+    },
     "1.7.41": {
         "global": [
             {
