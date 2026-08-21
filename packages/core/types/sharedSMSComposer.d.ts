@@ -44,6 +44,7 @@ export interface ComposeSharedSMSLogParams {
   conversation: SharedSMSConversation;
   contactName: string;
   timezoneOffset?: string | number;
+  customSubject?: string | null;
 }
 
 export interface SharedSMSLogContent {
