@@ -7,9 +7,11 @@
 /** @typedef {import('../../types').ProxyContactInfo} ProxyContactInfo */
 /** @typedef {import('../../types').ProxyOperationConfig} ProxyOperationConfig */
 /** @typedef {import('../../types').ProxyResponse} ProxyResponse */
+/** @typedef {import('../../types').ProviderError} ProviderError */
 /** @typedef {Record<string, any>} TemplateContext */
 
 const axios = /** @type {any} */ (require('axios'));
+const logger = require('../../lib/logger');
 
 /**
  * @param {any} obj
@@ -74,6 +76,21 @@ function joinUrl(baseUrl, path) {
   if (!path) return baseUrl;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+}
+
+/**
+ * Return only the destination host so rendered URL paths and query strings are
+ * never included in proxy failure logs.
+ * @param {string | undefined} url
+ * @returns {string | undefined}
+ */
+function getUrlHost(url) {
+  if (!url) return undefined;
+  try {
+    return new URL(url).host;
+  } catch (error) {
+    return undefined;
+  }
 }
 
 /**
@@ -148,8 +165,28 @@ async function performRequest({ config, opName, inputs, user, authHeader }) {
   const data = renderDeep(op.body || {}, context);
   const timeout = (config.requestDefaults?.timeoutSeconds || 30) * 1000;
   const axiosParams = { url, method, headers, params, data, timeout };
-  const response = await axios(axiosParams);
-  return response;
+  const requestStartTime = Date.now();
+  try {
+    const response = await axios(axiosParams);
+    return response;
+  } catch (e) {
+    const error = /** @type {ProviderError} */ (e);
+    const responseHeaders = /** @type {Record<string, any> | undefined} */ (error.response?.headers);
+    logger.error('PROXY_CONNECTOR_REQUEST_FAILED', {
+      proxyOperation: opName,
+      proxyId: user?.platformAdditionalInfo?.proxyId,
+      connectorName: config.meta?.name,
+      method,
+      targetHost: getUrlHost(url),
+      statusCode: error.response?.status ?? 'unknown',
+      errorCode: error.code,
+      errorMessage: error.message,
+      durationMs: Date.now() - requestStartTime,
+      timeoutMs: timeout,
+      upstreamRequestId: responseHeaders?.['x-request-id'] ?? responseHeaders?.['X-Request-Id'],
+    });
+    throw error;
+  }
 }
 
 /**

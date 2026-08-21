@@ -2,6 +2,8 @@ const path = require('path');
 
 jest.mock('axios', () => jest.fn());
 const axios = require('axios');
+jest.mock('../../../lib/logger', () => ({ error: jest.fn() }));
+const logger = require('../../../lib/logger');
 
 const {
   getByPath,
@@ -17,6 +19,7 @@ const {
 describe('proxy engine utilities', () => {
   beforeEach(() => {
     axios.mockReset();
+    logger.error.mockReset();
   });
 
   test('renderTemplateString handles full and partial templates', () => {
@@ -115,6 +118,88 @@ describe('proxy engine utilities', () => {
       user: null
     })).resolves.toBeNull();
     expect(axios).not.toHaveBeenCalled();
+  });
+
+  test('performRequest logs structured proxy context and rethrows HTTP failures', async () => {
+    const error = Object.assign(new Error('Request failed with status code 502'), {
+      code: 'ERR_BAD_RESPONSE',
+      response: {
+        status: 502,
+        headers: { 'x-request-id': 'upstream-request-123' },
+        data: { sensitive: 'response body must not be logged here' }
+      }
+    });
+    axios.mockRejectedValue(error);
+
+    const request = performRequest({
+      config: {
+        meta: { name: 'exampleProxy' },
+        requestDefaults: {
+          baseUrl: 'https://api.example.com',
+          timeoutSeconds: 10,
+          defaultHeaders: { Authorization: 'Bearer secret-token' }
+        },
+        operations: {
+          findContact: {
+            url: '/contacts/{{phoneNumber}}',
+            query: { phone: '{{phoneNumber}}' }
+          }
+        }
+      },
+      opName: 'findContact',
+      inputs: { phoneNumber: '+15551234567' },
+      user: {
+        accessToken: 'secret-token',
+        platformAdditionalInfo: { proxyId: 'approved-example' }
+      }
+    });
+
+    await expect(request).rejects.toBe(error);
+    expect(logger.error).toHaveBeenCalledWith('PROXY_CONNECTOR_REQUEST_FAILED', {
+      proxyOperation: 'findContact',
+      proxyId: 'approved-example',
+      connectorName: 'exampleProxy',
+      method: 'GET',
+      targetHost: 'api.example.com',
+      statusCode: 502,
+      errorCode: 'ERR_BAD_RESPONSE',
+      errorMessage: 'Request failed with status code 502',
+      durationMs: expect.any(Number),
+      timeoutMs: 10000,
+      upstreamRequestId: 'upstream-request-123'
+    });
+
+    const loggedContext = logger.error.mock.calls[0][1];
+    expect(JSON.stringify(loggedContext)).not.toContain('+15551234567');
+    expect(JSON.stringify(loggedContext)).not.toContain('secret-token');
+    expect(JSON.stringify(loggedContext)).not.toContain('response body must not be logged here');
+  });
+
+  test('performRequest logs timeout failures without request data', async () => {
+    const error = Object.assign(new Error('timeout of 30000ms exceeded'), {
+      code: 'ECONNABORTED'
+    });
+    axios.mockRejectedValue(error);
+
+    await expect(performRequest({
+      config: {
+        operations: {
+          findContact: { url: 'https://crm.example.com/find' }
+        }
+      },
+      opName: 'findContact',
+      inputs: { phoneNumber: '+15557654321' },
+      user: { platformAdditionalInfo: { proxyId: 'private-example' } }
+    })).rejects.toBe(error);
+
+    expect(logger.error).toHaveBeenCalledWith('PROXY_CONNECTOR_REQUEST_FAILED', expect.objectContaining({
+      proxyOperation: 'findContact',
+      proxyId: 'private-example',
+      targetHost: 'crm.example.com',
+      statusCode: 'unknown',
+      errorCode: 'ECONNABORTED',
+      timeoutMs: 30000
+    }));
   });
 
   test('performRequest applies authHeader and OAuth defaults', async () => {
