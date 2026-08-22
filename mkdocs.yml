@@ -150,6 +150,7 @@ nav:
     - "What's new": 2.0/index.md
 
   - 'App Connect features':
+    - 'Admin console': users/admin-console.md
     - 'AI Assistant': users/ai.md
     - 'Appointments (2.0)': users/appointments.md
     - 'Call-back lists (2.0)': users/callback-lists.md
