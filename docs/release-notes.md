@@ -4,6 +4,8 @@
 
 - New: Dynamic managed authentication options
 - Better: Proxy connector request failure logging
+- Fix: Unstable user session
+- Fix: Plugin admin setting page cannot be opened
 - Fix: Bullhorn contact search continues when optional account data cannot be loaded
 - Fix: Prevent duplicate Google Sheets call logs
 - Fix: Apply admin plugin configuration overrides immediately
