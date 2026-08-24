@@ -210,6 +210,10 @@
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 
+## 1.6.38
+
+- Fix: Unstable user session
+
 ## 1.6.37
 
 - Fix: Meeting time format issue

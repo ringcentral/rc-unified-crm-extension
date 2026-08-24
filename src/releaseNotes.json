@@ -555,6 +555,14 @@
             }
         ]
     },
+    "1.6.38": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Unstable user session"
+            }
+        ]
+    },
     "1.6.37": {
         "global": [
             {
