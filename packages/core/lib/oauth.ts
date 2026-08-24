@@ -127,7 +127,10 @@ async function checkAndRefreshAccessToken(
                 // If creation failed due to condition, a lock exists
                 if (lockError.name === 'ConditionalCheckFailedException' || lockError.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
                     let lock = await Lock.get({ userId: user.id });
-                    if (!!lock?.ttl && moment(lock.ttl).unix() < now.unix()) {
+                    // Lock TTL is stored as Unix epoch seconds for DynamoDB expiry.
+                    // Passing that number to moment(value) interprets it as milliseconds
+                    // and makes every live lock look like it expired in January 1970.
+                    if (!!lock?.ttl && Number(lock.ttl) < now.unix()) {
                         // Try to delete expired lock and create a new one atomically
                         try {
                             logger.info('lock expired.');

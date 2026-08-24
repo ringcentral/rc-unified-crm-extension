@@ -370,9 +370,40 @@ describe('oauth', () => {
 
         // Verify the lock polling was performed
         expect(Lock.get).toHaveBeenCalled();
+        expect(existingLock.delete).not.toHaveBeenCalled();
+        expect(Lock.create).toHaveBeenCalledTimes(1);
+        expect(mockOAuthApp.createToken).not.toHaveBeenCalled();
         // The result should have the user data (refreshed by another process)
         expect(result).toBeDefined();
         expect(result.id).toBe(user.id);
+      });
+
+      test('should treat a future Unix-seconds TTL as an active lock', async () => {
+        const { Lock } = require('../../models/dynamo/lockSchema');
+        const user = createMockUser();
+        const conditionalError = new Error('Lock exists');
+        conditionalError.name = 'ConditionalCheckFailedException';
+        const activeLock = {
+          ttl: moment().add(30, 'seconds').unix(),
+          delete: jest.fn().mockResolvedValue(true)
+        };
+
+        Lock.create.mockRejectedValue(conditionalError);
+        Lock.get
+          .mockResolvedValueOnce(activeLock)
+          .mockResolvedValueOnce(null);
+        UserModel.findByPk.mockResolvedValue({
+          ...user,
+          accessToken: 'refreshed-by-lock-owner'
+        });
+        connectorRegistry.getConnector.mockReturnValue({});
+
+        const result = await checkAndRefreshAccessToken(mockOAuthApp, user, 5);
+
+        expect(activeLock.delete).not.toHaveBeenCalled();
+        expect(Lock.create).toHaveBeenCalledTimes(1);
+        expect(mockOAuthApp.createToken).not.toHaveBeenCalled();
+        expect(result.accessToken).toBe('refreshed-by-lock-owner');
       });
 
       test('should handle expired lock by deleting and creating new one', async () => {
