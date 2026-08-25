@@ -15,7 +15,7 @@ Smokeball is the leading legal practice management software that boosts your pro
 - Uses AI transcriptions to summarise conversations and extract tasks
 - Outbound calls directly from Smokeball
 
-!!! tip "Please note, this integration only works with Australian Smokeball accounts. US and UK integrations are coming soon."
+!!! tip "This integration is now compatible with Australian, US, & UK Smokeball accounts."
 
 <iframe width="825" height="464" src="https://www.youtube.com/embed/6mxT9D4chr0?si=EqiXQBOwacLlvZXX" title="Ring Central + Smokeball by Captivo Labs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 

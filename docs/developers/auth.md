@@ -60,6 +60,8 @@ OAuth connectors need two sets of data:
 
 **Auth URL** (`authUrl` in the manifest, labeled "Auth URL" in the Developer Console) is the CRM's OAuth *authorization* endpoint — the page the browser is sent to so the user can log in and grant access. It's not the token endpoint (that's `accessTokenUri`, returned from `getOauthInfo`), and it's publicly documented by the CRM, since the browser navigates to it directly. For example, Bullhorn's [developer documentation](https://help.bullhorn.com/article/How-To-Authenticate-With-the-Bullhorn-REST-API) publishes its authorization endpoint as `https://auth.bullhornstaffing.com/oauth/authorize` — that's the value a Bullhorn connector would put in Auth URL.
 
+For a tenant-specific CRM URL, `authUrl` can include the `{hostname}` placeholder, such as `https://{hostname}/oauth`. When a tenant connects, App Connect replaces every `{hostname}` placeholder with the hostname entered on the setup page before opening the OAuth authorization URL.
+
 The client-visible half (`auth.oauth`) can be entered either through the Developer Console or directly in the manifest:
 
 === "Developer Console"

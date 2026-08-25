@@ -201,6 +201,10 @@ describe('Pipedrive Redirect Routes', () => {
 
             // Should return 500 on error
             expect(res.status).toEqual(500);
+            expect(res.body).toEqual({ error: 'Internal server error' });
+            expect(res.text).not.toContain('tempAccessToken3');
+            expect(res.text).not.toContain('tempRefreshToken3');
+            expect(res.text).not.toContain(process.env.PIPEDRIVE_CLIENT_SECRET);
 
             // Clean up
             await UserModel.destroy({ where: { id: tempUserId } });

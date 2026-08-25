@@ -205,6 +205,8 @@ OAuth platforms usually include client-visible authorization fields:
 
 Keep client secrets out of the manifest. Return them from [`getOauthInfo`](interfaces/getOauthInfo.md), environment variables, managed OAuth, or proxy configuration.
 
+For tenant-specific environments, `auth.oauth.authUrl` supports the `{hostname}` placeholder. For example, `https://{hostname}/oauth` resolves using the hostname that the tenant entered during setup.
+
 ## Server-Side Logging
 
 ```json

@@ -416,6 +416,7 @@ describe('Google Sheets Routes', () => {
                     .send({ name: 'Admin Sheet' });
 
                 expect(res.status).toBe(500);
+                expect(res.body).toEqual({ error: 'Internal server error' });
             });
         });
 
@@ -528,6 +529,8 @@ describe('Google Sheets Routes', () => {
                     });
 
                 expect(res.status).toBe(500);
+                expect(res.body).toEqual({ error: 'Internal server error' });
+                expect(res.text).not.toContain('valid-google-access-token');
             });
         });
 

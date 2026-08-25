@@ -11,6 +11,14 @@
             },
             {
                 "type": "Fix",
+                "description": "Unstable user session"
+            },
+            {
+                "type": "Fix",
+                "description": "Plugin admin setting page cannot be opened"
+            },
+            {
+                "type": "Fix",
                 "description": "Apply admin plugin configuration overrides immediately"
             }
         ],
@@ -544,6 +552,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.38": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Unstable user session"
             }
         ]
     },
