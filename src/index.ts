@@ -23,6 +23,26 @@ const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const adminCore = /** @type {any} */ (require('@app-connect/core/handlers/admin'));
 const googleDrivePlugin = /** @type {any} */ (require('./plugins/googleDrivePlugin'));
 const allCapPlugin = /** @type {any} */ (require('./plugins/allCapPlugin'));
+
+/**
+ * Log internal failures without serializing request credentials back to clients.
+ * Axios errors can include Authorization headers and request bodies in `config`.
+ *
+ * @param {any} res
+ * @param {unknown} error
+ * @param {string} message
+ * @returns {any}
+ */
+function sendInternalServerError(res, error, message) {
+    const safeError = /** @type {any} */ (error);
+    logger.error(message, {
+        message: safeError?.message,
+        stack: safeError?.stack,
+        status: safeError?.response?.status
+    });
+    return res.status(500).json({ error: 'Internal server error' });
+}
+
 // Register connectors
 connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
 connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
@@ -71,8 +91,7 @@ app.get('/googleSheets/filePicker', async function (req, res) {
         }
     }
     catch (e) {
-        logger.error('Error getting file picker', { stack: e.stack });
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error getting file picker');
     }
 });
 
@@ -105,8 +124,7 @@ app.post('/googleSheets/sheet', async function (req, res) {
         }
     }
     catch (e) {
-        logger.error('Error creating new sheet', { stack: e.stack });
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error creating new sheet');
     }
 });
 
@@ -128,8 +146,7 @@ app.delete('/googleSheets/sheet', async function (req, res) {
         }
     }
     catch (e) {
-        logger.error('Error removing sheet', { stack: e.stack });
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error removing sheet');
     }
 });
 
@@ -169,7 +186,7 @@ app.get('/admin/googleSheets/filePicker', async function (req, res) {
         }
     }
     catch (e) {
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error getting admin Google Sheets file picker');
     }
 });
 
@@ -207,7 +224,7 @@ app.post('/admin/googleSheets/sheet', async function (req, res) {
         }
     }
     catch (e) {
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error creating admin Google Sheet');
     }
 });
 
@@ -245,7 +262,7 @@ app.post('/admin/googleSheets/selectedSheet', async function (req, res) {
         }
     }
     catch (e) {
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error selecting admin Google Sheet');
     }
 });
 
@@ -271,7 +288,7 @@ app.get('/admin/googleSheets/config', async function (req, res) {
         }
     }
     catch (e) {
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error getting admin Google Sheets config');
     }
 });
 
@@ -281,8 +298,7 @@ app.get('/pipedrive-redirect', function (req, res) {
         res.sendFile(path.join(__dirname, 'connectors/pipedrive/redirect.html'));
     }
     catch (e) {
-        logger.error('Error getting pipedrive redirect', { stack: e.stack });
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error getting Pipedrive redirect');
     }
 });
 
@@ -314,8 +330,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
         }
     }
     catch (e) {
-        logger.error('Error removing pipedrive redirect', { stack: e.stack });
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error removing Pipedrive redirect');
     }
 });
 
@@ -356,8 +371,7 @@ app.get('/plugin/licenseStatus/:pluginId', async function (req, res) {
         }
     }
     catch (e) {
-        logger.error('Error getting plugin license status', { stack: e.stack });
-        res.status(500).send(e);
+        sendInternalServerError(res, e, 'Error getting plugin license status');
     }
 });
 
