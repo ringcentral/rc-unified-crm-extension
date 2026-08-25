@@ -21,6 +21,10 @@ ServiceTitan is the operating system for the trades — used by plumbing, HVAC, 
 
 Gate6 built this connector for the communication-heavy workflows that define the home services industry, where every missed call or unlogged interaction is a potential lost job.
 
+<div class="ac-v5-video__wrap">
+<iframe src="https://player.vimeo.com/video/1202504235?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" title="ServiceTitan by Gate6 demo"></iframe>
+</div>
+
 ## Features
 
 - **Automatic call logging** — inbound and outbound calls logged to the matching ServiceTitan customer and job record

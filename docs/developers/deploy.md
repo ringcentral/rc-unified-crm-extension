@@ -39,6 +39,33 @@ npm run deploy
 
 Test/beta deployment variants are available through scripts such as `build-test`, `deploy-test`, `build-test-beta`, and `deploy-test-beta`.
 
+## Heroku Deployment
+
+The generated template doesn't include Heroku scaffolding out of the box (unlike the
+`azure-deploy` and `serverless-deploy` folders), since the app already binds to
+`process.env.PORT`, deploying to Heroku only needs a `Procfile` and a couple of config
+vars — no code changes.
+
+1. Add a `Procfile` to the project root:
+
+   ```
+   web: npm run prod
+   ```
+
+2. Create the app and set required config vars, including `APP_HOST=0.0.0.0` — Heroku's
+   router expects the dyno to bind to all interfaces, not `localhost`, and this is the
+   most common cause of a connector failing its health check on first deploy:
+
+   ```bash
+   heroku create <app-name>
+   heroku config:set APP_HOST=0.0.0.0
+   heroku config:set APP_SERVER=https://<app-name>.herokuapp.com
+   # ...plus APP_SERVER_SECRET_KEY, DATABASE_URL, and any CRM OAuth variables
+   ```
+
+3. Deploy with `git push heroku main`, or connect the repo under the Heroku Dashboard's
+   Deploy tab for automatic deploys from GitHub.
+
 ## Deploying Elsewhere
 
 If you deploy to another platform, build a local artifact:
@@ -78,6 +105,15 @@ DATABASE_URL=postgres://app_connect:password@localhost:5432/app_connect
 ```
 
 For a remote Postgres host, SSL is enabled automatically. Set `DATABASE_SSL=false` only when a non-local database explicitly does not support SSL.
+
+## Automating This Step
+
+Connectors scaffolded with the `appconnect-connector-skills` Claude Code plugin get an
+`appconnect-deploy` skill as the last step of a build. It asks where the connector will
+be hosted (AWS, Azure, or Heroku), then removes the deploy scaffolding for the paths you
+didn't pick — the template ships with both `azure-deploy/` and `serverless-deploy/` by
+default — and for Heroku, which isn't in the template, writes the `Procfile`, `app.json`,
+and setup instructions described above.
 
 ## Deployment Checklist
 
