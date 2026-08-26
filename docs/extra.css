@@ -650,6 +650,61 @@
     }
 }
 
+/* ─── Secondary horizontal nav row (Developers section) ──────────
+   Rendered by overrides/partials/tabs.html for any top-level section
+   listed in `extra.secondary_nav_sections` (mkdocs.yml). Sits directly
+   under the primary tab row and lists that section's immediate children
+   (e.g. Overview / Plugins / Connectors / API Reference). */
+.md-tabs--secondary {
+    /* mkdocs-material-ringcentral sets `.md-tabs { background: <gradient> }`
+       (the shorthand, which sets background-image too) — override with the
+       shorthand here as well, otherwise the gradient image still paints
+       over a background-color-only rule. */
+    background: #FFB347;
+}
+.md-tabs--secondary .md-tabs__list {
+    flex: 1 1 auto;
+}
+.md-tabs--secondary .md-tabs__item {
+    height: 2.2rem;
+}
+.md-tabs--secondary .md-tabs__link {
+    font-size: 0.65rem;
+    color: #fff;
+    opacity: 0.8;
+}
+.md-tabs--secondary .md-tabs__link:hover {
+    opacity: 1;
+}
+.md-tabs--secondary .md-tabs__item--active .md-tabs__link {
+    color: #fff;
+    opacity: 1;
+    font-weight: 700;
+}
+@media screen and (max-width: 76.1875em) {
+    /* Same breakpoint as the primary tabs/actions row — below this width
+       navigation moves entirely into the drawer (see the
+       .md-nav__item--subtab rule below, which stops applying here too). */
+    .md-tabs--secondary {
+        display: none;
+    }
+}
+
+/* ─── Vertical sidebar — third-level scoping for secondary-nav sections ──
+   Marks each immediate child of a `secondary_nav_sections` top-level item
+   (added in overrides/partials/nav-item.html). On desktop, where the
+   second tab row above is visible and already communicates how to switch
+   branches, hide the inactive sibling branches so the sidebar only shows
+   the third level under the currently active one (e.g. only "Connectors"
+   pages, not also "Overview" / "Plugins" / "API Reference"). Below the
+   breakpoint the second tab row is hidden, so this rule is disabled and
+   the drawer shows the full three-level tree instead. */
+@media screen and (min-width: 76.25em) {
+    .md-nav__item--subtab:not(.md-nav__item--active) {
+        display: none;
+    }
+}
+
 /* ─── Automotive Connect — homepage banner ──────────────────── */
 /* Full-bleed band (breaks out of the content column); inner content
    stays aligned to the same margins as the rest of the page. */

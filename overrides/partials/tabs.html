@@ -2,6 +2,15 @@
   Custom override of mkdocs-material's partials/tabs.html.
   Adds Admin Console / Developer Console login buttons on the same
   row as the horizontal nav tabs, right-aligned.
+
+  Also adds an optional SECOND horizontal tab row for any top-level nav
+  section named in `extra.secondary_nav_sections` (mkdocs.yml). When the
+  active top-level section is one of those, its immediate children are
+  rendered as a second row of tabs underneath the primary one — e.g. the
+  "Developers" section shows Overview / Plugins / Connectors / API
+  Reference here, with the vertical sidebar scoped one level deeper (see
+  overrides/partials/nav-item.html + the .md-nav__item--subtab rule in
+  extra.css).
 -#}
 {% import "partials/tabs-item.html" as item with context %}
 <nav class="md-tabs" aria-label="{{ lang.t('tabs') }}" data-md-component="tabs">
@@ -17,3 +26,17 @@
     </div>
   </div>
 </nav>
+{% set secondary_sections = config.extra.secondary_nav_sections or [] %}
+{% for nav_item in nav.items %}
+  {% if nav_item.title in secondary_sections and nav_item.active and nav_item.children %}
+    <nav class="md-tabs md-tabs--secondary" aria-label="{{ nav_item.title }}" data-md-component="tabs-secondary">
+      <div class="md-grid md-tabs__grid">
+        <ul class="md-tabs__list">
+          {% for sub_item in nav_item.children %}
+            {{ item.render(sub_item) }}
+          {% endfor %}
+        </ul>
+      </div>
+    </nav>
+  {% endif %}
+{% endfor %}
