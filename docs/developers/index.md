@@ -14,6 +14,21 @@ There are two extension types:
 | Connector | Connect App Connect to a CRM or system of record. Connectors authenticate users, find contacts, create contacts, and log calls/messages. | [Connector quick start](getting-started.md) |
 | Plugin | Process logging payloads before or alongside connector logging. Plugins can enrich data, transform payloads, or perform side effects. | [Plugin guide](plugins/index.md) |
 
+<div class="bld-cta" markdown>
+<div markdown>
+
+**Build a connector in a couple hours using our Claude skill**
+{: .bld-cta__title }
+
+The App Connect Claude Plugin scaffolds, wires up, and tests a connector for you — auth, contact matching, call logging, and deploy included.
+{: .bld-cta__desc }
+
+</div>
+
+[Get the Claude Plugin →](claude-plugin.md){ .bld-cta__btn }
+
+</div>
+
 ## Connector Architecture
 
 A connector has two parts:

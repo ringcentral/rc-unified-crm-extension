@@ -786,6 +786,86 @@
     .ac-v5-auto-banner__arrow { display: none; }
 }
 
+/* ─── Claude Plugin — numbered skill cards ──────────────────── */
+.acp-skills {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1.25rem 0;
+}
+.acp-skill {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 1.1rem;
+    background: #fff;
+    border: 1px solid #ECE9E6;
+    border-radius: 10px;
+}
+.acp-skill__num {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF7A35, #FFB347);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+.acp-skill__body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.md-typeset .acp-skill__title {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.3;
+}
+.acp-skill__title code {
+    font-size: 0.72rem;
+}
+.acp-skill__optional {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.15rem;
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4a42c8;
+    background: rgba(99, 91, 255, 0.1);
+    border: 1px solid rgba(99, 91, 255, 0.2);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+}
+.md-typeset .acp-skill__desc {
+    margin: 0.15rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #4A4A4A;
+}
+[data-md-color-scheme="slate"] .acp-skill {
+    background: #1c1f26;
+    border-color: #2c3038;
+}
+[data-md-color-scheme="slate"] .acp-skill__desc {
+    color: #C7CAD1;
+}
+[data-md-color-scheme="slate"] .acp-skill__optional {
+    background: rgba(99, 91, 255, 0.15);
+    color: #9d97ff;
+    border-color: rgba(99, 91, 255, 0.3);
+}
+@media (max-width: 640px) {
+    .acp-skill {
+        padding: 0.7rem 0.9rem;
+    }
+}
+
 /* ─── CRM ticker — "don't see your CRM?" banner ─────────────── */
 .ac-v5-ticker-cta {
     text-align: center;

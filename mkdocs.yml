@@ -196,10 +196,9 @@ nav:
 - 'Developers':
   - 'Overview':
     - 'Introduction': developers/index.md
-    - 'Developer Console': https://appconnect.labs.ringcentral.com/console
     - 'Is your CRM compatible?': developers/proprietary-crm.md
-  - 'Plugins':
-    - 'Getting started': developers/plugins/index.md
+    - 'Claude Plugin': developers/claude-plugin.md
+    - 'Developer Console': https://appconnect.labs.ringcentral.com/console
 
   - 'Connectors': 
     - 'Getting started': developers/getting-started.md
@@ -261,6 +260,10 @@ nav:
         - 'getServerLoggingSettings': developers/interfaces/getServerLoggingSettings.md
         - 'updateServerLoggingSettings': developers/interfaces/updateServerLoggingSettings.md
         - 'postSaveUserInfo': developers/interfaces/postSaveUserInfo.md
+
+  - 'Plugins':
+    - 'Getting started': developers/plugins/index.md
+
   - 'API Reference':
     - 'Connectors': developers/crm-server-openapi-public.json
     - 'Plugins': developers/plugin-server-openapi.json

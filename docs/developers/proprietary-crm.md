@@ -2,6 +2,21 @@
 
 App Connect can integrate with commercial, vertical, or proprietary CRMs when the CRM exposes enough API surface for contact lookup and communication logging.
 
+<div class="bld-cta" markdown>
+<div markdown>
+
+**Let Claude assess it for you**
+{: .bld-cta__title }
+
+Hand the `appconnect-readiness` skill your CRM's OpenAPI spec (or its docs) and it checks the surface below automatically, returning a structured report instead of a manual read-through.
+{: .bld-cta__desc }
+
+</div>
+
+[See the readiness skill →](claude-plugin.md#appconnect-readiness){ .bld-cta__btn }
+
+</div>
+
 ## Minimum API Surface
 
 | Capability | Why App Connect needs it |
