@@ -177,14 +177,32 @@ describe('Bullhorn Connector', () => {
             expect(mockUser.save).toHaveBeenCalled();
         });
 
-        it('does not refresh the Bullhorn session for permission errors', async () => {
+        it('returns the successful account data fields when one request is forbidden', async () => {
             nock(restUrl.slice(0, -1))
                 .get('/settings/commentActionList')
                 .reply(403, { error: 'Forbidden' });
+            nock(restUrl.slice(0, -1)).get('/meta/Lead').query(true).reply(200, {
+                fields: [{ name: 'status', options: [{ value: 'New', label: 'New lead' }] }]
+            });
+            nock(restUrl.slice(0, -1)).get('/meta/Candidate').query(true).reply(200, { fields: [] });
+            nock(restUrl.slice(0, -1)).get('/meta/ClientContact').query(true).reply(200, { fields: [] });
+
+            await expect(bullhorn.accountData.bullhornData.fetch({ user: mockUser })).resolves.toEqual({
+                leadStatuses: [{ const: 'New', title: 'New lead' }],
+                candidateStatuses: [],
+                contactStatuses: []
+            });
+            expect(mockUser.save).not.toHaveBeenCalled();
+        });
+
+        it('rejects when every account data request fails', async () => {
+            nock(restUrl.slice(0, -1)).get('/settings/commentActionList').reply(403, { error: 'Forbidden' });
+            nock(restUrl.slice(0, -1)).get('/meta/Lead').query(true).reply(403, { error: 'Forbidden' });
+            nock(restUrl.slice(0, -1)).get('/meta/Candidate').query(true).reply(403, { error: 'Forbidden' });
+            nock(restUrl.slice(0, -1)).get('/meta/ClientContact').query(true).reply(403, { error: 'Forbidden' });
 
             await expect(bullhorn.accountData.bullhornData.fetch({ user: mockUser }))
                 .rejects.toMatchObject({ response: { status: 403 } });
-            expect(mockUser.save).not.toHaveBeenCalled();
         });
     });
 
@@ -694,9 +712,10 @@ describe('Bullhorn Connector', () => {
                 }
                 if (request.path === forbiddenPath) {
                     scope.reply(403, { error: 'Forbidden' });
-                    break;
                 }
-                scope.reply(200, request.response);
+                else {
+                    scope.reply(200, request.response);
+                }
             }
 
             nock(restUrl.slice(0, -1))
@@ -734,6 +753,13 @@ describe('Bullhorn Connector', () => {
             expect(result.matchedContactInfo).toEqual(expect.arrayContaining([
                 expect.objectContaining({ id: 101, name: 'John Doe', type: 'Contact' })
             ]));
+            const contact = result.matchedContactInfo.find(c => c.id === 101);
+            if (forbiddenPath === '/settings/commentActionList') {
+                expect(contact.additionalInfo).toBeNull();
+            }
+            else {
+                expect(contact.additionalInfo.noteActions).toEqual([{ const: 'Call', title: 'Call' }]);
+            }
             expect(mockUser.save).not.toHaveBeenCalled();
         });
     });

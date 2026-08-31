@@ -99,6 +99,7 @@ Main usage in current code:
 Helper export:
 
 - `getOrRefreshAccountData()` which returns cached data unless `forceRefresh` is set
+- Account-data descriptors can set `mergePartialResult: true` when individual object properties are fetched independently. Successful properties then replace cached values, while omitted failed properties retain their last known good values.
 
 ### `models/callDownListModel.ts`
 

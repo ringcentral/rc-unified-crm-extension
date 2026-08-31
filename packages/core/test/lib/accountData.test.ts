@@ -124,6 +124,46 @@ describe('accountData lib', () => {
     expect(result).toEqual([{ const: 'stale', title: 'Stale' }]);
   });
 
+  test('merges a partial refresh into cached object data when configured', async () => {
+    fetchMock.mockResolvedValue({
+      commentActionList: [{ const: 'Updated', title: 'Updated' }],
+      leadStatuses: []
+    });
+    connectorRegistry.getConnector.mockReturnValue({
+      accountData: {
+        partialKey: { fetch: fetchMock, mergePartialResult: true }
+      }
+    });
+    await AccountDataModel.create({
+      rcAccountId: user.rcAccountId,
+      platformName: platform,
+      dataKey: 'partialKey',
+      data: {
+        commentActionList: [{ const: 'Old', title: 'Old' }],
+        leadStatuses: [{ const: 'Old lead', title: 'Old lead' }],
+        candidateStatuses: [{ const: 'Keep', title: 'Keep' }]
+      }
+    });
+
+    const result = await getAccountData({
+      platform,
+      user,
+      authHeader: 'Bearer x',
+      dataKey: 'partialKey',
+      forceRefresh: true
+    });
+
+    expect(result).toEqual({
+      commentActionList: [{ const: 'Updated', title: 'Updated' }],
+      leadStatuses: [],
+      candidateStatuses: [{ const: 'Keep', title: 'Keep' }]
+    });
+    const stored = await AccountDataModel.findOne({
+      where: { rcAccountId: user.rcAccountId, platformName: platform, dataKey: 'partialKey' }
+    });
+    expect(stored.data).toEqual(result);
+  });
+
   test('throws when fetch fails and no cached data exists', async () => {
     fetchMock.mockRejectedValue(new Error('CRM is down'));
 

@@ -57,9 +57,14 @@ async function getAccountData({ platform, user, authHeader, dataKey, forceRefres
         }
         throw e;
     }
+    // Connectors with independently fetched object properties can omit failed
+    // properties from a refresh without erasing their last known good values.
+    const dataToStore = descriptor.mergePartialResult && existing
+        ? { ...existing.data, ...fresh }
+        : fresh;
     if (existing) {
         // force the save even when fresh data deep-equals the old value, so updatedAt resets the TTL window
-        existing.set('data', fresh);
+        existing.set('data', dataToStore);
         existing.changed('data', true);
         await existing.save();
     }
@@ -68,10 +73,10 @@ async function getAccountData({ platform, user, authHeader, dataKey, forceRefres
             rcAccountId: user.rcAccountId,
             platformName: platform,
             dataKey,
-            data: fresh
+            data: dataToStore
         });
     }
-    return fresh;
+    return dataToStore;
 }
 
 export {

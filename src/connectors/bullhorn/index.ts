@@ -56,35 +56,64 @@ function mapSelectionOptions(options) {
     return options?.map(option => ({ const: option.value, title: option.label })) || [];
 }
 
+async function fetchBullhornAccountDataField({ fieldName, fetch }) {
+    try {
+        return {
+            fieldName,
+            value: await fetch()
+        };
+    }
+    catch (error) {
+        logger.error('Bullhorn account data field fetch failed', {
+            fieldName,
+            status: error.response?.status,
+            stack: error.stack
+        });
+        return { fieldName, error };
+    }
+}
+
 const accountData = {
     bullhornData: {
+        mergePartialResult: true,
         fetch: async ({ user }) => {
-            const commentActionListResponse = await fetchWithBullhornSession(user, async currentUser => axios.get(
-                `${currentUser.platformAdditionalInfo.restUrl}settings/commentActionList`, {
-                    headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
-                }
-            ));
-            const leadStatusesResponse = await fetchWithBullhornSession(user, async currentUser => axios.get(
-                `${currentUser.platformAdditionalInfo.restUrl}meta/Lead?fields=status`, {
-                    headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
-                }
-            ));
-            const candidateStatusesResponse = await fetchWithBullhornSession(user, async currentUser => axios.get(
-                `${currentUser.platformAdditionalInfo.restUrl}meta/Candidate?fields=status`, {
-                    headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
-                }
-            ));
-            const contactStatusesResponse = await fetchWithBullhornSession(user, async currentUser => axios.get(
-                `${currentUser.platformAdditionalInfo.restUrl}meta/ClientContact?fields=status`, {
-                    headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
-                }
-            ));
-            return {
-                commentActionList: commentActionListResponse?.data?.commentActionList?.map(action => ({ const: action, title: action })) || [],
-                leadStatuses: mapSelectionOptions(leadStatusesResponse?.data?.fields?.find(field => field.name === 'status')?.options),
-                candidateStatuses: mapSelectionOptions(candidateStatusesResponse?.data?.fields?.find(field => field.name === 'status')?.options),
-                contactStatuses: mapSelectionOptions(contactStatusesResponse?.data?.fields?.find(field => field.name === 'status')?.options)
-            };
+            const requests = [
+                {
+                    fieldName: 'commentActionList',
+                    fetch: async () => {
+                        const response = await fetchWithBullhornSession(user, async currentUser => axios.get(
+                            `${currentUser.platformAdditionalInfo.restUrl}settings/commentActionList`, {
+                                headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
+                            }
+                        ));
+                        return response?.data?.commentActionList?.map(action => ({ const: action, title: action })) || [];
+                    }
+                },
+                ...[
+                    ['leadStatuses', 'Lead'],
+                    ['candidateStatuses', 'Candidate'],
+                    ['contactStatuses', 'ClientContact']
+                ].map(([fieldName, entityName]) => ({
+                    fieldName,
+                    fetch: async () => {
+                        const response = await fetchWithBullhornSession(user, async currentUser => axios.get(
+                            `${currentUser.platformAdditionalInfo.restUrl}meta/${entityName}?fields=status`, {
+                                headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken }
+                            }
+                        ));
+                        return mapSelectionOptions(response?.data?.fields?.find(field => field.name === 'status')?.options);
+                    }
+                }))
+            ];
+            const results = [];
+            for (const request of requests) {
+                results.push(await fetchBullhornAccountDataField(request));
+            }
+            const successfulResults = results.filter(result => !result.error);
+            if (successfulResults.length === 0) {
+                throw results[0].error;
+            }
+            return Object.fromEntries(successfulResults.map(result => [result.fieldName, result.value]));
         }
     }
 };
