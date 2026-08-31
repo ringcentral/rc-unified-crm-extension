@@ -1,4 +1,12 @@
 {
+    "1.7.43": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "OAuth failure handleing"
+            }
+        ]
+    },
     "1.7.42": {
         "global": [
             {

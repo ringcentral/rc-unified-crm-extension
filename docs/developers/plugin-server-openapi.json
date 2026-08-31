@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "App Connect Plugin Server API",
-    "version": "1.7.42",
+    "version": "1.7.43",
     "description": "Provider-side HTTP contract for independently hosted App Connect plugin servers. Most paths mirror the JavaScript plugin template; /oauth/callback is an illustrative plugin-owned target selected through OAuth state.redirectTo. Complete URLs in the plugin manifest, not these sample paths or servers, are authoritative.\n\nApp Connect calls registration, token, invocation, and license endpoints server-to-server. Its browser extension calls OAuth endpoints directly, so those endpoints need restricted CORS and a plugin-owned correlation or session mechanism. Production endpoints must use HTTPS. Requests can contain RingCentral access tokens, plugin bearer credentials, user configuration, contact and communications data, and recording URLs containing access tokens. Do not log credentials, and retain personal data only as required.\n\nThe current protocol has no uninstall callback. Removing a plugin deletes the App Connect registration only, so plugin providers need their own stale-account cleanup, credential revocation, and data-retention policy.",
     "contact": {
       "name": "RingCentral Labs",

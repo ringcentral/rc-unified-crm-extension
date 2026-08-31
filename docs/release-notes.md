@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.43
+
+- Fix: OAuth failure handleing
+- Fix: Bullhorn note action update
+
 ## 1.7.42
 
 - New: Dynamic managed authentication options

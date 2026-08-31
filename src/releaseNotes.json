@@ -1,4 +1,18 @@
 {
+    "1.7.43": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "OAuth failure handleing"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "Bullhorn note action update"
+            }
+        ]
+    },
     "1.7.42": {
         "global": [
             {
