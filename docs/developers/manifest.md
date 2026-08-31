@@ -62,6 +62,35 @@ In App Connect 2.0, the Developer Console is the primary place to manage manifes
 | `rcAdditionalSubmission` | Adds selected RingCentral cached data into logging submissions. |
 | `override` | Runtime manifest overrides. See [Regional services](regional-services.md). |
 
+### Match The Developer Console Identifier
+
+For connectors managed in the Developer Console, `name` is the connector's complete
+**Unique Identifier**. The Console may prefix the value entered by a developer with a
+developer namespace. For example, a short value of `zendesk` may be stored and returned
+to App Connect as `ringcentral_labs.zendesk`.
+
+The connector server MUST register that complete value:
+
+```ts
+connectorRegistry.registerConnector(
+  'ringcentral_labs.zendesk',
+  zendeskConnector,
+);
+```
+
+App Connect uses the same identifier as the `platform` query parameter when it calls
+connector routes. A server registered only as `zendesk` cannot resolve a request for
+`ringcentral_labs.zendesk`.
+
+Verify the mapping directly against the running connector server:
+
+```bash
+curl "http://localhost:6066/implementedInterfaces?platform=ringcentral_labs.zendesk"
+```
+
+The request should return HTTP 200. An HTTP 400 with a connector-not-found error indicates
+that the Developer Console identifier and the server registration key do not match.
+
 ## URL Template Tokens
 
 URL templates can include built-in runtime tokens and connector custom setting tokens.

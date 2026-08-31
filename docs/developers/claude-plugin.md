@@ -107,7 +107,7 @@ Works out OAuth vs. static-credential auth from the CRM's spec (or by asking you
 **Prove login works** — `appconnect-local-testing`
 {: .acp-skill__title }
 
-Runs your connector locally, tunnels it with ngrok, registers it in the Developer Console, and confirms the auth flow actually logs in from a real App Connect client — before any further interface work gets built on top of it.
+Runs your connector locally, tunnels it with ngrok, registers it in the Developer Console, verifies that the Console's complete Unique Identifier matches the server's `registerConnector()` key, and confirms the auth flow actually logs in from a real App Connect client — before any further interface work gets built on top of it. See [Troubleshoot A Platform Lookup Failure](getting-started.md#troubleshoot-a-platform-lookup-failure) if `/implementedInterfaces` returns HTTP 400.
 {: .acp-skill__desc }
 
 </div>

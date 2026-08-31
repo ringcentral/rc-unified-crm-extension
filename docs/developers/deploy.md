@@ -118,10 +118,10 @@ and setup instructions described above.
 ## Deployment Checklist
 
 - Public HTTPS server URL is configured in the Developer Console.
-- Server and manifest agree on the platform name.
+- The complete Developer Console Unique Identifier, including any developer namespace, exactly matches the server's `connectorRegistry.registerConnector()` key.
 - Database and DynamoDB dependencies are reachable.
 - Required CRM OAuth/API-key environment variables are set.
 - `/isAlive` returns `OK`.
-- `/implementedInterfaces?platform=<name>` reports expected methods.
+- `/implementedInterfaces?platform=<complete-unique-identifier>` returns HTTP 200 and reports expected methods.
 - OAuth redirect URIs in the CRM developer app match the values returned by [`getOauthInfo`](interfaces/getOauthInfo.md).
 
