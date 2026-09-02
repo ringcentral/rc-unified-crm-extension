@@ -835,6 +835,46 @@ describe('Auth Handler', () => {
       expect(result.returnMessage.message).toBe('User not authorized');
     });
 
+    test('should return a generic failure when saving OAuth user info fails', async () => {
+      const { UserModel } = require('../../models/userModel');
+      const createSpy = jest.spyOn(UserModel, 'create').mockRejectedValueOnce(
+        new Error('sensitive database details')
+      );
+      const mockConnector = global.testUtils.createMockConnector({
+        getOauthInfo: jest.fn().mockResolvedValue({ clientId: 'id', clientSecret: 'secret' }),
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: { id: 'oauth-db-failure', name: 'OAuth User' },
+          returnMessage: { messageType: 'success', message: 'Connected successfully' }
+        })
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      mockOAuthApp.code.getToken.mockResolvedValue({
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        expires: new Date()
+      });
+
+      const result = await authHandler.onOAuthCallback({
+        platform: 'testCRM',
+        hostname: 'api.example.com',
+        tokenUrl: '',
+        query: { callbackUri: 'https://app.example.com/callback', rcAccountId: 'rc-123' }
+      });
+
+      expect(createSpy).toHaveBeenCalled();
+      expect(result).toEqual({
+        userInfo: null,
+        successful: false,
+        returnMessage: {
+          message: 'Database operation failed',
+          messageType: 'warning',
+          ttl: 5000
+        }
+      });
+      expect(JSON.stringify(result)).not.toContain('sensitive database details');
+    });
+
     test('should handle proxyId in OAuth callback', async () => {
       // Arrange
       const proxyConfig = { name: 'Proxy Config', settings: {} };

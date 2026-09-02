@@ -60,6 +60,7 @@ export interface ConnectorAuthResult {
 }
 
 export interface AuthHandlerResult {
+  successful?: boolean;
   userInfo?: unknown | null;
   returnMessage?: ReturnMessage;
 }

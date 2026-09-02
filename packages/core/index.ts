@@ -1411,18 +1411,25 @@ function createCoreRouter() {
                     success = true;
                 }
                 else {
-                    res.status(200).send(wrapDebugResponse(tracer, { jwtToken, name: userInfo.name, returnMessage }));
+                    res.status(200).send(wrapDebugResponse(tracer, {
+                        successful: true,
+                        jwtToken,
+                        name: userInfo.name,
+                        returnMessage
+                    }));
                     success = true;
                 }
             }
             else {
-                res.status(200).send(wrapDebugResponse(tracer, { returnMessage }));
+                res.status(200).send(wrapDebugResponse(tracer, {
+                    successful: false,
+                    returnMessage
+                }));
                 await updateAuthSession(sessionId, {
                     status: 'failed',
                     errorMessage: returnMessage?.message || 'Authentication failed'
                 });
             }
-            success = false;
         }
         catch (e) {
             logger.error('OAuth callback failed', { platform: platformName, stack: e.stack });

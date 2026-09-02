@@ -699,10 +699,15 @@ describe('Core router broad route coverage', () => {
         code: 'oauth-code',
       });
     expect(callbackResponse.body).toEqual({
+      successful: true,
       jwtToken: 'generated-crm-jwt',
       name: 'CRM User',
       returnMessage: { messageType: 'success', message: 'Connected' },
     });
+    expect(analytics.track).toHaveBeenCalledWith(expect.objectContaining({
+      eventName: 'OAuth Callback',
+      success: true,
+    }));
 
     const mcpState = encodeURIComponent('platform=testCRM&hostname=crm.example.com&sessionId=session-1');
     await expect(request(app).get('/oauth-callback').query({
@@ -710,6 +715,27 @@ describe('Core router broad route coverage', () => {
       code: 'oauth-code',
     })).resolves.toMatchObject({ status: 200, text: 'Authentication successful. Please go back to AI Agent and confirm it.' });
     expect(updateAuthSession).toHaveBeenCalledWith('session-1', expect.objectContaining({ status: 'completed' }));
+
+    authCore.onOAuthCallback.mockResolvedValueOnce({
+      userInfo: null,
+      successful: false,
+      returnMessage: { messageType: 'warning', message: 'Database operation failed' },
+    });
+    const failedCallbackResponse = await request(app)
+      .get('/oauth-callback')
+      .query({
+        callbackUri: `https://redirect.example.com/callback?state=${callbackState}`,
+        code: 'oauth-code',
+      });
+    expect(failedCallbackResponse.status).toBe(200);
+    expect(failedCallbackResponse.body).toEqual({
+      successful: false,
+      returnMessage: { messageType: 'warning', message: 'Database operation failed' },
+    });
+    expect(analytics.track).toHaveBeenCalledWith(expect.objectContaining({
+      eventName: 'OAuth Callback',
+      success: false,
+    }));
 
     const apiKeyLoginRequest = {
       platform: 'testCRM',

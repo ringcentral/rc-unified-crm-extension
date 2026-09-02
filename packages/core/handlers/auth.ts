@@ -93,7 +93,10 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
             });
         }
         catch (error) {
-            return handleDatabaseError(error, 'Error saving user info');
+            return {
+                userInfo: null,
+                ...handleDatabaseError(error, 'Error saving user info')
+            };
         }
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo, oauthApp });
@@ -186,7 +189,10 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
             });
         }
         catch (error) {
-            return handleDatabaseError(error, 'Error saving user info');
+            return {
+                userInfo: null,
+                ...handleDatabaseError(error, 'Error saving user info')
+            };
         }
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo });
@@ -241,49 +247,39 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     const platformAdditionalInfo = platformUserInfo.platformAdditionalInfo || {};
     platformAdditionalInfo.proxyId = proxyId;
     if (existingUser) {
-        try {
-            await existingUser.update(
-                {
-                    platform,
-                    hostname,
-                    timezoneName,
-                    timezoneOffset,
-                    accessToken,
-                    refreshToken,
-                    tokenExpiry,
-                    rcAccountId,
-                    hashedRcExtensionId,
-                    platformAdditionalInfo: {
-                        ...existingUser.platformAdditionalInfo, // keep existing platformAdditionalInfo
-                        ...platformAdditionalInfo,
-                    }
-                }
-            );
-        }
-        catch (error) {
-            return handleDatabaseError(error, 'Error saving user info');
-        }
-    }
-    else {
-        try {
-            await UserModel.create({
-                id,
+        await existingUser.update(
+            {
+                platform,
                 hostname,
                 timezoneName,
                 timezoneOffset,
-                platform,
                 accessToken,
                 refreshToken,
                 tokenExpiry,
                 rcAccountId,
                 hashedRcExtensionId,
-                platformAdditionalInfo,
-                userSettings: {}
-            });
-        }
-        catch (error) {
-            return handleDatabaseError(error, 'Error saving user info');
-        }
+                platformAdditionalInfo: {
+                    ...existingUser.platformAdditionalInfo, // keep existing platformAdditionalInfo
+                    ...platformAdditionalInfo,
+                }
+            }
+        );
+    }
+    else {
+        await UserModel.create({
+            id,
+            hostname,
+            timezoneName,
+            timezoneOffset,
+            platform,
+            accessToken,
+            refreshToken,
+            tokenExpiry,
+            rcAccountId,
+            hashedRcExtensionId,
+            platformAdditionalInfo,
+            userSettings: {}
+        });
     }
     return {
         id,
