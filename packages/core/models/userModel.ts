@@ -26,10 +26,10 @@ const UserModel = sequelize.define('users', {
   },
   // in apiKey auth, accessToken will be API key
   accessToken: {
-    type: Sequelize.STRING(2000),
+    type: Sequelize.STRING(2500),
   },
   refreshToken: {
-    type: Sequelize.STRING(2000),
+    type: Sequelize.STRING(2500),
   },
   tokenExpiry: {
     type: Sequelize.DATE
