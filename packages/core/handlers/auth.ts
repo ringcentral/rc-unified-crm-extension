@@ -75,6 +75,15 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl: resolvedTokenUrl, apiUrl, hostname: resolvedHostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail, data });
 
     if (successful) {
+        if (!accessToken) {
+            return {
+                userInfo: null,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: 'OAuth access token is empty'
+                }
+            }
+        }
         let userInfo = null;
         try {
             userInfo = await saveUserInfo({
@@ -383,4 +392,4 @@ exports.authValidation = authValidation;
 exports.getLicenseStatus = getLicenseStatus;
 exports.onRingcentralOAuthCallback = onRingcentralOAuthCallback;
 
-export {};
+export { };
