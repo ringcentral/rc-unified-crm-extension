@@ -124,11 +124,11 @@ nav:
   - 'Clio': crm/clio.md
   - 'ConnectWise (2.0)': crm/connectwise.md
   - 'Dominion (2.0)': crm/dominion.md
-  - 'Freshdesk': crm/freshdesk.md
+  - 'Freshdesk (2.0)': crm/freshdesk.md
   - 'GoHighLevel (2.0)': crm/gohighlevel.md
   - 'Google Sheets': crm/google-sheets.md
   - 'Insightly': crm/insightly.md
-  - 'monday.com': crm/monday.md
+  - 'monday.com (2.0)': crm/monday.md
   - 'NetSuite': crm/netsuite.md
   - 'Odoo (2.0)': crm/odoo.md
   - 'Pipedrive': crm/pipedrive.md

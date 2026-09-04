@@ -11,9 +11,15 @@ RingCentral supports Freshdesk via a trusted third-party vendor and Premium Part
 
 ## Setup and configuration
 
+### Sign up for Freshdesk
+
+The Freshdesk integration is a paid, third-party integration provided by Loyally. Sign up to get started.
+
+[Purchase the Connector](https://buy.stripe.com/aFa28rdxj6zTeBv9CldUY0Y){ .md-button .md-button--primary }
+
 ### Install the extension
 
-If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing App Connect](https://chromewebstore.google.com/detail/ringcentral-app-connect-r/bgpkbcidaabaeioilooghlffdcmlimgk) from the Chrome web store. 
 
 ### Connect to Freshdesk
 

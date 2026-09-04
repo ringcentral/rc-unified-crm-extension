@@ -7,17 +7,15 @@ HighLevel is the all-in-one sales & marketing platform that agencies can white-l
 
 !!! money "As a third-party integration, the HighLevel integration comes at an additional cost"
 
-!!! warning "The HighLevel connector is currently in beta. If you experience any diffculty, please reach out via the [App Connect community](https://community.ringcentral.com/integrations-app-connect-33)"
-
 <iframe width="560" height="315" src="https://www.youtube.com/embed/AAJbmt-CFDI?si=BjLdBYXiqRaaVXa-" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## Setup and configuration
 
-### Sign-up for the Beta
+### Sign up for HighLevel
 
-The GoHighLevel integration will be a paid integration. For that reason, access to the beta currently requires people to sign-up with Loyally. Please contact Loyally to join the beta now. 
+The GoHighLevel integration is a paid integration. Sign up with Loyally to get started. 
 
-[Sign-up for HighLevel Beta](https://buy.stripe.com/9B614n1OBgat8d701LdUY0X){ .md-button .md-button--primary }
+[Purchase the Connector](https://buy.stripe.com/9B614n1OBgat8d701LdUY0X){ .md-button .md-button--primary }
 
 ### Install the extension
 
