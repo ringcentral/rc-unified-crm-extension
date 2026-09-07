@@ -69,6 +69,46 @@ function createSequelizeOptions(databaseUrl: string | undefined) {
   return options;
 }
 
-const sequelize = new Sequelize(process.env.DATABASE_URL as any, createSequelizeOptions(process.env.DATABASE_URL));
+function describeDatabaseTarget(databaseUrl: string | undefined) {
+  if (!databaseUrl) {
+    return 'not configured';
+  }
+
+  const normalizedUrl = databaseUrl.toLowerCase();
+  if (normalizedUrl.startsWith('sqlite:')) {
+    return `SQLite: ${databaseUrl.slice('sqlite:'.length).replace(/^\/\//, '')}`;
+  }
+
+  if (normalizedUrl.startsWith('postgres:') || normalizedUrl.startsWith('postgresql:')) {
+    try {
+      const parsedUrl = new URL(databaseUrl);
+      const port = parsedUrl.port ? `:${parsedUrl.port}` : '';
+      const databaseName = parsedUrl.pathname.replace(/^\/+/, '') || '(default database)';
+      return `Postgres: ${parsedUrl.hostname}${port}/${databaseName}`;
+    } catch (e) {
+      return 'Postgres: invalid URL';
+    }
+  }
+
+  return 'unrecognized database URL';
+}
+
+function resolveDatabaseUrl() {
+  const appConnectDatabaseUrl = process.env.AC_DATABASE_URL;
+  const legacyDatabaseUrl = process.env.DATABASE_URL;
+
+  if (appConnectDatabaseUrl && legacyDatabaseUrl) {
+    console.warn('[App Connect] AC_DATABASE_URL and DATABASE_URL are both set. Using AC_DATABASE_URL.');
+  }
+
+  const databaseUrl = appConnectDatabaseUrl || legacyDatabaseUrl;
+  if (process.env.NODE_ENV !== 'test') {
+    console.info(`[App Connect] Database target: ${describeDatabaseTarget(databaseUrl)}`);
+  }
+  return databaseUrl;
+}
+
+const databaseUrl = resolveDatabaseUrl();
+const sequelize = new Sequelize(databaseUrl as any, createSequelizeOptions(databaseUrl));
 
 export { sequelize };

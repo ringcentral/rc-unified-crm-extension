@@ -60,7 +60,7 @@ vars — no code changes.
    heroku create <app-name>
    heroku config:set APP_HOST=0.0.0.0
    heroku config:set APP_SERVER=https://<app-name>.herokuapp.com
-   # ...plus APP_SERVER_SECRET_KEY, DATABASE_URL, and any CRM OAuth variables
+   # ...plus APP_SERVER_SECRET_KEY, AC_DATABASE_URL, and any CRM OAuth variables
    ```
 
 3. Deploy with `git push heroku main`, or connect the repo under the Heroku Dashboard's
@@ -86,7 +86,8 @@ Common variables:
 | `APP_HOST` | Local host bind value for development. |
 | `PORT` | Local server port. |
 | `APP_SERVER_SECRET_KEY` | Shared secret used by the app server. |
-| `DATABASE_URL` | Sequelize database URL. Use `sqlite:...` for SQLite or `postgres://...` / `postgresql://...` for Postgres. |
+| `AC_DATABASE_URL` | Preferred App Connect Sequelize database URL. Use `sqlite:...` for SQLite or `postgres://...` / `postgresql://...` for Postgres. |
+| `DATABASE_URL` | Backward-compatible database URL. Used only when `AC_DATABASE_URL` is unset. |
 | `DATABASE_SSL` | Optional Postgres SSL override. When unset, localhost database hosts use SSL off and other Postgres hosts use SSL on. |
 | `DISABLE_SYNC_DB_TABLE` | Set when table sync should be skipped. |
 | `DYNAMODB_LOCALHOST` | Local DynamoDB endpoint for local Dynamo-backed models. |
@@ -101,10 +102,14 @@ Keep CRM client secrets and app secrets in environment variables, not in the man
 For local Postgres, use a localhost URL so SSL is disabled automatically:
 
 ```bash
-DATABASE_URL=postgres://app_connect:password@localhost:5432/app_connect
+AC_DATABASE_URL=postgres://app_connect:password@localhost:5432/app_connect
 ```
 
 For a remote Postgres host, SSL is enabled automatically. Set `DATABASE_SSL=false` only when a non-local database explicitly does not support SSL.
+
+When both database URL variables are set, App Connect uses `AC_DATABASE_URL` and emits
+a warning. Startup also reports the selected database target without exposing its
+username, password, or query parameters.
 
 ## Automating This Step
 

@@ -162,32 +162,69 @@ describe('TypeScript model definitions', () => {
     }
   });
 
-  const loadSequelizeConfig = (databaseUrl: string, databaseSsl?: string) => {
+  const loadSequelizeConfig = ({
+    databaseUrl,
+    acDatabaseUrl,
+    databaseSsl,
+    nodeEnv = 'test'
+  }: {
+    databaseUrl?: string;
+    acDatabaseUrl?: string;
+    databaseSsl?: string;
+    nodeEnv?: string;
+  }) => {
     jest.resetModules();
     const previousDatabaseUrl = process.env.DATABASE_URL;
+    const previousAcDatabaseUrl = process.env.AC_DATABASE_URL;
     const previousDatabaseSsl = process.env.DATABASE_SSL;
-    process.env.DATABASE_URL = databaseUrl;
+    const previousNodeEnv = process.env.NODE_ENV;
+    const warnings: string[] = [];
+    const infoMessages: string[] = [];
+
+    if (typeof databaseUrl === 'undefined') {
+      delete process.env.DATABASE_URL;
+    } else {
+      process.env.DATABASE_URL = databaseUrl;
+    }
+    if (typeof acDatabaseUrl === 'undefined') {
+      delete process.env.AC_DATABASE_URL;
+    } else {
+      process.env.AC_DATABASE_URL = acDatabaseUrl;
+    }
     if (typeof databaseSsl === 'undefined') {
       delete process.env.DATABASE_SSL;
     } else {
       process.env.DATABASE_SSL = databaseSsl;
     }
+    process.env.NODE_ENV = nodeEnv;
 
     const Sequelize = jest.fn();
     jest.doMock('sequelize', () => ({ Sequelize }));
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation((message) => warnings.push(String(message)));
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation((message) => infoMessages.push(String(message)));
 
     try {
       const { sequelize } = require('../../models/sequelize.ts');
       expect(sequelize).toBeInstanceOf(Sequelize);
-      return Sequelize.mock.calls[0] as [string, any];
+      return {
+        call: Sequelize.mock.calls[0] as [string, any],
+        warnings,
+        infoMessages
+      };
     } finally {
+      warnSpy.mockRestore();
+      infoSpy.mockRestore();
       restoreEnvValue('DATABASE_URL', previousDatabaseUrl);
+      restoreEnvValue('AC_DATABASE_URL', previousAcDatabaseUrl);
       restoreEnvValue('DATABASE_SSL', previousDatabaseSsl);
+      restoreEnvValue('NODE_ENV', previousNodeEnv);
     }
   };
 
   test('sequelize.ts enables SSL for remote postgres URLs by default', () => {
-    const [databaseUrl, options] = loadSequelizeConfig('postgres://user:password@db.example.com:5432/app_connect');
+    const { call: [databaseUrl, options] } = loadSequelizeConfig({
+      databaseUrl: 'postgres://user:password@db.example.com:5432/app_connect'
+    });
 
     expect(databaseUrl).toBe('postgres://user:password@db.example.com:5432/app_connect');
     expect(options).toEqual(expect.objectContaining({
@@ -203,7 +240,9 @@ describe('TypeScript model definitions', () => {
   });
 
   test('sequelize.ts disables SSL for localhost postgres URLs by default', () => {
-    const [, options] = loadSequelizeConfig('postgres://user:password@localhost:5432/app_connect');
+    const { call: [, options] } = loadSequelizeConfig({
+      databaseUrl: 'postgres://user:password@localhost:5432/app_connect'
+    });
 
     expect(options).toEqual(expect.objectContaining({
       dialect: 'postgres',
@@ -214,14 +253,14 @@ describe('TypeScript model definitions', () => {
   });
 
   test('sequelize.ts lets DATABASE_SSL override the postgres host default', () => {
-    const [, remoteOptions] = loadSequelizeConfig(
-      'postgres://user:password@db.example.com:5432/app_connect',
-      'false'
-    );
-    const [, localOptions] = loadSequelizeConfig(
-      'postgres://user:password@localhost:5432/app_connect',
-      'true'
-    );
+    const { call: [, remoteOptions] } = loadSequelizeConfig({
+      databaseUrl: 'postgres://user:password@db.example.com:5432/app_connect',
+      databaseSsl: 'false'
+    });
+    const { call: [, localOptions] } = loadSequelizeConfig({
+      databaseUrl: 'postgres://user:password@localhost:5432/app_connect',
+      databaseSsl: 'true'
+    });
 
     expect(remoteOptions).not.toHaveProperty('dialectOptions');
     expect(localOptions).toEqual(expect.objectContaining({
@@ -234,7 +273,7 @@ describe('TypeScript model definitions', () => {
   });
 
   test('sequelize.ts keeps sqlite URLs on sqlite without SSL options', () => {
-    const [, options] = loadSequelizeConfig('sqlite::memory:');
+    const { call: [, options] } = loadSequelizeConfig({ databaseUrl: 'sqlite::memory:' });
 
     expect(options).toEqual(expect.objectContaining({
       dialect: 'sqlite',
@@ -242,6 +281,32 @@ describe('TypeScript model definitions', () => {
     }));
     expect(options).not.toHaveProperty('protocol');
     expect(options).not.toHaveProperty('dialectOptions');
+  });
+
+  test('sequelize.ts prefers AC_DATABASE_URL and warns when DATABASE_URL is also set', () => {
+    const { call: [databaseUrl], warnings } = loadSequelizeConfig({
+      acDatabaseUrl: 'sqlite://./app-connect.sqlite',
+      databaseUrl: 'postgres://user:password@other.example.com/other'
+    });
+
+    expect(databaseUrl).toBe('sqlite://./app-connect.sqlite');
+    expect(warnings).toEqual([
+      '[App Connect] AC_DATABASE_URL and DATABASE_URL are both set. Using AC_DATABASE_URL.'
+    ]);
+  });
+
+  test('sequelize.ts logs a database target without credentials', () => {
+    const { infoMessages } = loadSequelizeConfig({
+      acDatabaseUrl: 'postgres://secret-user:secret-password@db.example.com:5432/app_connect?sslmode=require',
+      nodeEnv: 'development'
+    });
+
+    expect(infoMessages).toEqual([
+      '[App Connect] Database target: Postgres: db.example.com:5432/app_connect'
+    ]);
+    expect(infoMessages.join(' ')).not.toContain('secret-user');
+    expect(infoMessages.join(' ')).not.toContain('secret-password');
+    expect(infoMessages.join(' ')).not.toContain('sslmode');
   });
 
   test('Dynamo TS schemas preserve model names and table options', () => {

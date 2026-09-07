@@ -33,7 +33,7 @@ describe('Server', () => {
         env: {
           ...process.env,
           APP_HOST: '127.0.0.1',
-          DATABASE_URL: 'sqlite::memory:',
+          AC_DATABASE_URL: 'sqlite::memory:',
           DISABLE_SYNC_DB_TABLE: 'true',
           IS_PROD: 'true',
           PORT: '0',

@@ -6,7 +6,12 @@ The package uses Sequelize for durable application data and Dynamoose for select
 
 ### `models/sequelize.ts`
 
-Creates the shared Sequelize instance from `DATABASE_URL`. SQLite URLs use the SQLite dialect. Postgres URLs use the Postgres dialect, with SSL disabled for localhost database hosts and enabled for other hosts unless `DATABASE_SSL` is set.
+Creates the shared Sequelize instance from `AC_DATABASE_URL`, falling back to
+`DATABASE_URL` for backward compatibility. When both are set, `AC_DATABASE_URL` wins
+and a warning is emitted. Startup logging identifies the selected database target but
+omits credentials and URL query parameters. SQLite URLs use the SQLite dialect.
+Postgres URLs use the Postgres dialect, with SSL disabled for localhost database hosts
+and enabled for other hosts unless `DATABASE_SSL` is set.
 
 ### `models/userModel.ts`
 
