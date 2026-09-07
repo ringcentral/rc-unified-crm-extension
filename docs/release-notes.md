@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.7.44
+
+- Better: Added AC_DATABASE_URL to prevent conflicts with generic database environment variables while retaining DATABASE_URL compatibility.
+- Fix: OAuth login now rejects empty access tokens instead of continuing with an invalid session.
+- Fix: Restored Google Sheets creation for users and administrators by correctly passing App Connect authentication to the connector server.
+
 ## 1.7.43
 
 - Fix: OAuth failure handleing
@@ -214,6 +220,11 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.39
+
+- Fix: AI Assistant preferences are no longer reset when the extension loads.
+- Better: Added confirmation when AI Assistant settings are saved.
 
 ## 1.6.38
 
