@@ -356,18 +356,34 @@ async function fetchMonthlySalesforceReportRows(){
         )
     ];
 
-    const buildFailedLookupRows = (successfulRcAccountIds = new Set()) =>
-        filteredUserRcAccountIdList
-            .filter((rcAccountId) => !successfulRcAccountIds.has(rcAccountId))
-            .map((rcAccountId) => {
-                const bullhornStatus = bullhornLookupStatusByRcAccountId.get(rcAccountId);
-                return {
-                    'RC Account ID': rcAccountId,
-                    'Look Up Status': bullhornStatus === LOOKUP_STATUS.TOKEN_INVALID
-                        ? LOOKUP_STATUS.TOKEN_INVALID
-                        : LOOKUP_STATUS.NOT_FOUND
-                };
+    // One row per unresolved Bullhorn user, so users sharing an RC account stay separate.
+    // `user.id` already carries the master user id (`${masterUserId}-bullhorn`), which lets
+    // unresolved rows report it without a successful Bullhorn or Salesforce lookup.
+    const buildFailedLookupRows = (successfulMasterUserKeys = new Set()) => {
+        const seenUserRows = new Set();
+        const failedRows = [];
+        for (const currentUser of filteredUsers) {
+            const rcAccountId = currentUser?.rcAccountId ? String(currentUser.rcAccountId).trim() : '';
+            const masterUserId = String(currentUser?.id || '').replace(/-bullhorn$/, '');
+            const rowKey = `${masterUserId}|${rcAccountId}`;
+            if (!rcAccountId || successfulMasterUserKeys.has(rowKey)) {
+                continue;
+            }
+            if (seenUserRows.has(rowKey)) {
+                continue;
+            }
+            seenUserRows.add(rowKey);
+            const bullhornStatus = bullhornLookupStatusByRcAccountId.get(rcAccountId);
+            failedRows.push({
+                'Bullhorn Master User ID': masterUserId,
+                'RC Account ID': rcAccountId,
+                'Look Up Status': bullhornStatus === LOOKUP_STATUS.TOKEN_INVALID
+                    ? LOOKUP_STATUS.TOKEN_INVALID
+                    : LOOKUP_STATUS.NOT_FOUND
             });
+        }
+        return failedRows;
+    };
 
 
     if (!filteredUserRcAccountIdList.length) {
@@ -473,7 +489,7 @@ try {
 
 // Prepare the final list of objects as requested
 const results = [];
-const successfulRcAccountIds = new Set();
+const successfulMasterUserKeys = new Set();
 
 logger.info({ message: 'Salesforce contacts fetched', count: contacts.length });
 
@@ -484,32 +500,36 @@ contacts.forEach(contact => {
     if (bullhornLookupStatusByRcAccountId.get(rcAccountId) !== LOOKUP_STATUS.SUCCESS) {
         return;
     }
-    successfulRcAccountIds.add(rcAccountId);
-    results.push({
-        'Bullhorn Master User ID': (() => {
-            const email = String(contact.Email || '').trim().toLowerCase();
-            if (!email) return '';
-            const set = bullhornMasterUserIdsByEmail.get(email);
-            if (!set || !set.size) return '';
-            return Array.from(set.values()).join(',');
-        })(),
-        'First Name': contact.FirstName,
-        'Last Name': contact.LastName,
-        'Email': contact.Email,
-        'Company': contact.Company__c,
-        'Partner Account Owner': account.CSM_Name__c,
-        'Partner Account ID': contact.AccountId,
-        'Product': "RingCentral App Connect",
-        'Seats': contact.Account_Number_of_DLs__c,
-        'Opp Status': contact.Account_Status__c,
-        'Cancel Date': account.RC_Cancel_Date__c,
-        'RC Account ID': rcAccountId,
-        'Look Up Status': LOOKUP_STATUS.SUCCESS,
-    });
+    const contactEmail = String(contact.Email || '').trim().toLowerCase();
+    const masterUserIdSet = contactEmail ? bullhornMasterUserIdsByEmail.get(contactEmail) : null;
+    // One row per Bullhorn user, so users sharing a contact each get their own line.
+    const masterUserIds = masterUserIdSet && masterUserIdSet.size
+        ? Array.from(masterUserIdSet.values())
+        : [''];
+    for (const masterUserId of masterUserIds) {
+        if (masterUserId && rcAccountId) {
+            successfulMasterUserKeys.add(`${masterUserId}|${rcAccountId}`);
+        }
+        results.push({
+            'Bullhorn Master User ID': masterUserId,
+            'First Name': contact.FirstName,
+            'Last Name': contact.LastName,
+            'Email': contact.Email,
+            'Company': contact.Company__c,
+            'Partner Account Owner': account.CSM_Name__c,
+            'Partner Account ID': contact.AccountId,
+            'Product': "RingCentral App Connect",
+            'Seats': contact.Account_Number_of_DLs__c,
+            'Opp Status': contact.Account_Status__c,
+            'Cancel Date': account.RC_Cancel_Date__c,
+            'RC Account ID': rcAccountId,
+            'Look Up Status': LOOKUP_STATUS.SUCCESS,
+        });
+    }
 });
 
 // Keep successful report rows first and append unresolved RC account IDs last.
-results.push(...buildFailedLookupRows(successfulRcAccountIds));
+results.push(...buildFailedLookupRows(successfulMasterUserKeys));
 
 console.log({message:"CUmulative data", Length:results.length});
 

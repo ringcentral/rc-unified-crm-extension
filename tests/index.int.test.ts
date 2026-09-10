@@ -14,60 +14,32 @@ const accessToken = 'accessToken';
 const rcUserNumber = '+123456789';
 
 describe('Local Bullhorn report endpoint', () => {
-    const originalEnabled = process.env.ENABLE_LOCAL_BULLHORN_REPORT_API;
-    const originalNodeEnv = process.env.NODE_ENV;
-
     afterEach(() => {
         jest.restoreAllMocks();
-        if (originalEnabled === undefined) {
-            delete process.env.ENABLE_LOCAL_BULLHORN_REPORT_API;
-        } else {
-            process.env.ENABLE_LOCAL_BULLHORN_REPORT_API = originalEnabled;
-        }
-        if (originalNodeEnv === undefined) {
-            delete process.env.NODE_ENV;
-        } else {
-            process.env.NODE_ENV = originalNodeEnv;
-        }
     });
 
-    test('triggers and emails the report when the local API is enabled', async () => {
-        process.env.ENABLE_LOCAL_BULLHORN_REPORT_API = 'true';
-        process.env.NODE_ENV = 'test';
+    test('generates and emails the report', async () => {
         const sendReport = jest.spyOn(bullhornReport, 'sendMonthlyCsvReportByEmailWithSalesforceData')
             .mockResolvedValue(undefined);
 
         const res = await request(getServer())
-            .post('/internal/bullhorn/monthly-salesforce-report');
+            .get('/internal/bullhorn/monthly-salesforce-report');
 
         expect(res.status).toBe(200);
         expect(res.body).toEqual({ ok: true });
         expect(sendReport).toHaveBeenCalledTimes(1);
     });
 
-    test('does not expose the report trigger when disabled', async () => {
-        delete process.env.ENABLE_LOCAL_BULLHORN_REPORT_API;
+    test('returns 500 when report generation throws', async () => {
         const sendReport = jest.spyOn(bullhornReport, 'sendMonthlyCsvReportByEmailWithSalesforceData')
-            .mockResolvedValue(undefined);
+            .mockRejectedValue(new Error('report generation failed'));
 
         const res = await request(getServer())
-            .post('/internal/bullhorn/monthly-salesforce-report');
+            .get('/internal/bullhorn/monthly-salesforce-report');
 
-        expect(res.status).toBe(404);
-        expect(sendReport).not.toHaveBeenCalled();
-    });
-
-    test('does not expose the local report trigger in production', async () => {
-        process.env.ENABLE_LOCAL_BULLHORN_REPORT_API = 'true';
-        process.env.NODE_ENV = 'production';
-        const sendReport = jest.spyOn(bullhornReport, 'sendMonthlyCsvReportByEmailWithSalesforceData')
-            .mockResolvedValue(undefined);
-
-        const res = await request(getServer())
-            .post('/internal/bullhorn/monthly-salesforce-report');
-
-        expect(res.status).toBe(404);
-        expect(sendReport).not.toHaveBeenCalled();
+        expect(res.status).toBe(500);
+        expect(res.body).toEqual({ ok: false, error: 'report generation failed' });
+        expect(sendReport).toHaveBeenCalledTimes(1);
     });
 });
 

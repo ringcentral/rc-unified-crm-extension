@@ -31,6 +31,7 @@ packages/core/dist/
 /src/test.js
 /.vscode/settings.json
 .dynamodb/shared-local-instance.db
+/reports/*.csv
 
 local.session.sql
 /minio.exe
