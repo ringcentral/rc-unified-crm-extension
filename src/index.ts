@@ -10,7 +10,6 @@ const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/user
 const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
 const axios = /** @type {any} */ (require('axios'));
 const bullhorn = /** @type {any} */ (require('./connectors/bullhorn'));
-const bullhornReport = /** @type {any} */ (require('./connectors/bullhorn/report'));
 const clio = /** @type {any} */ (require('./connectors/clio'));
 const googleSheets = /** @type {any} */ (require('./connectors/googleSheets'));
 const insightly = /** @type {any} */ (require('./connectors/insightly'));
@@ -475,22 +474,6 @@ app.post('/googleDrive/logout', async function (req, res) {
     catch (e) {
         console.log(e.stack);
         res.status(400).send();
-    }
-});
-
-// Local-only: manually generate and email the Bullhorn monthly Salesforce report.
-// The explicit feature flag and loopback check prevent accidental remote triggers.
-app.get('/internal/bullhorn/monthly-salesforce-report', async function (req, res) {
-
-    try {
-        console.log('Generating Bullhorn Salesforce monthly report');
-        await bullhornReport.sendMonthlyCsvReportByEmailWithSalesforceData();
-        logger.info('Bullhorn Salesforce monthly report generated and email workflow completed');
-        res.status(200).send({ ok: true });
-    }
-    catch (e) {
-        logger.error('Failed to generate Bullhorn Salesforce monthly report', { stack: e.stack });
-        res.status(500).send({ ok: false, error: e && e.message ? e.message : 'Unknown error' });
     }
 });
 

@@ -4,7 +4,6 @@ const platforms = require('./platformInfo.json');
 const { getServer } = require('../src/index');
 const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
-const bullhornReport = require('../src/connectors/bullhorn/report');
 
 // Test data
 const baseUserId = 'testUserId';
@@ -12,36 +11,6 @@ const unknownUserId = 'unknownUserId';
 const unknownJwt = 'unknownJwt';
 const accessToken = 'accessToken';
 const rcUserNumber = '+123456789';
-
-describe('Local Bullhorn report endpoint', () => {
-    afterEach(() => {
-        jest.restoreAllMocks();
-    });
-
-    test('generates and emails the report', async () => {
-        const sendReport = jest.spyOn(bullhornReport, 'sendMonthlyCsvReportByEmailWithSalesforceData')
-            .mockResolvedValue(undefined);
-
-        const res = await request(getServer())
-            .get('/internal/bullhorn/monthly-salesforce-report');
-
-        expect(res.status).toBe(200);
-        expect(res.body).toEqual({ ok: true });
-        expect(sendReport).toHaveBeenCalledTimes(1);
-    });
-
-    test('returns 500 when report generation throws', async () => {
-        const sendReport = jest.spyOn(bullhornReport, 'sendMonthlyCsvReportByEmailWithSalesforceData')
-            .mockRejectedValue(new Error('report generation failed'));
-
-        const res = await request(getServer())
-            .get('/internal/bullhorn/monthly-salesforce-report');
-
-        expect(res.status).toBe(500);
-        expect(res.body).toEqual({ ok: false, error: 'report generation failed' });
-        expect(sendReport).toHaveBeenCalledTimes(1);
-    });
-});
 
 // Filter out bullhorn as it has different API patterns
 const pipedriveStylePlatforms = platforms.filter(p => p.name !== 'bullhorn');
