@@ -10,7 +10,6 @@ const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/user
 const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
 const axios = /** @type {any} */ (require('axios'));
 const bullhorn = /** @type {any} */ (require('./connectors/bullhorn'));
-const bullhornReport = /** @type {any} */ (require('./connectors/bullhorn/report'));
 const clio = /** @type {any} */ (require('./connectors/clio'));
 const googleSheets = /** @type {any} */ (require('./connectors/googleSheets'));
 const insightly = /** @type {any} */ (require('./connectors/insightly'));
@@ -477,21 +476,6 @@ app.post('/googleDrive/logout', async function (req, res) {
         res.status(400).send();
     }
 });
-
-// // Internal-only: manually trigger Bullhorn monthly report w/ Salesforce data
-// app.get('/internal/bullhorn/monthly-salesforce-report', async function (req, res) {
-//     try {
-
-//         //await bullhorn.generateMontlyCsvReportWithSalesforceData();
-//         await bullhornReport.sendMonthlyCsvReportByEmailWithSalesforceData();
-//         console.log({message:'Bullhorn Salesforce monthly report generated successfully'});
-//         res.status(200).send({ ok: true });
-//     }
-//     catch (e) {
-//         logger.error('Failed to generate Bullhorn Salesforce monthly report', { stack: e.stack });
-//         res.status(500).send({ ok: false, error: e && e.message ? e.message : 'Unknown error' });
-//     }
-// });
 
 exports.getServer = function getServer() {
     return app;
