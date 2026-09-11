@@ -77,15 +77,26 @@ function getOAuthApp({
     accessTokenUri,
     authorizationUri,
     redirectUri,
-    scopes
+    scopes,
+    tokenEndpointAuthMethod
 }: OAuthInfo): OAuthAppLike {
+    const usesFormBodyClientSecret = tokenEndpointAuthMethod === 'client_secret_post';
     return new ClientOAuth2({
         clientId: clientId,
         clientSecret: clientSecret,
         accessTokenUri: accessTokenUri,
         authorizationUri: authorizationUri,
         redirectUri: redirectUri,
-        scopes: scopes
+        scopes: scopes,
+        ...(usesFormBodyClientSecret ? {
+            body: {
+                client_id: clientId,
+                client_secret: clientSecret
+            },
+            headers: {
+                Authorization: ''
+            }
+        } : {})
     });
 }
 

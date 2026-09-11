@@ -51,6 +51,7 @@ export interface ProxyAuthConfig {
   credentialTemplate?: string;
   encode?: string;
   headerName?: string;
+  tokenEndpointAuthMethod?: 'client_secret_basic' | 'client_secret_post';
   [key: string]: unknown;
 }
 

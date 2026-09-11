@@ -977,7 +977,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'api.example.com',
         tokenUrl: '',
-        query: { callbackUri: 'https://app.example.com/callback?code=code123', rcAccountId: 'rc-123' }
+        query: { callbackUri: 'https://app.example.com/callback?code=code123&state=platform%3DtestCRM', rcAccountId: 'rc-123' }
       };
 
       // Act
@@ -986,7 +986,8 @@ describe('Auth Handler', () => {
       // Assert
       expect(mockConnector.getOverridingOAuthOption).toHaveBeenCalledWith({
         code: 'code123',
-        oauthInfo: { clientId: 'id', clientSecret: 'secret' }
+        oauthInfo: { clientId: 'id', clientSecret: 'secret' },
+        state: 'platform=testCRM'
       });
       expect(mockOAuthApp.code.getToken).toHaveBeenCalledWith(
         expect.any(String),

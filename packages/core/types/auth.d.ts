@@ -13,6 +13,7 @@ export interface OAuthInfo {
   customState?: string;
   hostname?: string;
   failMessage?: string;
+  tokenEndpointAuthMethod?: 'client_secret_basic' | 'client_secret_post';
   [key: string]: unknown;
 }
 

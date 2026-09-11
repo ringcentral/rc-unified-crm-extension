@@ -51,19 +51,43 @@ async function getAuthType({ proxyId, proxyConfig }: any = {}) {
 }
 
 /**
- * @param {{ proxyId?: string, proxyConfig?: ProxyConfig | null, tokenUrl?: string }} [params]
+ * @param {{ proxyId?: string, proxyConfig?: ProxyConfig | null, tokenUrl?: string, hostname?: string }} [params]
  * @returns {Promise<Record<string, any>>}
  */
-async function getOauthInfo({ proxyId, proxyConfig, tokenUrl }: any = {}) {
+async function getOauthInfo({ proxyId, proxyConfig, tokenUrl, hostname }: any = {}) {
   const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(proxyId));
   if (!cfg) {
     return {};
   }
+  const accessTokenUri = tokenUrl || cfg.auth.tokenUrl;
   return {
     clientId: cfg.auth.clientId,
     clientSecret: cfg.auth.clientSecret,
-    accessTokenUri: tokenUrl || cfg.auth.tokenUrl,
+    accessTokenUri: hostname && accessTokenUri
+      ? accessTokenUri.split('{hostname}').join(hostname)
+      : accessTokenUri,
     redirectUri: cfg.auth.redirectUri,
+    tokenEndpointAuthMethod: cfg.auth.tokenEndpointAuthMethod,
+  };
+}
+
+/**
+ * @param {{ oauthInfo?: Record<string, any>, state?: string | null }} [params]
+ * @returns {Record<string, any> | null}
+ */
+function getOverridingOAuthOption({ oauthInfo, state }: any = {}) {
+  if (oauthInfo?.tokenEndpointAuthMethod !== 'client_secret_post') {
+    return null;
+  }
+  return {
+    body: {
+      client_id: oauthInfo.clientId,
+      client_secret: oauthInfo.clientSecret,
+      ...(state ? { state } : {}),
+    },
+    headers: {
+      Authorization: '',
+    },
   };
 }
 
@@ -572,6 +596,7 @@ async function getLicenseStatus({ userId, platform }) {
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
+exports.getOverridingOAuthOption = getOverridingOAuthOption;
 exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
 exports.createCallLog = createCallLog;

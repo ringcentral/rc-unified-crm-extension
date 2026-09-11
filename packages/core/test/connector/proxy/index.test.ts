@@ -144,7 +144,8 @@ describe('proxy connector - more coverage', () => {
         type: 'oauth',
         clientId: 'client-id',
         clientSecret: 'client-secret',
-        tokenUrl: 'https://auth.example.com/token',
+        tokenUrl: 'https://{hostname}/token',
+        tokenEndpointAuthMethod: 'client_secret_post',
         redirectUri: 'https://app.example.com/callback'
       },
       operations: {}
@@ -152,17 +153,48 @@ describe('proxy connector - more coverage', () => {
 
     await expect(proxy.getOauthInfo({
       proxyConfig: oauthConfig,
-      tokenUrl: 'https://override.example.com/token'
+      hostname: 'tenant.example.com'
     })).resolves.toEqual({
       clientId: 'client-id',
       clientSecret: 'client-secret',
-      accessTokenUri: 'https://override.example.com/token',
-      redirectUri: 'https://app.example.com/callback'
+      accessTokenUri: 'https://tenant.example.com/token',
+      redirectUri: 'https://app.example.com/callback',
+      tokenEndpointAuthMethod: 'client_secret_post'
+    });
+
+    await expect(proxy.getOauthInfo({
+      proxyConfig: oauthConfig,
+      tokenUrl: 'https://override.example.com/token'
+    })).resolves.toMatchObject({
+      accessTokenUri: 'https://override.example.com/token'
     });
 
     Connector.getProxyConfig.mockRejectedValueOnce(new Error('config unavailable'));
     await expect(proxy.getOauthInfo({ proxyId: 'missing-config' })).resolves.toEqual({});
     await expect(proxy.getAuthType({ proxyId: '' })).resolves.toBe('apiKey');
+  });
+
+  test('uses form-body client credentials when configured for the token endpoint', () => {
+    expect(proxy.getOverridingOAuthOption({
+      oauthInfo: {
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+        tokenEndpointAuthMethod: 'client_secret_post'
+      },
+      state: 'platform=servicenow'
+    })).toEqual({
+      body: {
+        client_id: 'client-id',
+        client_secret: 'client-secret',
+        state: 'platform=servicenow'
+      },
+      headers: {
+        Authorization: ''
+      }
+    });
+    expect(proxy.getOverridingOAuthOption({
+      oauthInfo: { tokenEndpointAuthMethod: 'client_secret_basic' }
+    })).toBeNull();
   });
 
   test('getUserInfo returns a warning when the proxy config has no getUserInfo operation', async () => {

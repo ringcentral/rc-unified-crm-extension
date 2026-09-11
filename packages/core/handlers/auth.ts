@@ -66,8 +66,14 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
     // Some platforms require different oauth queries, this won't affect normal OAuth process unless CRM module implements getOverridingOAuthOption() method
     let overridingOAuthOption = null;
     if (platformModule.getOverridingOAuthOption != null) {
-        const code = new URL(callbackUri).searchParams.get('code');
-        overridingOAuthOption = platformModule.getOverridingOAuthOption({ code, oauthInfo });
+        const callbackParams = new URL(callbackUri).searchParams;
+        const code = callbackParams.get('code');
+        const state = callbackParams.get('state');
+        overridingOAuthOption = platformModule.getOverridingOAuthOption({
+            code,
+            oauthInfo,
+            ...(state ? { state } : {})
+        });
     }
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires, data } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);

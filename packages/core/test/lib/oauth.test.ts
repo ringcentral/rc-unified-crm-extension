@@ -100,6 +100,30 @@ describe('oauth', () => {
         scopes: undefined
       });
     });
+
+    test('should configure form-body client credentials for token exchange and refresh', () => {
+      const config = {
+        clientId: 'service-now-client-id',
+        clientSecret: 'service-now-client-secret',
+        accessTokenUri: 'https://tenant.service-now.com/oauth_token.do',
+        redirectUri: 'https://app.example.com/callback',
+        tokenEndpointAuthMethod: 'client_secret_post'
+      };
+
+      ClientOAuth2.mockReturnValue({});
+
+      getOAuthApp(config);
+
+      expect(ClientOAuth2).toHaveBeenCalledWith(expect.objectContaining({
+        body: {
+          client_id: config.clientId,
+          client_secret: config.clientSecret
+        },
+        headers: {
+          Authorization: ''
+        }
+      }));
+    });
   });
 
   describe('checkAndRefreshAccessToken', () => {

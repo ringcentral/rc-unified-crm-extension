@@ -66,8 +66,11 @@ Use a code connector when logging one call requires several dependent API calls,
 | `headerName` | Header to set. Defaults to `Authorization`. |
 | `credentialTemplate` | Template used to build the credential. |
 | `encode` | `base64` by default. Use `none` to send the credential as rendered. |
+| `tokenEndpointAuthMethod` | OAuth token endpoint client authentication. Defaults to `client_secret_basic`; use `client_secret_post` for providers such as ServiceNow that require client credentials in the form body. |
 
 If `credentialTemplate` is omitted, the proxy connector uses the `authHeader` prepared by core. For OAuth with no template, it can build `Bearer {{user.accessToken}}`.
+
+OAuth `authUrl` is resolved by the client and `tokenUrl` is resolved by the server. Both may include a `{hostname}` placeholder for tenant-specific endpoints.
 
 Operations can override auth with their own `auth` object.
 
