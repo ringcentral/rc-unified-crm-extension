@@ -376,7 +376,8 @@ The core package provides the following API endpoints:
 
 The core package uses the following environment variables:
 
-- `DATABASE_URL` - Database connection string for Sequelize ORM. SQLite and Postgres URLs are supported.
+- `AC_DATABASE_URL` - Preferred App Connect database connection string for Sequelize ORM. SQLite and Postgres URLs are supported.
+- `DATABASE_URL` - Backward-compatible database connection string, used only when `AC_DATABASE_URL` is unset.
 - `DATABASE_SSL` - Optional Postgres SSL override. When unset, localhost database hosts use SSL off and other Postgres hosts use SSL on.
 - `DISABLE_SYNC_DB_TABLE` - Skip database table synchronization
 - `OVERRIDE_APP_SERVER` - Override app server URL in manifests

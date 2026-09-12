@@ -1,4 +1,16 @@
 {
+    "1.7.44": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Added AC_DATABASE_URL to prevent conflicts with generic database environment variables while retaining DATABASE_URL compatibility."
+            },
+            {
+                "type": "Better",
+                "description": "Added safe startup logging for the selected database target."
+            }
+        ]
+    },
     "1.7.43": {
         "global": [
             {

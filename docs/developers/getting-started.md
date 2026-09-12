@@ -79,6 +79,11 @@ On Windows PowerShell:
 Copy-Item .env.test .env
 ```
 
+The template uses `AC_DATABASE_URL` for its database connection so it does not collide
+with a generic `DATABASE_URL` exported by another local project. `DATABASE_URL` remains
+supported for existing deployments. If both variables are set, App Connect uses
+`AC_DATABASE_URL` and prints a warning.
+
 ## 3. Start The Server
 
 Run:
@@ -86,6 +91,10 @@ Run:
 ```bash
 npm run dev
 ```
+
+At startup, verify the sanitized database target printed to the console. The default
+template should report `SQLite: ./db.sqlite`. Credentials and URL query parameters are
+never included in this diagnostic.
 
 The template server registers `myCRM` with `connectorRegistry.registerConnector('myCRM', myCRMConnector)` and serves the core App Connect routes.
 

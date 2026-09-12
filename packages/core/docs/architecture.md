@@ -80,7 +80,8 @@ Several concerns are applied in multiple modules:
 
 | Variable | Why it matters |
 | --- | --- |
-| `DATABASE_URL` | Sequelize connection string |
+| `AC_DATABASE_URL` | Preferred App Connect Sequelize connection string |
+| `DATABASE_URL` | Backward-compatible Sequelize connection string used when `AC_DATABASE_URL` is unset |
 | `DISABLE_SYNC_DB_TABLE` | Skips model sync in `initDB()` |
 | `MIXPANEL_TOKEN` | Enables analytics tracking |
 | `APP_SERVER_SECRET_KEY` | Signs and verifies JWTs and encrypts stored managed auth values |
