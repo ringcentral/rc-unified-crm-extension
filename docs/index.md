@@ -47,10 +47,12 @@ Logging to your CRM in real time
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     AUTOMOTIVE CONNECT BANNER — between hero and pillars
+     PROMO BANNER — two side-by-side spotlights, between hero and pillars
      ═══════════════════════════════════════════════════════════ -->
-<a href="crm/vinsolutions/" class="ac-v5-auto-banner">
-<div class="ac-v5-auto-banner__inner">
+<div class="ac-v5-auto-banner">
+<div class="ac-v5-auto-banner__inner ac-v5-auto-banner__inner--split">
+
+<a href="crm/vinsolutions/" class="ac-v5-auto-banner__card">
 <span class="ac-v5-auto-banner__icon-wrap">
 <svg class="ac-v5-auto-banner__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
 </span>
@@ -59,8 +61,21 @@ Logging to your CRM in real time
 <span class="ac-v5-auto-banner__sub">Connect your dealership to RingCentral through Vin Solutions, with more DMS and automotive solution providers on the way.</span>
 </span>
 <span class="ac-v5-auto-banner__arrow">→</span>
-</div>
 </a>
+
+<a href="plugins/lazy-contact-sync/" class="ac-v5-auto-banner__card">
+<span class="ac-v5-auto-banner__icon-wrap ac-v5-auto-banner__icon-wrap--plain">
+<img class="ac-v5-auto-banner__icon ac-v5-auto-banner__icon--img" src="img/captivo-plugin-icon.png" alt="Contact Sync Plugin">
+</span>
+<span class="ac-v5-auto-banner__copy">
+<span class="ac-v5-auto-banner__title">New: Contact Sync Plugin</span>
+<span class="ac-v5-auto-banner__sub">Identify callers by name on every RingCentral device — not just inside the App Connect client — with Captivo Labs' free plugin.</span>
+</span>
+<span class="ac-v5-auto-banner__arrow">→</span>
+</a>
+
+</div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════════
      VALUE PILLARS — light pastel gradient
