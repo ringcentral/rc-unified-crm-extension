@@ -25,10 +25,9 @@ App Connect's real-time contact lookup only works inside the App Connect client.
 Once installed, the plugin runs quietly in the background of your existing logging workflow:
 
 1. Every call that gets logged through App Connect is routed through the plugin.
-2. The plugin looks up the caller's phone number against your CRM to find the matching contact.
-3. It reads the relevant details off that CRM record.
-4. It **upserts** the contact into your RingCentral address book — creating it if it doesn't exist yet, updating it if it does.
-5. The address book entry stays current: every subsequent call from that person re-triggers the same upsert.
+2. The plugin receives the contact details App Connect already resolved for that call — name and phone number — from the CRM.
+3. It **upserts** the contact into your RingCentral address book using those details — creating it if it doesn't exist yet, updating it if it does.
+4. The address book entry stays current: every subsequent call from that person re-triggers the same upsert.
 
 ## Why "lazy" sync
 
