@@ -351,8 +351,8 @@ describe('Bullhorn monthly report connector', () => {
         expect(report.rowCount).toBe(1);
         expect(report.filePath).toBe(path.join(reportsDir, `bullhorn_salesforce_report_${getUtcReportDate()}.csv`));
         expect(report.csv).toBe([
-            'Bullhorn Master User ID,First Name,Last Name,Email,Company,Partner Account Owner,Partner Account ID,Product,Seats,Opp Status,Cancel Date,RC Account ID',
-            '100,Alice,Example,alice@example.com,"Acme, Inc.",Owner One,001ABC000000000001,RingCentral App Connect,42,Active,,rc-account-1'
+            'Bullhorn Master User ID,First Name,Last Name,Email,Company,Partner Account Owner,Partner Account ID,Product,Seats,Opp Status,Cancel Date,RC Account ID,Look Up Status',
+            '100,Alice,Example,alice@example.com,"Acme, Inc.",Owner One,001ABC000000000001,RingCentral App Connect,42,Active,,rc-account-1,success'
         ].join('\n'));
         expect(fs.readFileSync(report.filePath, 'utf8')).toBe(report.csv);
         expect(axios.post).toHaveBeenCalledWith(
@@ -378,7 +378,7 @@ describe('Bullhorn monthly report connector', () => {
         });
     });
 
-    test('reads paged Salesforce records and joins duplicate Bullhorn ids by email', async () => {
+    test('reads paged Salesforce records and rows duplicate Bullhorn ids by email separately', async () => {
         mockFindAll.mockResolvedValueOnce([
             {
                 ...userOne,
@@ -453,9 +453,13 @@ describe('Bullhorn monthly report connector', () => {
 
         const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
 
-        expect(report.rowCount).toBe(1);
+        expect(report.rowCount).toBe(3);
         expect(axios.get.mock.calls[3][0]).toBe('https://rc.my.salesforce.com/services/data/v60.0/query/next-account-page');
-        expect(report.csv).toContain('"100,200",,Shared,shared@example.com,Shared Co,Owner One,001ABC000000000001,RingCentral App Connect,,Active,,rc-account-1');
+        expect(report.csv.split('\n').slice(1)).toEqual([
+            '100,,Shared,shared@example.com,Shared Co,Owner One,001ABC000000000001,RingCentral App Connect,,Active,,rc-account-1,success',
+            '200,,Shared,shared@example.com,Shared Co,Owner One,001ABC000000000001,RingCentral App Connect,,Active,,rc-account-1,success',
+            '200,,,,,,,,,,,rc-account-2,Not Found'
+        ]);
     });
 
     test('generates a Salesforce report with only the header when Bullhorn users have no rcAccountId', async () => {
@@ -485,7 +489,7 @@ describe('Bullhorn monthly report connector', () => {
         const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
 
         expect(report.rowCount).toBe(0);
-        expect(report.csv).toBe('Bullhorn Master User ID,First Name,Last Name,Email,Company,Partner Account Owner,Partner Account ID,Product,Seats,Opp Status,Cancel Date,RC Account ID');
+        expect(report.csv).toBe('Bullhorn Master User ID,First Name,Last Name,Email,Company,Partner Account Owner,Partner Account ID,Product,Seats,Opp Status,Cancel Date,RC Account ID,Look Up Status');
         expect(logger.warn).toHaveBeenCalledWith('No rcAccountId values found for Bullhorn users; skipping Salesforce query');
         expect(logger.warn).toHaveBeenCalledWith('No Salesforce data rows generated. Skipping CSV creation.');
     });
@@ -548,8 +552,8 @@ describe('Bullhorn monthly report connector', () => {
         await bullhornReport.sendMonthlyCsvReportByEmailWithSalesforceData();
 
         const expectedCsv = [
-            'Bullhorn Master User ID,First Name,Last Name,Email,Company,Partner Account Owner,Partner Account ID,Product,Seats,Opp Status,Cancel Date,RC Account ID',
-            '100,Alice,Example,alice@example.com,Acme,Owner One,001ABC000000000001,RingCentral App Connect,10,Active,,rc-account-1'
+            'Bullhorn Master User ID,First Name,Last Name,Email,Company,Partner Account Owner,Partner Account ID,Product,Seats,Opp Status,Cancel Date,RC Account ID,Look Up Status',
+            '100,Alice,Example,alice@example.com,Acme,Owner One,001ABC000000000001,RingCentral App Connect,10,Active,,rc-account-1,success'
         ].join('\n');
         expect(axios.post).toHaveBeenNthCalledWith(
             2,
@@ -749,7 +753,7 @@ describe('Bullhorn monthly report connector', () => {
         expect(axios.post.mock.calls[0][1].body).toContain('Context: ');
     });
 
-    test('generates Salesforce rows without an email filter when Bullhorn profile lookup fails', async () => {
+    test('appends the RC account as Not Found when the Bullhorn profile lookup fails', async () => {
         mockFindAll.mockResolvedValueOnce([
             {
                 ...userOne,
@@ -792,7 +796,8 @@ describe('Bullhorn monthly report connector', () => {
         const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
 
         expect(report.rowCount).toBe(1);
-        expect(report.csv).toContain(',No,EmailFilter,contact@example.com');
+        expect(report.csv.split('\n').at(-1)).toBe('100,,,,,,,,,,,rc-account-1,Not Found');
+        expect(report.csv).not.toContain('No,EmailFilter');
         expect(axios.get.mock.calls[2][0]).not.toContain('Email IN');
         expect(logger.error).toHaveBeenCalledWith(
             'Error fetching Bullhorn user profile',
@@ -802,7 +807,100 @@ describe('Bullhorn monthly report connector', () => {
         );
     });
 
-    test('generates only the Salesforce header when the account query fails', async () => {
+    test('appends one row per Bullhorn user when several users share an RC account', async () => {
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            },
+            {
+                ...userTwo,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        axios.get
+            .mockRejectedValueOnce(new Error('profile unavailable'))
+            .mockRejectedValueOnce(new Error('profile unavailable'))
+            .mockResolvedValueOnce({ data: { records: [] } });
+        axios.post.mockResolvedValueOnce({
+            data: {
+                access_token: 'salesforce-access-token'
+            }
+        });
+
+        const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
+
+        expect(report.rowCount).toBe(2);
+        expect(report.csv.split('\n').slice(1)).toEqual([
+            '100,,,,,,,,,,,rc-account-1,Not Found',
+            '200,,,,,,,,,,,rc-account-1,Not Found'
+        ]);
+    });
+
+    test('keeps a Not Found row for users who share an RC account with a successful lookup', async () => {
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            },
+            {
+                ...userTwo,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        axios.get
+            .mockResolvedValueOnce({
+                data: {
+                    data: [{ email: 'alice@example.com', name: 'Alice Example' }]
+                }
+            })
+            .mockRejectedValueOnce(new Error('profile unavailable'))
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-account-1',
+                            Accoutn18DigitID__c: '001ABC000000000001',
+                            RC_User_ID__c: 'rc-account-1',
+                            CSM_Name__c: 'Owner One'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-contact-1',
+                            FirstName: 'Alice',
+                            LastName: 'Example',
+                            AccountId: '001ABC000000000001',
+                            Email: 'alice@example.com',
+                            Company__c: 'Acme',
+                            Account_Number_of_DLs__c: 10,
+                            Account_Status__c: 'Active'
+                        }
+                    ]
+                }
+            });
+        axios.post.mockResolvedValueOnce({
+            data: { access_token: 'salesforce-access-token' }
+        });
+
+        const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
+
+        expect(report.rowCount).toBe(2);
+        expect(report.csv.split('\n').slice(1)).toEqual([
+            '100,Alice,Example,alice@example.com,Acme,Owner One,001ABC000000000001,RingCentral App Connect,10,Active,,rc-account-1,success',
+            '200,,,,,,,,,,,rc-account-1,Not Found'
+        ]);
+    });
+
+    test('appends the RC account as Not Found when the account query fails', async () => {
         mockFindAll.mockResolvedValueOnce([
             {
                 ...userOne,
@@ -830,7 +928,8 @@ describe('Bullhorn monthly report connector', () => {
 
         const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
 
-        expect(report.rowCount).toBe(0);
+        expect(report.rowCount).toBe(1);
+        expect(report.csv.split('\n').at(-1)).toBe('100,,,,,,,,,,,rc-account-1,Not Found');
         expect(logger.error).toHaveBeenCalledWith(
             'Failed to fetch Salesforce Account data:',
             expect.objectContaining({
@@ -839,7 +938,7 @@ describe('Bullhorn monthly report connector', () => {
         );
     });
 
-    test('generates only the Salesforce header when the contact query fails', async () => {
+    test('appends the RC account as Not Found when the contact query fails', async () => {
         mockFindAll.mockResolvedValueOnce([
             {
                 ...userOne,
@@ -878,7 +977,8 @@ describe('Bullhorn monthly report connector', () => {
 
         const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
 
-        expect(report.rowCount).toBe(0);
+        expect(report.rowCount).toBe(1);
+        expect(report.csv.split('\n').at(-1)).toBe('100,,,,,,,,,,,rc-account-1,Not Found');
         expect(logger.error).toHaveBeenCalledWith(
             'Failed to fetch Salesforce Contact data:',
             expect.objectContaining({
@@ -887,7 +987,7 @@ describe('Bullhorn monthly report connector', () => {
         );
     });
 
-    test('generates only the Salesforce header when accounts have no 18 digit IDs', async () => {
+    test('appends the RC account as Not Found when accounts have no 18 digit IDs', async () => {
         mockFindAll.mockResolvedValueOnce([
             {
                 ...userOne,
@@ -924,8 +1024,72 @@ describe('Bullhorn monthly report connector', () => {
 
         const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
 
-        expect(report.rowCount).toBe(0);
+        expect(report.rowCount).toBe(1);
+        expect(report.csv.split('\n').at(-1)).toBe('100,,,,,,,,,,,rc-account-1,Not Found');
         expect(logger.warn).toHaveBeenCalledWith('No accounts found for Bullhorn users; skipping Salesforce query');
+    });
+
+    test('appends token-invalid RC accounts after successful report rows', async () => {
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            },
+            {
+                ...userTwo,
+                rcAccountId: 'rc-account-2',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        mockCheckAndRefreshAccessToken
+            .mockResolvedValueOnce(userOne)
+            .mockResolvedValueOnce(null);
+        axios.get
+            .mockResolvedValueOnce({
+                data: {
+                    data: [{ email: 'alice@example.com', name: 'Alice Example' }]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-account-1',
+                            Accoutn18DigitID__c: '001ABC000000000001',
+                            RC_User_ID__c: 'rc-account-1'
+                        },
+                        {
+                            Id: 'sf-account-2',
+                            Accoutn18DigitID__c: '001ABC000000000002',
+                            RC_User_ID__c: 'rc-account-2'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-contact-1',
+                            FirstName: 'Alice',
+                            LastName: 'Example',
+                            AccountId: '001ABC000000000001',
+                            Email: 'alice@example.com'
+                        }
+                    ]
+                }
+            });
+        axios.post.mockResolvedValueOnce({
+            data: { access_token: 'salesforce-access-token' }
+        });
+
+        const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
+        const lines = report.csv.split('\n');
+
+        expect(report.rowCount).toBe(2);
+        expect(lines[1]).toContain('rc-account-1,success');
+        expect(lines.at(-1)).toBe('200,,,,,,,,,,,rc-account-2,Token Invalid');
     });
 
     test('logs when the Salesforce error report email fails', async () => {

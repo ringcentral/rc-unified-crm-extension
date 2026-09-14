@@ -208,6 +208,41 @@ You can optimize entity search performance and results by configuring the search
 !!! warning "Search Scope Consideration"
     Remember that Customer entity searches will return Leads and Prospects as well. If you need to distinguish between these subtypes, consider the entity creation type when reviewing search results.
 
+## Where call logs appear in NetSuite
+
+App Connect does **not** create NetSuite Messages, Tasks, or Cases for communications. Every logged call, SMS, fax, and voicemail is stored as a NetSuite **Phone Call** record.
+
+From App Connect, **Open in CRM** uses:
+
+`https://{your-netsuite-host}/app/crm/calendar/call.nl?id={logId}`
+
+You can also open Phone Calls from **Activities → Phone Calls**.
+
+Contact records opened from App Connect use:
+
+`https://{your-netsuite-host}/app/common/entity/{contactType}.nl?id={contactId}`
+
+`{contactType}` is `contact`, `custjob` (Customer), `vendor`, `lead`, or `prospect`.
+
+### What you can log against
+
+| Log against | NetSuite record | What App Connect creates | Where to find it |
+| --- | --- | --- | --- |
+| **Contact** | Contact (person) plus the related company | Phone Call with **Contact** and **Company** set. If the contact has no company, App Connect links **Placeholder company**. | Phone Call record. Contact → **Communication → Activities**. Related company → **Communication → Activities**. |
+| **Customer** | Customer | Phone Call with **Company** set to that customer. **Contact** is empty. | Phone Call record. Customer → **Communication → Activities**. |
+| **Lead** | Lead (customer subtype) | Same as Customer: Phone Call **Company** = that lead. | Lead record → **Communication → Activities**. |
+| **Prospect** | Prospect (customer subtype) | Same as Customer: Phone Call **Company** = that prospect. | Prospect record → **Communication → Activities**. |
+| **Vendor** | Vendor | Phone Call with **Company** set to that vendor. | Vendor → **Communication → Activities**. |
+| **Sales Order** (optional) | Sales Order | The same Phone Call, with **Transaction** set to the sales order. App Connect also creates a **User Note** on the sales order. | Enable **Sales Order logging** under Settings → NetSuite options, then pick the sales order on the log form. Find the call on the Phone Call. Find the note on the sales order **Activities → User Notes**. |
+| **Opportunity** (optional) | Opportunity | Same pattern as sales order. | Enable **Opportunity logging** under Settings → NetSuite options. Opportunity → **Activities → User Notes**. |
+
+Sales Order and Opportunity links are extra associations. The user still matches a Contact, Customer, Lead, Prospect, or Vendor first. Those pickers appear on the call log and message log forms only when the matching NetSuite option is enabled.
+
+App Connect does **not** log against Employees, Cases, custom records, or other transaction types (invoices, estimates, and similar).
+
+!!! tip "Long transcripts"
+    If the Phone Call message would exceed about 3,400 characters, App Connect truncates the body and attaches the full transcript as a file on the Phone Call. Open the Phone Call → **Communication** and open the attached file.
+
 ## Appointments
 
 <!-- md:version 2.0 -->
