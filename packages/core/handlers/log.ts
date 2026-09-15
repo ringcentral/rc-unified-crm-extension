@@ -576,7 +576,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         const pluginWarnings = [];
         // Plugins
         const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
-        const callPlugins = accountPlugins.filter(plugin => plugin.data.supportedLogTypes.includes('call'));
+        const callPlugins = accountPlugins.filter(plugin => plugin.data?.supportedLogTypes?.includes('call'));
         const { syncCallPlugins, asyncCallPlugins } = splitCallPluginsByExecutionMode(callPlugins);
         incomingData = await runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform });
         note = incomingData.note;
@@ -838,7 +838,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             const pluginWarnings = [];
             // Plugins
             const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
-            const callPlugins = accountPlugins.filter(plugin => plugin.data.supportedLogTypes.includes('call'));
+            const callPlugins = accountPlugins.filter(plugin => plugin.data?.supportedLogTypes?.includes('call'));
             const { syncCallPlugins, asyncCallPlugins } = splitCallPluginsByExecutionMode(callPlugins);
             incomingData = await runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform });
 
@@ -1047,8 +1047,8 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         const isSMS = incomingData.logInfo.messages.some(m => m.type === 'SMS');
         const isFax = incomingData.logInfo.messages.some(m => m.type === 'Fax');
         const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
-        const smsPlugins = isSMS ? accountPlugins.filter(plugin => plugin.data.supportedLogTypes.includes('sms')) : [];
-        const faxPlugins = isFax ? accountPlugins.filter(plugin => plugin.data.supportedLogTypes.includes('fax')) : [];
+        const smsPlugins = isSMS ? accountPlugins.filter(plugin => plugin.data?.supportedLogTypes?.includes('sms')) : [];
+        const faxPlugins = isFax ? accountPlugins.filter(plugin => plugin.data?.supportedLogTypes?.includes('fax')) : [];
         const plugins = [...smsPlugins, ...faxPlugins];
         for (const plugin of plugins) {
             const pluginId = plugin.id;
