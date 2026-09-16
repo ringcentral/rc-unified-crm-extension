@@ -786,6 +786,22 @@
               "options": []
             },
             {
+              "id": "redtailActivityCompletionMode",
+              "type": "option",
+              "name": "When to mark an activity complete?",
+              "defaultValue": "autoWhenAllDataAvailable",
+              "options": [
+                {
+                  "id": "manual",
+                  "name": "Let me mark activities complete manually"
+                },
+                {
+                  "id": "autoWhenAllDataAvailable",
+                  "name": "Mark activity complete when all data is available automatically"
+                }
+              ]
+            },
+            {
               "id": "redtailCustomTimezone",
               "type": "option",
               "name": "Timezone",

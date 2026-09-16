@@ -117,7 +117,8 @@ describe('Log Handler', () => {
       note: 'Test note',
       aiNote: '',
       transcript: '',
-      additionalSubmission: {}
+      additionalSubmission: {},
+      activityCompletionReady: true
     };
 
     async function runAsyncCallPluginLog() {
@@ -441,7 +442,9 @@ describe('Log Handler', () => {
       expect(result.successful).toBe(true);
       expect(result.logId).toBe('new-log-123');
       expect(mockConnector.getBasicAuth).toHaveBeenCalledWith({ apiKey: 'test-access-token' });
-      expect(mockConnector.createCallLog).toHaveBeenCalled();
+      expect(mockConnector.createCallLog).toHaveBeenCalledWith(expect.objectContaining({
+        activityCompletionReady: true
+      }));
 
       // Verify call log was saved to database
       const savedLog = await CallLogModel.findOne({ where: { sessionId: 'session-123' } });
@@ -1038,7 +1041,8 @@ describe('Log Handler', () => {
         duration: 180,
         result: 'Completed',
         voicemailLink: 'https://ringcentral.github.io/ringcentral-media-reader/?media=voicemail-content',
-        voicemailMessageId: 'voicemail-123'
+        voicemailMessageId: 'voicemail-123',
+        activityCompletionReady: false
       };
 
       // Act
@@ -1056,7 +1060,8 @@ describe('Log Handler', () => {
       expect(result.updatedNote).toBe('Updated note');
       expect(mockConnector.updateCallLog).toHaveBeenCalledWith(expect.objectContaining({
         voicemailLink: incomingData.voicemailLink,
-        voicemailMessageId: incomingData.voicemailMessageId
+        voicemailMessageId: incomingData.voicemailMessageId,
+        activityCompletionReady: false
       }));
       expect(composeCallLog).toHaveBeenCalledWith(expect.objectContaining({
         voicemailLink: incomingData.voicemailLink

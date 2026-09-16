@@ -31,3 +31,18 @@ Once the extension has been installed, follow these steps to setup and configure
 When you login successfully, the Chrome extension will automatically update to show you are connected to Redtail. If you are connected, the button next to Redtail will say, "logout".
 
 And with that, you will be connected to Redtail and ready to begin using the integration. 
+
+## Redtail call logging preferences
+
+### Activity completion
+
+The Redtail options section includes **When to mark an activity complete?**. This setting controls whether App Connect marks Redtail activities completed after call logging.
+
+* **Let me mark activities complete manually** keeps Redtail activities open so users can review and complete them in Redtail.
+* **Mark activity complete when all data is available automatically** marks the Redtail activity complete only when App Connect has the complete call data needed for the final log update.
+
+### Note display preference
+
+Use the call log detail settings to choose which note sections are displayed in the Redtail activity description, including user-entered notes, call details, recordings, AI summaries, and transcripts. These settings control the content App Connect sends to Redtail when it creates or updates an activity.
+
+Recommendation: enable **One-time call logging** for Redtail when notes should be written once with the final call data. With one-time call logging, App Connect waits until call details and related artifacts are ready, preserves temporary notes entered during the wait, then writes the complete Redtail activity in one logging pass.

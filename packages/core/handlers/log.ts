@@ -628,6 +628,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             hashedAccountId,
             isFromSSCL,
             proxyConfig,
+            activityCompletionReady: incomingData.activityCompletionReady,
         });
         if (!extraDataTracking) {
             extraDataTracking = {};
@@ -926,6 +927,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 hashedAccountId,
                 isFromSSCL,
                 proxyConfig,
+                activityCompletionReady: incomingData.activityCompletionReady,
             });
             if (asyncCallPlugins.length) {
                 await dispatchAsyncCallPlugins({
