@@ -26,7 +26,6 @@ beforeAll(async () => {
     // Import models
     const { CallLogModel } = require('../models/callLogModel');
     const { MessageLogModel } = require('../models/messageLogModel');
-    const { MessageLogAssociationModel } = require('../models/messageLogAssociationModel');
     const { UserModel } = require('../models/userModel');
     const { CacheModel } = require('../models/cacheModel');
     const { AdminConfigModel } = require('../models/adminConfigModel');
@@ -35,7 +34,6 @@ beforeAll(async () => {
     // Sync database models
     await CallLogModel.sync({ force: true });
     await MessageLogModel.sync({ force: true });
-    await MessageLogAssociationModel.sync({ force: true });
     await UserModel.sync({ force: true });
     await CacheModel.sync({ force: true });
     await AdminConfigModel.sync({ force: true });

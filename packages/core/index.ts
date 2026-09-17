@@ -60,7 +60,6 @@ const { LlmSessionModel } = /** @type {any} */ (require('./models/llmSessionMode
 const { CallDownListModel } = /** @type {any} */ (require('./models/callDownListModel'));
 const { CallLogModel } = /** @type {any} */ (require('./models/callLogModel'));
 const { MessageLogModel } = /** @type {any} */ (require('./models/messageLogModel'));
-const { MessageLogAssociationModel } = /** @type {any} */ (require('./models/messageLogAssociationModel'));
 const { AdminConfigModel } = /** @type {any} */ (require('./models/adminConfigModel'));
 const { CacheModel } = /** @type {any} */ (require('./models/cacheModel'));
 const { AccountDataModel } = /** @type {any} */ (require('./models/accountDataModel'));
@@ -135,7 +134,6 @@ async function initDB() {
         await LlmSessionModel.sync();
         await CallLogModel.sync();
         await MessageLogModel.sync();
-        await MessageLogAssociationModel.sync();
         await AdminConfigModel.sync();
         await CacheModel.sync();
         await CallDownListModel.sync();
