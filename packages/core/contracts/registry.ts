@@ -426,7 +426,7 @@ export const httpApiOperationContracts: readonly OpenApiOperationContract[] = [
     request: {
       component: 'MessageLogMatch',
       schema: 'MessageLogMatchRequest',
-      description: 'Conversation and message ids to check for existing CRM log associations.',
+      description: 'Conversation and message ids to check for existing CRM message-log records.',
       required: true,
       examples: {
         selectedMessages: {
