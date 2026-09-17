@@ -5,8 +5,6 @@ const { CallLogModel: RawCallLogModel } = require('../models/callLogModel');
 const CallLogModel = /** @type {any} */ (RawCallLogModel);
 const { MessageLogModel: RawMessageLogModel } = require('../models/messageLogModel');
 const MessageLogModel = /** @type {any} */ (RawMessageLogModel);
-const { MessageLogAssociationModel: RawMessageLogAssociationModel } = require('../models/messageLogAssociationModel');
-const MessageLogAssociationModel = /** @type {any} */ (RawMessageLogAssociationModel);
 const { UserModel: RawUserModel } = require('../models/userModel');
 const UserModel = /** @type {any} */ (RawUserModel);
 const { CacheModel: RawCacheModel } = require('../models/cacheModel');
@@ -1130,10 +1128,9 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
 
         // Case: selective message logging.
         // The client explicitly selects a set of messages that should be logged
-        // as a single CRM entry (as opposed to the per-day bucketing used by the
-        // auto/daily-digest path below). This path records one association row per
-        // message in `message_log_association` and returns a per-message mapping,
-        // leaving the existing `messageLogs` table and daily-digest flow untouched.
+        // as a single CRM entry. Store each selected message in `messageLogs`,
+        // the same message-to-CRM mapping table used by the normal path, so
+        // duplicate detection and logged-state matching have one source of truth.
         const selectedMessageIds = incomingData.selectedMessageIds ?? incomingData.logInfo?.selectedMessageIds;
         if (Array.isArray(selectedMessageIds) && selectedMessageIds.length > 0) {
             return await logSelectedMessagesAsSingleEntry({
@@ -1178,6 +1175,8 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         try {
             existingMessages = await MessageLogModel.findAll({
                 where: {
+                    userId,
+                    platform,
                     [Op.or]: messageIds
                 }
             });
@@ -1191,7 +1190,9 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         if (isSharedSMS) {
             const existingMessageLog = await MessageLogModel.findOne({
                 where: {
-                    conversationLogId: incomingData.logInfo.conversationLogId
+                    conversationLogId: incomingData.logInfo.conversationLogId,
+                    userId,
+                    platform
                 }
             });
             const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset, customSubject: incomingData.logInfo?.customSubject });
@@ -1268,7 +1269,9 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
                 }
                 const existingSameDateMessageLog = await MessageLogModel.findOne({
                     where: {
-                        conversationLogId: incomingData.logInfo.conversationLogId
+                        conversationLogId: incomingData.logInfo.conversationLogId,
+                        userId,
+                        platform
                     }
                 });
                 let crmLogId = ''
@@ -1315,7 +1318,7 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
 }
 
 // Logs an explicit set of selected messages as a single CRM entry and records a
-// per-message association so the client can render a { messageId: logId } map.
+// per-message `messageLogs` row so the client can render a { messageId: logId } map.
 // All selected messages are composed into one note (via the shared-SMS composer)
 // and written with a single createMessageLog call, so they land in one CRM
 // record rather than being created/appended one by one.
@@ -1339,8 +1342,6 @@ async function logSelectedMessagesAsSingleEntry({
 
     const conversationId = incomingData.logInfo.conversationId;
     const conversationLogId = incomingData.logInfo.conversationLogId ?? null;
-    const rcAccountId = user.rcAccountId;
-
     const selectedIdSet = new Set(selectedMessageIds.map(id => id.toString()));
     const selectedMessages = incomingData.logInfo.messages.filter(m => selectedIdSet.has(m.id.toString()));
     if (selectedMessages.length === 0) {
@@ -1371,25 +1372,25 @@ async function logSelectedMessagesAsSingleEntry({
         }
     }
 
-    let existingAssociations = [];
+    let existingMessageLogs = [];
     try {
-        existingAssociations = await MessageLogAssociationModel.findAll({
+        existingMessageLogs = await MessageLogModel.findAll({
             where: {
                 userId,
                 platform,
                 conversationId,
-                messageId: { [Op.in]: [...selectedIdSet] }
+                id: { [Op.in]: [...selectedIdSet] }
             }
         });
     }
     catch (error) {
-        return handleDatabaseError(error, 'Error finding existing message associations');
+        return handleDatabaseError(error, 'Error finding existing message logs');
     }
     const messageLogs = {};
-    for (const assoc of existingAssociations) {
-        messageLogs[assoc.messageId] = assoc.thirdPartyLogId;
+    for (const log of existingMessageLogs) {
+        messageLogs[log.id] = log.thirdPartyLogId;
     }
-    const alreadyLoggedIds = new Set(existingAssociations.map(a => a.messageId));
+    const alreadyLoggedIds = new Set(existingMessageLogs.map(log => log.id));
 
     const messagesToLog = selectedMessages
         .filter(m => !alreadyLoggedIds.has(m.id.toString()))
@@ -1471,26 +1472,22 @@ async function logSelectedMessagesAsSingleEntry({
     }
 
     // Point every logged message at the single CRM record.
-    const associationRows = messagesToLog.map(message => ({
-        messageId: message.id.toString(),
+    const messageLogRows = messagesToLog.map(message => ({
+        id: message.id.toString(),
         conversationId,
         conversationLogId,
         thirdPartyLogId: crmLogId,
         userId,
-        rcAccountId,
         platform
     }));
     try {
-        console.log({message:"Creating Bulk records",conversationId,conversationLogId,crmLogId, rcAccountId});
-        await MessageLogAssociationModel.bulkCreate(associationRows, {
-            updateOnDuplicate: ['conversationId', 'conversationLogId', 'thirdPartyLogId', 'rcAccountId']
-        });
-        for (const row of associationRows) {
-            messageLogs[row.messageId] = crmLogId;
+        await MessageLogModel.bulkCreate(messageLogRows);
+        for (const row of messageLogRows) {
+            messageLogs[row.id] = crmLogId;
         }
     }
     catch (error) {
-        return handleDatabaseError(error, 'Error creating message associations');
+        return handleDatabaseError(error, 'Error creating message logs');
     }
 
     return {
@@ -1502,9 +1499,8 @@ async function logSelectedMessagesAsSingleEntry({
     };
 }
 
-// Returns which of the requested message ids are already logged (via the
-// selective association table) and their CRM log record ids so the client can
-// render logged icons.
+// Returns which of the requested message ids are already logged and their CRM
+// log record ids so the client can render logged icons.
 async function getMessageLog({ userId, platform, conversationId, messageIds }) {
     try {
         const user = await UserModel.findByPk(userId);
@@ -1520,18 +1516,18 @@ async function getMessageLog({ userId, platform, conversationId, messageIds }) {
             where.conversationId = conversationId;
         }
         if (requestedIds.length > 0) {
-            where.messageId = { [Op.in]: requestedIds };
+            where.id = { [Op.in]: requestedIds };
         }
-        let associations = [];
+        let messageLogRows = [];
         try {
-            associations = await MessageLogAssociationModel.findAll({ where });
+            messageLogRows = await MessageLogModel.findAll({ where });
         }
         catch (error) {
-            return handleDatabaseError(error, 'Error finding message associations');
+            return handleDatabaseError(error, 'Error finding message logs');
         }
         const messageLogs = {};
-        for (const assoc of associations) {
-            messageLogs[assoc.messageId] = assoc.thirdPartyLogId;
+        for (const log of messageLogRows) {
+            messageLogs[log.id] = log.thirdPartyLogId;
         }
         let logs;
         if (requestedIds.length > 0) {
@@ -1540,7 +1536,7 @@ async function getMessageLog({ userId, platform, conversationId, messageIds }) {
                 : { messageId: id, matched: false });
         }
         else {
-            logs = associations.map(a => ({ messageId: a.messageId, matched: true, logId: a.thirdPartyLogId }));
+            logs = messageLogRows.map(log => ({ messageId: log.id, matched: true, logId: log.thirdPartyLogId }));
         }
         return { successful: true, logs, messageLogs };
     }

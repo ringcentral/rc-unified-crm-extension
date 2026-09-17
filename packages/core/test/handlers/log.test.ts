@@ -29,7 +29,6 @@ jest.mock('axios');
 const logHandler = require('../../handlers/log');
 const { CallLogModel } = require('../../models/callLogModel');
 const { MessageLogModel } = require('../../models/messageLogModel');
-const { MessageLogAssociationModel } = require('../../models/messageLogAssociationModel');
 const { UserModel } = require('../../models/userModel');
 const { AccountDataModel } = require('../../models/accountDataModel');
 const { CacheModel } = require('../../models/cacheModel');
@@ -71,7 +70,6 @@ describe('Log Handler', () => {
   beforeAll(async () => {
     await CallLogModel.sync({ force: true });
     await MessageLogModel.sync({ force: true });
-    await MessageLogAssociationModel.sync({ force: true });
     await UserModel.sync({ force: true });
     await AccountDataModel.sync({ force: true });
     await CacheModel.sync({ force: true });
@@ -80,7 +78,6 @@ describe('Log Handler', () => {
   afterEach(async () => {
     await CallLogModel.destroy({ where: {} });
     await MessageLogModel.destroy({ where: {} });
-    await MessageLogAssociationModel.destroy({ where: {} });
     await UserModel.destroy({ where: {} });
     await AccountDataModel.destroy({ where: {} });
     await CacheModel.destroy({ where: {} });
@@ -2345,7 +2342,7 @@ describe('Log Handler', () => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
-      const bulkCreateSpy = jest.spyOn(MessageLogAssociationModel, 'bulkCreate');
+      const bulkCreateSpy = jest.spyOn(MessageLogModel, 'bulkCreate');
 
       const result = await logHandler.createMessageLog({
         platform: 'testCRM',
@@ -2367,19 +2364,15 @@ describe('Log Handler', () => {
       // Per-message mapping points every selected message at the same CRM record.
       expect(result.messageLogs).toEqual({ 'msg-1': 'crm-entry-1', 'msg-3': 'crm-entry-1' });
       expect(bulkCreateSpy).toHaveBeenCalledWith(expect.arrayContaining([
-        expect.objectContaining({ messageId: 'msg-1', thirdPartyLogId: 'crm-entry-1' }),
-        expect.objectContaining({ messageId: 'msg-3', thirdPartyLogId: 'crm-entry-1' }),
-      ]), expect.objectContaining({
-        updateOnDuplicate: expect.arrayContaining(['thirdPartyLogId']),
-      }));
+        expect.objectContaining({ id: 'msg-1', thirdPartyLogId: 'crm-entry-1' }),
+        expect.objectContaining({ id: 'msg-3', thirdPartyLogId: 'crm-entry-1' }),
+      ]));
 
-      // Associations persisted in the dedicated table, not the daily-digest table.
-      const associations = await MessageLogAssociationModel.findAll({ where: { conversationId: 'conv-123' } });
-      expect(associations.map((a) => a.messageId).sort()).toEqual(['msg-1', 'msg-3']);
-      expect(associations.every((a) => a.thirdPartyLogId === 'crm-entry-1')).toBe(true);
-      // The daily-digest table is left untouched by this path.
-      const dailyRows = await MessageLogModel.findAll({ where: { conversationId: 'conv-123' } });
-      expect(dailyRows.length).toBe(0);
+      // Selected-message mappings are persisted in the same table as the
+      // existing message-log duplicate detection.
+      const messageRows = await MessageLogModel.findAll({ where: { conversationId: 'conv-123' } });
+      expect(messageRows.map((a) => a.id).sort()).toEqual(['msg-1', 'msg-3']);
+      expect(messageRows.every((a) => a.thirdPartyLogId === 'crm-entry-1')).toBe(true);
     });
 
     test('uses logInfo.customSubject as the CRM entry title', async () => {
@@ -2447,21 +2440,20 @@ describe('Log Handler', () => {
       expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
       // Stored/returned as strings.
       expect(result.messageLogs).toEqual({ 'msg-1': '12345', 'msg-3': '12345' });
-      const associations = await MessageLogAssociationModel.findAll({ where: { conversationId: 'conv-123' } });
-      expect(associations.every((a) => a.thirdPartyLogId === '12345')).toBe(true);
+      const messageRows = await MessageLogModel.findAll({ where: { conversationId: 'conv-123' } });
+      expect(messageRows.every((a) => a.thirdPartyLogId === '12345')).toBe(true);
     });
 
-    test('skips messages that are already associated and reports a no-op', async () => {
+    test('skips messages that are already logged and reports a no-op', async () => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
-      await MessageLogAssociationModel.create({
-        messageId: 'msg-1',
+      await MessageLogModel.create({
+        id: 'msg-1',
         conversationId: 'conv-123',
         conversationLogId: 'conv-log-123',
         thirdPartyLogId: 'crm-existing',
         userId: 'test-user-id',
-        rcAccountId: 'rc-account-1',
         platform: 'testCRM',
       });
 
@@ -2476,11 +2468,11 @@ describe('Log Handler', () => {
       expect(result.messageLogs).toEqual({ 'msg-1': 'crm-existing' });
     });
 
-    test('returns a database warning when existing selected-message associations cannot be read', async () => {
+    test('returns a database warning when existing selected-message logs cannot be read', async () => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
-      jest.spyOn(MessageLogAssociationModel, 'findAll').mockRejectedValueOnce(new Error('association lookup failed'));
+      jest.spyOn(MessageLogModel, 'findAll').mockRejectedValueOnce(new Error('message log lookup failed'));
 
       const result = await logHandler.createMessageLog({
         platform: 'testCRM',
@@ -2547,15 +2539,15 @@ describe('Log Handler', () => {
         },
         extraDataTracking: { providerRequestId: 'request-without-log-id' },
       });
-      const associations = await MessageLogAssociationModel.findAll({ where: { conversationId: 'conv-123' } });
-      expect(associations.length).toBe(0);
+      const messageRows = await MessageLogModel.findAll({ where: { conversationId: 'conv-123' } });
+      expect(messageRows.length).toBe(0);
     });
 
-    test('returns a database warning when selected-message associations cannot be saved', async () => {
+    test('returns a database warning when selected-message logs cannot be saved', async () => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
-      jest.spyOn(MessageLogAssociationModel, 'bulkCreate').mockRejectedValueOnce(new Error('association save failed'));
+      jest.spyOn(MessageLogModel, 'bulkCreate').mockRejectedValueOnce(new Error('message log save failed'));
 
       const result = await logHandler.createMessageLog({
         platform: 'testCRM',
@@ -2576,7 +2568,7 @@ describe('Log Handler', () => {
   });
 
   describe('getMessageLog', () => {
-    async function seedUserAndAssociations() {
+    async function seedUserAndMessageLogs() {
       await UserModel.create({
         id: 'test-user-id',
         platform: 'testCRM',
@@ -2584,14 +2576,14 @@ describe('Log Handler', () => {
         accessToken: 'test-token',
         platformAdditionalInfo: {},
       });
-      await MessageLogAssociationModel.bulkCreate([
-        { messageId: 'msg-1', conversationId: 'conv-123', conversationLogId: 'c-1', thirdPartyLogId: 'crm-1', userId: 'test-user-id', rcAccountId: 'rc-account-1', platform: 'testCRM' },
-        { messageId: 'msg-2', conversationId: 'conv-123', conversationLogId: 'c-1', thirdPartyLogId: 'crm-1', userId: 'test-user-id', rcAccountId: 'rc-account-1', platform: 'testCRM' },
+      await MessageLogModel.bulkCreate([
+        { id: 'msg-1', conversationId: 'conv-123', conversationLogId: 'c-1', thirdPartyLogId: 'crm-1', userId: 'test-user-id', platform: 'testCRM' },
+        { id: 'msg-2', conversationId: 'conv-123', conversationLogId: 'c-1', thirdPartyLogId: 'crm-1', userId: 'test-user-id', platform: 'testCRM' },
       ]);
     }
 
     test('returns matched/unmatched status for the requested message id array', async () => {
-      await seedUserAndAssociations();
+      await seedUserAndMessageLogs();
 
       const result = await logHandler.getMessageLog({
         userId: 'test-user-id',
@@ -2610,7 +2602,7 @@ describe('Log Handler', () => {
     });
 
     test('returns all logged messages for a conversation when no ids are provided', async () => {
-      await seedUserAndAssociations();
+      await seedUserAndMessageLogs();
 
       const result = await logHandler.getMessageLog({
         userId: 'test-user-id',
@@ -2623,7 +2615,7 @@ describe('Log Handler', () => {
     });
 
     test('can look up selected message ids without a conversation id', async () => {
-      await seedUserAndAssociations();
+      await seedUserAndMessageLogs();
 
       const result = await logHandler.getMessageLog({
         userId: 'test-user-id',
@@ -2639,7 +2631,7 @@ describe('Log Handler', () => {
     });
 
     test('fails when neither conversationId nor messageIds are provided', async () => {
-      await seedUserAndAssociations();
+      await seedUserAndMessageLogs();
 
       const result = await logHandler.getMessageLog({
         userId: 'test-user-id',
@@ -2655,9 +2647,9 @@ describe('Log Handler', () => {
       expect(emptyArrayResult.successful).toBe(false);
     });
 
-    test('returns a database warning when message association lookup fails', async () => {
-      await seedUserAndAssociations();
-      jest.spyOn(MessageLogAssociationModel, 'findAll').mockRejectedValueOnce(new Error('message association lookup failed'));
+    test('returns a database warning when message log lookup fails', async () => {
+      await seedUserAndMessageLogs();
+      jest.spyOn(MessageLogModel, 'findAll').mockRejectedValueOnce(new Error('message log lookup failed'));
 
       const result = await logHandler.getMessageLog({
         userId: 'test-user-id',
