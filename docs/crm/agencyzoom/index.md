@@ -37,14 +37,14 @@ App Connect supports AgencyZoom through two certified partner integrations. Both
   </a>
 
   <a href="./aa" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../../img/acceleratedautomation.svg" alt="Accelerated Automation"></div>
+    <div class="crm-mkt__logo"><img src="https://callcontrolst.blob.core.windows.net/public-assets/LOGO-Loyally.png" alt="Loyally"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Insurance Technology Partner</div>
-      <div class="crm-mkt__name">AgencyZoom by Accelerated Automation</div>
-      <p class="crm-mkt__desc">Accelerated Automation's connector is purpose-built for insurance agencies, with tight AgencyZoom workflow automation and hands-on onboarding support.</p>
+      <div class="crm-mkt__name">AgencyZoom by Loyally</div>
+      <p class="crm-mkt__desc">Loyally's connector is purpose-built for insurance agencies, with tight AgencyZoom workflow automation and hands-on onboarding support.</p>
     </div>
     <div class="crm-mkt__footer">
-      <span class="crm-mkt__by crm-mkt__by--partner">By Accelerated Automation · Paid</span>
+      <span class="crm-mkt__by crm-mkt__by--partner">By Loyally · Paid</span>
       <span class="crm-mkt__cta">View docs →</span>
     </div>
   </a>
