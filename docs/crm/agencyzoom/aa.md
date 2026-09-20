@@ -1,20 +1,21 @@
 ---
-title: AgencyZoom by Accelerated Automation — App Connect
+title: AgencyZoom by Loyally — App Connect
 ---
 
-# AgencyZoom by Accelerated Automation
+# AgencyZoom by Loyally
 
 <div class="bld-hero">
   <div class="bld-hero__logo">
-    <img src="../../../img/acceleratedautomation.svg" alt="Accelerated Automation">
+    <img src="https://callcontrolst.blob.core.windows.net/public-assets/LOGO-Loyally.png" alt="Loyally" style="width: 120px !important; max-width: 100% !important; height: auto !important;">
   </div>
   <div>
     <div class="bld-hero__category">Insurance Technology Partner</div>
-    <p class="bld-hero__tagline">Accelerated Automation's App Connect connector for AgencyZoom — purpose-built for insurance agencies with hands-on onboarding and support.</p>
+    <p class="bld-hero__tagline">Loyally's App Connect connector for AgencyZoom — purpose-built for insurance agencies with hands-on onboarding and support.</p>
   </div>
 </div>
 
-Accelerated Automation builds technology solutions specifically for insurance agencies. Their App Connect connector for AgencyZoom is designed from the ground up with insurance workflows in mind — tight integration with AgencyZoom's lead, policy, and renewal records, and a support team that understands how agencies operate.
+RingCentral supports Freshdesk via a trusted third-party vendor and Premium Partner [Loyally](https://loyally.eu/).
+Loyally's App Connect connector for AgencyZoom is designed from the ground up with insurance workflows in mind — tight integration with AgencyZoom's lead, policy, and renewal records, and a support team that understands how agencies operate.
 
 ## Features
 
@@ -29,18 +30,18 @@ Accelerated Automation builds technology solutions specifically for insurance ag
 - An active RingEX account
 - AgencyZoom subscription
 - App Connect 2.0 or later
-- Accelerated Automation connector license
+- Loyally connector license
 
 ## Setup and configuration
 
-Contact Accelerated Automation to get started. Their onboarding team provides hands-on support through installation and configuration.
+Contact Loyally to get started. Their onboarding team provides hands-on support through installation and configuration.
 
 <div class="bld-cta">
   <div>
-    <div class="bld-cta__title">Get started with Accelerated Automation</div>
-    <p class="bld-cta__desc">Contact Accelerated Automation to discuss licensing, get a demo, or ask about your AgencyZoom setup.</p>
+    <div class="bld-cta__title">Get started with Loyally</div>
+    <p class="bld-cta__desc">Contact Loyally to discuss licensing, get a demo, or ask about your AgencyZoom setup.</p>
   </div>
-  <a href="#" class="bld-cta__btn" target="_blank" rel="noopener">Contact Accelerated Automation →</a>
+  <a href="mailto:info@loyally.nl" class="bld-cta__btn" target="_blank" rel="noopener">Contact Loyally →</a>
 </div>
 
 ---
