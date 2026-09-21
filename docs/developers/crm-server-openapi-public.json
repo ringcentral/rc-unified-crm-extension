@@ -905,6 +905,54 @@
         "description": "Validates the supplied RingCentral administrator token and replaces account-level App Connect settings for that RingCentral account. The nested settings and optional custom-connector data come from the request body; this write path does not require a userJwt."
       }
     },
+    "/admin/extensionAdoptionStats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Read extension adoption stats",
+        "operationId": "getAdminExtensionAdoptionStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "x-app-connect-generated-contract": true,
+            "description": "Adoption funnel for the administrator account: activated extensions and connected CRM users.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtensionAdoptionStatsResponse"
+                },
+                "examples": {
+                  "stats": {
+                    "summary": "Adoption stats",
+                    "value": {
+                      "installedCount": 42,
+                      "connectedCount": 31,
+                      "lastActiveAt": "2026-09-21T08:15:30.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ],
+        "description": "Validates the supplied RingCentral administrator token and returns the App Connect adoption funnel for that RingCentral account: how many distinct extensions have activated the browser extension (installedCount), how many currently hold a CRM connection (connectedCount), and when a connected user record was last written (lastActiveAt, or null). Activation is recorded server-side from GET /userInfoHash, which the browser extension calls on every RingCentral login. Connector servers running an older @app-connect/core respond 404; clients should hide the dashboard in that case."
+      }
+    },
     "/admin/managedAuth": {
       "get": {
         "tags": [
@@ -3432,6 +3480,7 @@
     "schemas": [
       "AdminSuccessMessage",
       "AdminSettingsUpdateRequest",
+      "ExtensionAdoptionStatsResponse",
       "ManagedAuthFieldDefinition",
       "ManagedAuthOption",
       "ManagedAuthOptionsRequest",
@@ -3665,6 +3714,15 @@
         "path": "/admin/settings",
         "parameters": [],
         "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/admin/extensionAdoptionStats",
+        "parameters": [],
+        "requestBody": false,
         "responses": [
           "200"
         ]
@@ -4368,6 +4426,26 @@
       },
       "UnauthorizedSession": {
         "description": "The user session is expired or revoked.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          },
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "headers": {
+          "X-Refreshed-JWT-Token": {
+            "$ref": "#/components/headers/RefreshedUserJwt"
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "The server could not complete the operation because of an unexpected internal or upstream error.",
         "content": {
           "application/json": {
             "schema": {
@@ -7716,6 +7794,36 @@
           "$ref": "#/components/schemas/ManagedAuthOption"
         },
         "description": "Connector-provided options for a dynamic managed authentication field.",
+        "x-app-connect-generated-contract": true
+      },
+      "ExtensionAdoptionStatsResponse": {
+        "type": "object",
+        "properties": {
+          "installedCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Distinct RingCentral extensions in the account that activated the browser extension or connected a CRM."
+          },
+          "connectedCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Distinct RingCentral extensions in the account with a live CRM connection."
+          },
+          "lastActiveAt": {
+            "nullable": true,
+            "description": "ISO timestamp of the most recent write to a connected user record, or null when no user is connected. Not a precise usage event.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "installedCount",
+          "connectedCount",
+          "lastActiveAt"
+        ],
+        "additionalProperties": true,
+        "description": "Account-level App Connect adoption funnel for a RingCentral administrator.",
         "x-app-connect-generated-contract": true
       }
     },

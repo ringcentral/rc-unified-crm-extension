@@ -3,6 +3,7 @@ import {
   AdminManagedOAuthCacheRequestSchema,
   AdminSettingsUpdateRequestSchema,
   AdminSuccessMessageSchema,
+  ExtensionAdoptionStatsResponseSchema,
   ManagedAuthAdminResponseSchema,
   ManagedAuthAdminUserValueSchema,
   ManagedAuthFieldDefinitionSchema,
@@ -14,6 +15,7 @@ import {
   StoredFieldValueSchema,
   adminSettingsUpdateRequestExample,
   adminSettingsUpdatedExample,
+  extensionAdoptionStatsResponseExample,
   managedAuthAdminResponseExample,
   managedAuthOrgUpdateExample,
   managedAuthOptionsRequestExample,
@@ -121,6 +123,7 @@ import {
 export const httpApiContractSchemas = {
   AdminSuccessMessage: AdminSuccessMessageSchema,
   AdminSettingsUpdateRequest: AdminSettingsUpdateRequestSchema,
+  ExtensionAdoptionStatsResponse: ExtensionAdoptionStatsResponseSchema,
   ManagedAuthFieldDefinition: ManagedAuthFieldDefinitionSchema,
   ManagedAuthOption: ManagedAuthOptionSchema,
   ManagedAuthOptionsRequest: ManagedAuthOptionsRequestSchema,
@@ -625,6 +628,22 @@ export const httpApiOperationContracts: readonly OpenApiOperationContract[] = [
   },
   {
     method: 'get',
+    path: '/admin/extensionAdoptionStats',
+    responses: {
+      '200': {
+        schema: 'ExtensionAdoptionStatsResponse',
+        description: 'Adoption funnel for the administrator account: activated extensions and connected CRM users.',
+        examples: {
+          stats: {
+            summary: 'Adoption stats',
+            value: extensionAdoptionStatsResponseExample,
+          },
+        },
+      },
+    },
+  },
+  {
+    method: 'get',
     path: '/admin/managedAuth',
     parameters: [
       {
@@ -980,6 +999,7 @@ export const httpApiExamplesToValidate = [
   ['ManagedAuthUpdated', AdminSuccessMessageSchema, managedAuthUpdatedExample],
   ['ManagedOAuthCacheRequest', AdminManagedOAuthCacheRequestSchema, managedOAuthCacheRequestExample],
   ['SuccessfulAdminMutation', BasicMutationResponseSchema, successfulAdminMutationExample],
+  ['ExtensionAdoptionStatsResponse', ExtensionAdoptionStatsResponseSchema, extensionAdoptionStatsResponseExample],
   ['AppointmentCreateRequest', AppointmentCreateRequestSchema, appointmentCreateRequestExample],
   ['AppointmentRange', AppointmentRangeSchema, appointmentRangeExample],
   ['AppointmentPatchRequest', AppointmentPatchRequestSchema, appointmentPatchRequestExample],

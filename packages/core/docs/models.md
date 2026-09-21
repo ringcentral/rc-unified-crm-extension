@@ -32,6 +32,19 @@ Stores CRM-authenticated users.
 | `hashedRcExtensionId` | Hashed RingCentral extension id |
 | `userSettings` | Per-user settings JSON |
 
+### `models/extensionActivityModel.ts`
+
+Records that a RingCentral extension activated the browser extension (completed a RingCentral login) under a RingCentral account. Written as a side effect of `GET /userInfoHash`; read by `GET /admin/extensionAdoptionStats`.
+
+| Field | Notes |
+| --- | --- |
+| `hashedRcExtensionId` | Part of the composite primary key; same hash rule as `users.hashedRcExtensionId` |
+| `rcAccountId` | Part of the composite primary key; plain RingCentral account id, same as `users.rcAccountId` |
+| `createdAt` | Sequelize default timestamp; first recorded login |
+| `updatedAt` | Sequelize default timestamp; most recent recorded login, since the throttled login refresh is the only write to a row |
+
+This table is additive and is created by `initDB()` `.sync()` on startup; no existing table changes. A failed write from `/userInfoHash` is logged as a warning and never affects the response.
+
 ### `models/callLogModel.ts`
 
 Stores the mapping between telephony sessions and CRM call logs.

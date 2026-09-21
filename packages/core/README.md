@@ -363,6 +363,7 @@ The core package provides the following API endpoints:
 - `POST /admin/serverLoggingSettings` - Update server logging settings
 - `GET /admin/managedAuth` - Get managed-auth field definitions and masked stored values
 - `POST /admin/managedAuth` - Update org-level or user-level managed auth field values
+- `GET /admin/extensionAdoptionStats` - Get activated-extension and connected-CRM counts for the admin's account
 
 ### System
 - `GET /releaseNotes` - Get release notes
@@ -370,7 +371,7 @@ The core package provides the following API endpoints:
 - `GET /isAlive` - Health check
 - `GET /serverVersionInfo` - Get server version
 - `GET /hostname` - Get user hostname
-- `GET /userInfoHash` - Get hashed user info
+- `GET /userInfoHash` - Get hashed user info (also records extension activation for adoption stats)
 
 ## Environment Variables
 

@@ -139,3 +139,21 @@ export interface RingCentralSdkLike {
   getCallLogData(params: Record<string, unknown>): Promise<{ records: any[] }>;
   getSMSData(params: Record<string, unknown>): Promise<{ records: any[] }>;
 }
+
+export interface ExtensionActivityParams {
+  hashedRcExtensionId: string;
+  rcAccountId: string | number;
+}
+
+export interface ExtensionAdoptionStatsParams {
+  rcAccountId: string | number;
+}
+
+export interface ExtensionAdoptionStatsResult {
+  /** Distinct extensions that activated the browser extension or connected a CRM. */
+  installedCount: number;
+  /** Distinct extensions with a live CRM connection (non-empty accessToken). */
+  connectedCount: number;
+  /** ISO timestamp of the most recent write to a connected user's row, or null. */
+  lastActiveAt: string | null;
+}

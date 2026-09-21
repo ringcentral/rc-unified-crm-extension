@@ -35,7 +35,7 @@ This page documents the non-MCP HTTP routes defined in `index.ts`.
 | `POST` | `/apiKeyLogin` | Handles API-key based login flows |
 | `GET` | `/apiKeyManagedAuthState` | Returns required-field readiness for shared API-key auth |
 | `POST` | `/unAuthorize` | Logs the user out of the CRM |
-| `GET` | `/userInfoHash` | Returns a hash derived from user information |
+| `GET` | `/userInfoHash` | Returns hashed extension and account ids. Also records the caller in `extensionActivities` fire-and-forget (the browser extension calls it on every RingCentral login), throttled to one write per hour per extension |
 | `GET` | `/ringcentral/oauth/callback` | Completes the admin RingCentral OAuth callback |
 
 ## Admin Routes
@@ -44,6 +44,7 @@ This page documents the non-MCP HTTP routes defined in `index.ts`.
 | --- | --- | --- |
 | `POST` | `/admin/settings` | Validates RingCentral admin role and saves admin settings |
 | `GET` | `/admin/settings` | Returns admin settings for the current account |
+| `GET` | `/admin/extensionAdoptionStats` | Returns `{ installedCount, connectedCount, lastActiveAt }` for the admin's RingCentral account (activated extensions ∪ connected CRM users, connected CRM users, newest connected-user write). Requires `X-RC-Access-Token` of an admin; 403 for non-admins, 500 on a database error |
 | `POST` | `/admin/userMapping` | Builds a mapping between CRM users and RingCentral extensions |
 | `POST` | `/admin/reinitializeUserMapping` | Rebuilds user mappings from scratch |
 | `GET` | `/admin/serverLoggingSettings` | Loads connector-specific server logging settings |

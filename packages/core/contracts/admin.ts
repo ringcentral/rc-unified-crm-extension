@@ -113,7 +113,20 @@ export const AdminManagedOAuthCacheRequestSchema = z.looseObject({
   ).optional(),
 }).describe('Pending managed OAuth configuration to cache for the RingCentral account.');
 
+export const ExtensionAdoptionStatsResponseSchema = z.looseObject({
+  installedCount: z.number().int().min(0).describe(
+    'Distinct RingCentral extensions in the account that activated the browser extension or connected a CRM.',
+  ),
+  connectedCount: z.number().int().min(0).describe(
+    'Distinct RingCentral extensions in the account with a live CRM connection.',
+  ),
+  lastActiveAt: z.string().nullable().describe(
+    'ISO timestamp of the most recent write to a connected user record, or null when no user is connected. Not a precise usage event.',
+  ),
+}).describe('Account-level App Connect adoption funnel for a RingCentral administrator.');
+
 export type AdminSuccessMessage = z.input<typeof AdminSuccessMessageSchema>;
+export type ExtensionAdoptionStatsResponse = z.input<typeof ExtensionAdoptionStatsResponseSchema>;
 export type AdminSettingsUpdateRequest = z.input<typeof AdminSettingsUpdateRequestSchema>;
 export type ManagedAuthAdminResponse = z.input<typeof ManagedAuthAdminResponseSchema>;
 export type ManagedAuthUpdateRequest = z.input<typeof ManagedAuthUpdateRequestSchema>;
@@ -193,3 +206,8 @@ export const managedOAuthCacheRequestExample = {
 export const adminSettingsUpdatedExample = 'Admin settings updated' satisfies AdminSuccessMessage;
 export const managedAuthUpdatedExample = 'Shared authentication updated' satisfies AdminSuccessMessage;
 export const successfulAdminMutationExample = { successful: true } as const;
+export const extensionAdoptionStatsResponseExample = {
+  installedCount: 42,
+  connectedCount: 31,
+  lastActiveAt: '2026-09-21T08:15:30.000Z',
+} satisfies ExtensionAdoptionStatsResponse;

@@ -10,6 +10,7 @@ Handlers contain the shared business workflows behind the route layer.
 | `handlers/contact.ts` | Contact search, creation, and account-data caching | `findContact`, `createContact`, `findContactWithName` |
 | `handlers/log.ts` | Call logging, message logging, plugin execution, async plugin callbacks, call-log lookup, and note cache writes | `createCallLog`, `updateCallLog`, `createMessageLog`, `getCallLog`, `saveNoteCache`, `handleAsyncPluginCallback` |
 | `handlers/admin.ts` | Admin settings, RingCentral reporting, server logging settings, and user mapping | `validateAdminRole`, `upsertAdminSettings`, `getAdminSettings`, `updateAdminRcTokens`, `getServerLoggingSettings`, `updateServerLoggingSettings`, `getAdminReport`, `getUserReport`, `getUserMapping`, `reinitializeUserMapping` |
+| `handlers/extensionActivity.ts` | Extension activation recording and account adoption aggregation | `recordExtensionActivity`, `getExtensionAdoptionStats` |
 | `handlers/user.ts` | User info refresh, user setting reads, admin/user setting merge, and updates | `refreshUserInfo`, `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
 | `handlers/disposition.ts` | Call-disposition writes against an existing log | `upsertCallDisposition` |
 | `handlers/calldown.ts` | User-owned call-down scheduling | `schedule`, `list`, `remove`, `markCalled`, `update` |
@@ -105,6 +106,13 @@ Rules implemented here:
 `disposition.ts`:
 
 - requires an existing local call-log mapping before writing disposition data
+
+`extensionActivity.ts`:
+
+- `recordExtensionActivity()` never throws; it warns and returns `false` on any database error so `/userInfoHash` is unaffected
+- skips the write when the row's `updatedAt` is less than an hour old; a refresh only bumps `updatedAt`
+- `getExtensionAdoptionStats()` counts `installedCount = |activated ∪ connected|`, `connectedCount = |connected|`, where connected users are `users` rows with a non-empty `accessToken` that match the account by `rcAccountId` or by `hashedRcExtensionId` present in the activity table
+- `lastActiveAt` is the newest `users.updatedAt` among connected rows, not a usage event
 
 `calldown.ts`:
 

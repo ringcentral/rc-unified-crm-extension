@@ -17,6 +17,7 @@ import type {
     CallDispositionRequest,
     CallLogMutationResponse,
     DebugReportUrlResponse,
+    ExtensionAdoptionStatsResponse,
     HealthResponse,
     ImplementedInterfacesResponse,
     ManagedAuthStateResponse,
@@ -61,6 +62,7 @@ const { MessageLogModel } = /** @type {any} */ (require('./models/messageLogMode
 const { AdminConfigModel } = /** @type {any} */ (require('./models/adminConfigModel'));
 const { CacheModel } = /** @type {any} */ (require('./models/cacheModel'));
 const { AccountDataModel } = /** @type {any} */ (require('./models/accountDataModel'));
+const { ExtensionActivityModel } = /** @type {any} */ (require('./models/extensionActivityModel'));
 const jwt = /** @type {any} */ (require('./lib/jwt'));
 const logCore = /** @type {any} */ (require('./handlers/log'));
 const contactCore = /** @type {any} */ (require('./handlers/contact'));
@@ -88,6 +90,7 @@ const { updateAuthSession } = /** @type {any} */ (require('./lib/authSession'));
 const managedAuthCore = /** @type {any} */ (require('./handlers/managedAuth'));
 const managedOAuthCore = /** @type {any} */ (require('./handlers/managedOAuth'));
 const accountDataCore = /** @type {any} */ (require('./handlers/accountData'));
+const extensionActivityCore = /** @type {any} */ (require('./handlers/extensionActivity'));
 const {
     MCP_OAUTH_REQUIRED_MESSAGE,
     MCP_OAUTH_STALE_CLIENT_MESSAGE,
@@ -135,6 +138,7 @@ async function initDB() {
         await CacheModel.sync();
         await CallDownListModel.sync();
         await AccountDataModel.sync();
+        await ExtensionActivityModel.sync();
     }
 }
 
@@ -685,6 +689,49 @@ function createCoreRouter() {
             eventName: 'Get admin settings',
             interfaceName: 'getAdminSettings',
             connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
+    router.get('/admin/extensionAdoptionStats', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('getExtensionAdoptionStats:start', {});
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
+            if (!isValidated) {
+                tracer?.trace('getExtensionAdoptionStats:adminValidationFailed', {});
+                res.status(403).send(wrapDebugResponse(tracer, 'Admin validation failed'));
+            }
+            else {
+                const stats = await extensionActivityCore.getExtensionAdoptionStats({ rcAccountId: String(rcAccountId) });
+                const response = {
+                    installedCount: stats.installedCount,
+                    connectedCount: stats.connectedCount,
+                    lastActiveAt: stats.lastActiveAt,
+                } satisfies ExtensionAdoptionStatsResponse;
+                res.status(200).send(wrapDebugResponse(tracer, response));
+                success = true;
+            }
+        }
+        catch (e) {
+            // Database failures land here; report a server error instead of crashing.
+            logger.error('Get extension adoption stats failed', { stack: e.stack });
+            tracer?.traceError('getExtensionAdoptionStats:error', e);
+            res.status(500).send(wrapDebugResponse(tracer, { error: getErrorResponse(e) }));
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get extension adoption stats',
+            interfaceName: 'getExtensionAdoptionStats',
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1618,6 +1665,17 @@ function createCoreRouter() {
             const accountId = util.getHashValue(req.query.accountId, process.env.HASH_KEY);
             const response = { extensionId, accountId } satisfies UserInfoHashResponse;
             res.status(200).send(wrapDebugResponse(tracer, response));
+            // The browser extension calls this route on every RingCentral login, so it
+            // doubles as the "extension activated" signal. Record it fire-and-forget:
+            // the handler never throws and the response above is already sent.
+            const rawExtensionId = getFirstQueryValue(req.query.extensionId);
+            const rawAccountId = getFirstQueryValue(req.query.accountId);
+            if (rawExtensionId && rawAccountId) {
+                void extensionActivityCore.recordExtensionActivity({
+                    hashedRcExtensionId: extensionId,
+                    rcAccountId: String(rawAccountId),
+                });
+            }
         }
         catch (e) {
             logger.error('Get user info hash failed', { stack: e.stack });
