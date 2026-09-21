@@ -359,6 +359,87 @@ describe('Application plugin routes', () => {
     expect(response.text).toBe('Unknown plugin');
     expect(googleDrivePlugin.uploadToGoogleDrive).not.toHaveBeenCalled();
   });
+
+  describe('invalid or expired JWT returns 401', () => {
+    beforeEach(() => {
+      // decodeJwt returns null when jsonwebtoken.verify throws (bad signature, expired, malformed)
+      jwt.decodeJwt.mockReturnValue(null);
+    });
+
+    test('GET /googleDrive/oauthCallback', async () => {
+      const state = encodeURIComponent(JSON.stringify({
+        jwtToken: 'expired-jwt',
+        pluginId: 'googleDrive',
+      }));
+
+      const response = await request(getServer())
+        .get('/googleDrive/oauthCallback')
+        .query({
+          callbackUri: `https://extension.example/callback?state=${state}`,
+          code: 'google-code',
+          scope: 'drive.file',
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.text).toBe('Invalid or expired token');
+      expect(UserModel.findByPk).not.toHaveBeenCalled();
+      expect(googleDrivePlugin.onOAuthCallback).not.toHaveBeenCalled();
+    });
+
+    test('GET /googleDrive/checkAuth', async () => {
+      const response = await request(getServer())
+        .get('/googleDrive/checkAuth')
+        .query({ jwtToken: 'expired-jwt' });
+
+      expect(response.status).toBe(401);
+      expect(response.text).toBe('Invalid or expired token');
+      expect(googleDrivePlugin.checkAuth).not.toHaveBeenCalled();
+    });
+
+    test('POST /googleDrive/logout', async () => {
+      const response = await request(getServer())
+        .post('/googleDrive/logout')
+        .send({ jwtToken: 'expired-jwt' });
+
+      expect(response.status).toBe(401);
+      expect(response.text).toBe('Invalid or expired token');
+      expect(googleDrivePlugin.logout).not.toHaveBeenCalled();
+    });
+
+    test('GET /plugin/licenseStatus/:pluginId', async () => {
+      const response = await request(getServer())
+        .get('/plugin/licenseStatus/googleDrive')
+        .query({ jwtToken: 'expired-jwt' });
+
+      expect(response.status).toBe(401);
+      expect(response.text).toBe('Invalid or expired token');
+      expect(UserModel.findByPk).not.toHaveBeenCalled();
+      expect(googleDrivePlugin.checkAuth).not.toHaveBeenCalled();
+    });
+
+    test('POST /plugin/:pluginId', async () => {
+      const response = await request(getServer())
+        .post('/plugin/googleDrive')
+        .query({ jwtToken: 'expired-jwt' })
+        .send({ data: { logInfo: { telephonySessionId: 'telephony-session-1' } } });
+
+      expect(response.status).toBe(401);
+      expect(response.text).toBe('Invalid or expired token');
+      expect(UserModel.findByPk).not.toHaveBeenCalled();
+      expect(googleDrivePlugin.uploadToGoogleDrive).not.toHaveBeenCalled();
+    });
+
+    test('a decoded token without an id is also rejected', async () => {
+      jwt.decodeJwt.mockReturnValue({ platform: 'testCRM' });
+
+      const response = await request(getServer())
+        .get('/googleDrive/checkAuth')
+        .query({ jwtToken: 'token-without-id' });
+
+      expect(response.status).toBe(401);
+      expect(response.text).toBe('Invalid or expired token');
+    });
+  });
 });
 
 export {};

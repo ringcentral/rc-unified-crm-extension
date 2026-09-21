@@ -178,8 +178,7 @@ describe('Bullhorn monthly report connector', () => {
         const report = await bullhornReport.generateMonthlyCsvReport();
 
         expect(report.csv).toBe('Bullhorn Master User ID,Email,Bullhorn ID,Name,Bullhorn Corp Token');
-        expect(logger.info).toHaveBeenCalledWith({
-            message: 'Skipping user because email and name are not found',
+        expect(logger.info).toHaveBeenCalledWith('Skipping user because email and name are not found', {
             userId: '100-bullhorn'
         });
     });
@@ -372,8 +371,7 @@ describe('Bullhorn monthly report connector', () => {
         });
         expect(axios.get.mock.calls[2][0]).toContain('FROM Contact WHERE AccountId IN');
         expect(axios.get.mock.calls[2][0]).toContain("Email IN ('alice@example.com')");
-        expect(logger.info).toHaveBeenCalledWith({
-            message: 'Salesforce contacts fetched',
+        expect(logger.info).toHaveBeenCalledWith('Salesforce contacts fetched', {
             count: 1
         });
     });

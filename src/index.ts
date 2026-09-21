@@ -305,20 +305,31 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     try {
         const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
         if (`Basic ${basicAuthHeader}` === req.get('authorization')) {
-            const userId = req.body.user_id;
-            if (!userId) {
+            // Pipedrive's uninstall webhook sends its numeric user id, while our primary key is the
+            // string `${id}-pipedrive` (see connectors/pipedrive getUserInfo). Comparing the raw
+            // integer against the varchar column throws "operator does not exist: character
+            // varying = integer", so normalize to the stored key first.
+            if (req.body.user_id === undefined || req.body.user_id === null || req.body.user_id === '') {
                 res.status(400).send('Missing user_id');
                 return;
             }
+            const rawUserId = String(req.body.user_id);
+            const candidateIds = rawUserId.endsWith('-pipedrive') ? [rawUserId] : [rawUserId, `${rawUserId}-pipedrive`];
 
             // Find the user to get refresh token for revocation
-            const user = await UserModel.findByPk(userId);
+            let user = null;
+            for (const candidateId of candidateIds) {
+                user = await UserModel.findByPk(candidateId);
+                if (user) {
+                    break;
+                }
+            }
             if (user) {
                 const platformModule = /** @type {any} */ (require(`./connectors/pipedrive`));
                 await platformModule.unAuthorize({ user });
                 await UserModel.destroy({
                     where: {
-                        id: userId,
+                        id: user.id,
                         platform: 'pipedrive'
                     }
                 });
@@ -336,7 +347,12 @@ app.delete('/pipedrive-redirect', async function (req, res) {
 app.get('/plugin/licenseStatus/:pluginId', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
-        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const decodedToken = jwt.decodeJwt(jwtToken);
+        if (!decodedToken?.id) {
+            res.status(401).send('Invalid or expired token');
+            return;
+        }
+        const { id: userId, platform } = decodedToken;
         const user = await UserModel.findByPk(userId);
         if (!user) {
             res.status(400).send('User not found');
@@ -377,7 +393,12 @@ app.get('/plugin/licenseStatus/:pluginId', async function (req, res) {
 app.post('/plugin/:pluginId', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
-        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const decodedToken = jwt.decodeJwt(jwtToken);
+        if (!decodedToken?.id) {
+            res.status(401).send('Invalid or expired token');
+            return;
+        }
+        const { id: userId, platform } = decodedToken;
         const user = await UserModel.findByPk(userId);
         if (!user) {
             res.status(400).send('User not found');
@@ -428,7 +449,12 @@ app.get('/googleDrive/oauthCallback', async function (req, res) {
         const stateJson = JSON.parse(decodeURIComponent(state));
         const jwtToken = stateJson.jwtToken;
         const pluginId = stateJson.pluginId;
-        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const decodedToken = jwt.decodeJwt(jwtToken);
+        if (!decodedToken?.id) {
+            res.status(401).send('Invalid or expired token');
+            return;
+        }
+        const { id: userId, platform } = decodedToken;
         const user = await UserModel.findByPk(userId);
         if (!user) {
             res.status(400).send('User not found');
@@ -450,7 +476,12 @@ app.get('/googleDrive/checkAuth', async function (req, res) {
             res.status(400).send('JWT token is required');
             return;
         }
-        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const decodedToken = jwt.decodeJwt(jwtToken);
+        if (!decodedToken?.id) {
+            res.status(401).send('Invalid or expired token');
+            return;
+        }
+        const { id: userId, platform } = decodedToken;
         const result = await googleDrivePlugin.checkAuth({ userId });
         res.status(200).send(result);
     }
@@ -467,7 +498,12 @@ app.post('/googleDrive/logout', async function (req, res) {
             res.status(400).send('JWT token is required');
             return;
         }
-        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const decodedToken = jwt.decodeJwt(jwtToken);
+        if (!decodedToken?.id) {
+            res.status(401).send('Invalid or expired token');
+            return;
+        }
+        const { id: userId, platform } = decodedToken;
         const result = await googleDrivePlugin.logout({ userId });
         res.status(200).send(result);
     }
