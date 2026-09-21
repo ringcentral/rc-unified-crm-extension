@@ -314,7 +314,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     let logId = addLogRes.data.activity.id;
     if (shouldCompleteActivity({ user, activityCompletionReady, defaultCompletionReady: true })) {
         const completeLogRes = await axios.put(
-            `${process.env.REDTAIL_API_SERVER}/activities/${addLogRes.data.activity.id}`,
+            `${process.env.REDTAIL_API_SERVER}/activities/${logId}`,
             {
                 completed: true
             },

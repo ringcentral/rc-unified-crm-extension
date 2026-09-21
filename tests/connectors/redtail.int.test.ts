@@ -1548,6 +1548,42 @@ describe('Redtail Connector', () => {
 
             expect(result.logId).toBe(301);
         });
+
+        it('should apply custom timezone when updating a call log', async () => {
+            const userWithTimezone = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    redtailCustomTimezone: { value: -420 } // UTC-7
+                }
+            });
+            const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '302' });
+
+            nock(apiUrl)
+                .put('/activities/302')
+                .reply(200, { activity: { id: 302 } });
+
+            const result = await redtail.updateCallLog({
+                user: userWithTimezone,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: 'Timezone Subject',
+                note: null,
+                startTime: Date.now(),
+                duration: 300,
+                result: null,
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: null,
+                composedLogDetails: '<li><b>Date/time</b>: 2024-01-15 10:00:00 AM</li>',
+                existingCallLogDetails: null,
+                hashedAccountId: 'hash-123',
+                activityCompletionReady: true
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+            expect(result.updatedNote).toContain('Date/time');
+        });
     });
 });
 
