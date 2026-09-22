@@ -12,6 +12,7 @@ import type {
 } from '../types';
 
 const logger = require('./logger');
+const { CRM_ERROR_CODE } = require('./constants');
 const errorMessage = require('./generalErrorMessage') as {
     rateLimitErrorMessage(params: { platform?: string }): ReturnMessage;
     authorizationErrorMessage(params: { platform?: string }): ReturnMessage;
@@ -47,6 +48,19 @@ function handleApiError(
     }
 
     const numericStatusCode = Number(statusCode);
+    // 401 means the CRM rejected the credential itself, so only reconnecting fixes it. The rest of
+    // the 4xx range stays generic: 403 is a permission gap and 404 a missing resource, and neither
+    // should tell an administrator to reauthorize.
+    if (numericStatusCode === 401) {
+        return {
+            successful: false,
+            returnMessage: errorMessage.authorizationErrorMessage({ platform }),
+            errorCode: CRM_ERROR_CODE.SESSION_INVALID,
+            extraDataTracking: {
+                statusCode
+            }
+        };
+    }
     if (numericStatusCode >= 400 && numericStatusCode < 410) {
         return {
             successful: false,

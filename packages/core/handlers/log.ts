@@ -15,7 +15,7 @@ const composeCallLog = /** @type {any} */ (rawComposeCallLog);
 const { composeSharedSMSLog: rawComposeSharedSMSLog } = require('../lib/sharedSMSComposer');
 const composeSharedSMSLog = /** @type {any} */ (rawComposeSharedSMSLog);
 const connectorRegistry = /** @type {any} */ (require('../connector/registry'));
-const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
+const { CRM_ERROR_CODE, LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 const { NoteCache: RawNoteCache } = require('../models/dynamo/noteCacheSchema');
 const NoteCache = /** @type {any} */ (RawNoteCache);
 const { Connector: RawConnector } = require('../models/dynamo/connectorSchema');
@@ -684,7 +684,12 @@ async function getCallLog({ userId, sessionIds, extensionNumber, hashedExtension
     try {
         let user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
-            return { successful: false, message: `Contact not found` };
+            // See findContact: a missing credential is a dead session, not a retryable failure.
+            return {
+                successful: false,
+                message: `Contact not found`,
+                errorCode: CRM_ERROR_CODE.SESSION_INVALID
+            };
         }
         let logs = [];
         let returnMessage = null;
