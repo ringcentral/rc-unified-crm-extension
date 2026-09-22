@@ -84,10 +84,7 @@ async function generateMonthlyCsvReport() {
     const batchConcurrency = 10;
     const batchDelayMs = 100;
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    logger.info({
-        message: 'Generating Bullhorn monthly CSV report for', Length: boundedUsers.length
-    }
-    );
+    logger.info('Generating Bullhorn monthly CSV report for', { Length: boundedUsers.length });
     for (let startIndex = 0; startIndex < boundedUsers.length; startIndex += batchConcurrency) {
         const currentBatch = boundedUsers.slice(startIndex, startIndex + batchConcurrency);
         const batchResults = await Promise.allSettled(
@@ -95,8 +92,7 @@ async function generateMonthlyCsvReport() {
                 try {
                     const profile = await fetchBullhornUserProfile({ user: currentUser });
                     if (!profile?.email && !profile?.name) {
-                        logger.info({
-                            message: 'Skipping user because email and name are not found',
+                        logger.info('Skipping user because email and name are not found', {
                             userId: currentUser.id
                         });
                         return null;
@@ -293,7 +289,7 @@ async function fetchMonthlySalesforceReportRows(){
             if (batchDelayMs) await delay(batchDelayMs);
         }
         bullhornEmailList = Array.from(emailSet.values());
-        logger.info({ message: 'Bullhorn emails fetched for Salesforce report', count: emailSet.size });
+        logger.info('Bullhorn emails fetched for Salesforce report', { count: emailSet.size });
     } catch (error) {
         logger.error('Failed to fetch Bullhorn emails for Salesforce report', { stack: error.stack });
     }
@@ -491,7 +487,7 @@ try {
 const results = [];
 const successfulMasterUserKeys = new Set();
 
-logger.info({ message: 'Salesforce contacts fetched', count: contacts.length });
+logger.info('Salesforce contacts fetched', { count: contacts.length });
 
 // Merge fields for each contact, and supplement with RC_Cancel_Date__c and RC_User_ID__c from account
 contacts.forEach(contact => {

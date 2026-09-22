@@ -3913,6 +3913,16 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "The user JWT is missing, malformed, or expired. Re-authorize the CRM connection to obtain a new token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -3961,6 +3971,16 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "The user JWT is missing, malformed, or expired. Re-authorize the CRM connection to obtain a new token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3984,6 +4004,16 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "The user JWT is missing, malformed, or expired. Re-authorize the CRM connection to obtain a new token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -4097,6 +4127,16 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "description": "The user JWT is missing, malformed, or expired. Re-authorize the CRM connection to obtain a new token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
@@ -4136,6 +4176,16 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "The user JWT is missing, malformed, or expired. Re-authorize the CRM connection to obtain a new token.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [

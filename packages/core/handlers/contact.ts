@@ -19,6 +19,7 @@ const { Connector: RawConnector } = require('../models/dynamo/connectorSchema');
 const Connector = /** @type {{ getProxyConfig(proxyId: string): Promise<ProxyConfig | null> }} */ (/** @type {unknown} */ (RawConnector));
 const { handleApiError: rawHandleApiError } = require('../lib/errorHandler');
 const handleApiError = /** @type {(error: unknown, platform: string, operation: string, context?: Record<string, unknown>) => ContactHandlerResult} */ (rawHandleApiError);
+const { CRM_ERROR_CODE } = require('../lib/constants');
 const { AccountDataModel: RawAccountDataModel } = require('../models/accountDataModel');
 const AccountDataModel = /** @type {{ findOne(options: Record<string, unknown>): Promise<AccountContactDataRecord | null>, create(values: Record<string, unknown>): Promise<AccountContactDataRecord> }} */ (RawAccountDataModel);
 
@@ -39,13 +40,16 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
 
         if (!user || !user.accessToken) {
             tracer?.trace('handler.findContact:noUser', { userId });
+            // No stored credential to call the CRM with, so this is a dead session rather than a
+            // retryable failure. The status code stays 200 for compatibility; the code says why.
             return {
                 successful: false,
                 returnMessage: {
                     message: `Contact not found`,
                     messageType: 'warning',
                     ttl: 5000
-                }
+                },
+                errorCode: CRM_ERROR_CODE.SESSION_INVALID
             };
         }
         // find cached contact by composite key; findByPk expects raw PK values, so use where clause

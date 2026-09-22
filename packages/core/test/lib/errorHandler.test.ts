@@ -56,6 +56,38 @@ describe('errorHandler', () => {
       expect(result.returnMessage.details[0].items[0].text).toContain('Bullhorn');
     });
 
+    test('marks a 401 as an invalid CRM session so clients prompt to reconnect', () => {
+      const error = new Error('unauthorized');
+      error.response = { status: 401, data: { message: 'unauthorized' } };
+
+      const result = handleApiError(error, 'Bullhorn', 'findContact');
+
+      expect(result.errorCode).toBe('CRM_SESSION_INVALID');
+    });
+
+    test.each([403, 404, 409, 429, 500])(
+      'does not mark a %s as an invalid CRM session',
+      (status) => {
+        // 403 is a permission gap, 404 a missing resource, 429 a rate limit, 500 a provider
+        // failure. None of them are fixed by reauthorizing, so none may trigger a reconnect
+        // prompt.
+        const error = new Error('provider error');
+        error.response = { status, data: { message: 'provider error' } };
+
+        const result = handleApiError(error, 'Bullhorn', 'findContact');
+
+        expect(result.successful).toBe(false);
+        expect(result.errorCode).toBeUndefined();
+      }
+    );
+
+    test('does not mark a transport failure without a response as an invalid session', () => {
+      const result = handleApiError(new Error('socket hang up'), 'Bullhorn', 'findContact');
+
+      expect(result.successful).toBe(false);
+      expect(result.errorCode).toBeUndefined();
+    });
+
     test('maps non-auth provider errors to operation-specific messages', () => {
       const error = new Error('provider unavailable');
       error.response = {
