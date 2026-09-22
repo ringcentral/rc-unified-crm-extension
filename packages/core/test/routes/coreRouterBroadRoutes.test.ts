@@ -1183,6 +1183,50 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).post('/contact').query(authQuery()).send({ phoneNumber: '+1555' })).status).toBe(401);
   });
 
+  test('forwards an invalid-session errorCode on the in-band 200 failures', async () => {
+    // The routes rebuild their response payload field by field, so a handler-supplied errorCode is
+    // dropped unless the route forwards it. Status stays 200 so existing clients are unaffected.
+    contactCore.findContact.mockResolvedValueOnce({
+      successful: false,
+      returnMessage: { messageType: 'warning', message: 'Contact not found' },
+      errorCode: 'CRM_SESSION_INVALID',
+    });
+    await expect(
+      request(app).get('/contact').query({ ...authQuery(), phoneNumber: '+1555' })
+    ).resolves.toMatchObject({
+      status: 200,
+      body: expect.objectContaining({ successful: false, errorCode: 'CRM_SESSION_INVALID' }),
+    });
+
+    logCore.getCallLog.mockResolvedValueOnce({
+      successful: false,
+      returnMessage: { messageType: 'warning', message: 'Contact not found' },
+      errorCode: 'CRM_SESSION_INVALID',
+    });
+    await expect(request(app).get('/callLog').query(authQuery())).resolves.toMatchObject({
+      status: 200,
+      body: expect.objectContaining({ successful: false, errorCode: 'CRM_SESSION_INVALID' }),
+    });
+  });
+
+  test('omits errorCode entirely when the handler did not set one', async () => {
+    contactCore.findContact.mockResolvedValueOnce({
+      successful: true,
+      returnMessage: null,
+      contact: [],
+    });
+    const contactResponse = await request(app)
+      .get('/contact')
+      .query({ ...authQuery(), phoneNumber: '+1555' });
+    expect(contactResponse.status).toBe(200);
+    expect(contactResponse.body).not.toHaveProperty('errorCode');
+
+    logCore.getCallLog.mockResolvedValueOnce({ successful: true, logs: [], returnMessage: null });
+    const callLogResponse = await request(app).get('/callLog').query(authQuery());
+    expect(callLogResponse.status).toBe(200);
+    expect(callLogResponse.body).not.toHaveProperty('errorCode');
+  });
+
   test('returns 401 when appointment handlers request session revocation', async () => {
     for (const [method, path, mockFn, body] of [
       ['get', '/appointments', appointmentCore.listAppointments],

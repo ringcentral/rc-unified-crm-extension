@@ -4,6 +4,7 @@ import type {
     DatabaseQueryLogOptions,
     LoggerContext,
     LoggerLevelName,
+    LoggerMessage,
     LoggerOptions
 } from '../types';
 
@@ -44,6 +45,33 @@ class Logger {
         return LOG_LEVELS[level] <= this.level;
     }
 
+    // Callers occasionally pass an Error or a `{ message, ...context }` object as the message.
+    // Without this guard the output becomes the useless literal "[object Object]". Objects
+    // without a string `message` are deliberately NOT serialized: dumping an arbitrary object
+    // (a user record, an axios response) into the log is how PII and tokens leak.
+    _normalizeMessage(message: LoggerMessage, context: LoggerContext = {}): { message: string; context: LoggerContext } {
+        if (typeof message === 'string') {
+            return { message, context };
+        }
+        if (message instanceof Error) {
+            return {
+                message: message.message,
+                context: { stack: message.stack, ...context }
+            };
+        }
+        if (message !== null && typeof message === 'object') {
+            const { message: innerMessage, ...rest } = message as Record<string, any>;
+            if (typeof innerMessage === 'string') {
+                return { message: innerMessage, context: { ...rest, ...context } };
+            }
+            return {
+                message: 'Logger called with a non-message object',
+                context: { ...context, objectKeys: Object.keys(message) }
+            };
+        }
+        return { message: String(message), context };
+    }
+
     _formatMessage(level: LoggerLevelName, message: string, context: LoggerContext = {}): string {
         const timestamp = new Date().toISOString();
 
@@ -79,7 +107,8 @@ class Logger {
         }
     }
 
-    error(message: string, context: LoggerContext = {}): void {
+    error(rawMessage: LoggerMessage, rawContext: LoggerContext = {}): void {
+        const { message, context } = this._normalizeMessage(rawMessage, rawContext);
         let enrichedContext = context;
         if (context.error instanceof Error) {
             const { error, ...rest } = context;
@@ -96,15 +125,18 @@ class Logger {
         this._log('ERROR', message, enrichedContext);
     }
 
-    warn(message: string, context: LoggerContext = {}): void {
+    warn(rawMessage: LoggerMessage, rawContext: LoggerContext = {}): void {
+        const { message, context } = this._normalizeMessage(rawMessage, rawContext);
         this._log('WARN', message, context);
     }
 
-    info(message: string, context: LoggerContext = {}): void {
+    info(rawMessage: LoggerMessage, rawContext: LoggerContext = {}): void {
+        const { message, context } = this._normalizeMessage(rawMessage, rawContext);
         this._log('INFO', message, context);
     }
 
-    debug(message: string, context: LoggerContext = {}): void {
+    debug(rawMessage: LoggerMessage, rawContext: LoggerContext = {}): void {
+        const { message, context } = this._normalizeMessage(rawMessage, rawContext);
         this._log('DEBUG', message, context);
     }
 

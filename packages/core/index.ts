@@ -80,6 +80,7 @@ const connectorRegistry = /** @type {any} */ (require('./connector/registry'));
 const calldown = /** @type {any} */ (require('./handlers/calldown'));
 const mcpHandler = /** @type {any} */ (require('./mcp/mcpHandler'));
 const logger = /** @type {any} */ (require('./lib/logger'));
+const { CRM_ERROR_CODE } = require('./lib/constants');
 const { DebugTracer } = /** @type {any} */ (require('./lib/debugTracer'));
 const s3ErrorLogReport = /** @type {any} */ (require('./lib/s3ErrorLogReport'));
 const pluginCore = /** @type {any} */ (require('./handlers/plugin'));
@@ -192,7 +193,7 @@ function wrapDebugResponse(tracer: any, payload: any) {
     return payload;
 }
 
-const CRM_SESSION_REVOKED_ERROR_CODE = 'CRM_SESSION_REVOKED';
+const CRM_SESSION_REVOKED_ERROR_CODE = CRM_ERROR_CODE.SESSION_REVOKED;
 
 function sendCrmSessionRevokeResponse(res: any, tracer: any, payload: Record<string, unknown>) {
     return res.status(401).send(wrapDebugResponse(tracer, {
@@ -1705,7 +1706,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, contact, extraDataTracking, isRevokeUserSession } = await contactCore.findContact({
+                const { successful, returnMessage, contact, extraDataTracking, isRevokeUserSession, errorCode } = await contactCore.findContact({
                     platform,
                     userId,
                     phoneNumber: req.query.phoneNumber.replace(' ', '+'),
@@ -1719,8 +1720,13 @@ function createCoreRouter() {
                     success = false;
                 }
                 else {
-                    tracer?.trace('findContact:result', { successful, returnMessage, contact });
-                    res.status(200).send(wrapDebugResponse(tracer, { successful, returnMessage, contact }));
+                    tracer?.trace('findContact:result', { successful, returnMessage, contact, errorCode });
+                    res.status(200).send(wrapDebugResponse(tracer, {
+                        successful,
+                        returnMessage,
+                        contact,
+                        ...(errorCode ? { errorCode } : {})
+                    }));
                     if (successful) {
                         const nonNewContact = contact?.filter(c => !c.isNewContact) ?? [];
                         resultCount = nonNewContact.length;
@@ -2550,7 +2556,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logs, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.getCallLog({
+                const { successful, logs, returnMessage, extraDataTracking, isRevokeUserSession, errorCode } = await logCore.getCallLog({
                     userId,
                     sessionIds: req.query.sessionIds,
                     extensionNumber: req.query.extensionNumber,
@@ -2563,7 +2569,12 @@ function createCoreRouter() {
                     success = false;
                 }
                 else {
-                    res.status(200).send(wrapDebugResponse(tracer, { successful, logs, returnMessage }));
+                    res.status(200).send(wrapDebugResponse(tracer, {
+                        successful,
+                        logs,
+                        returnMessage,
+                        ...(errorCode ? { errorCode } : {})
+                    }));
                     success = true;
                     if (extraDataTracking) {
                         extraData = extraDataTracking;

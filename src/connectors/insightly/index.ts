@@ -106,6 +106,59 @@ async function unAuthorize({ user }) {
     }
 }
 
+function parseExtraPhoneFieldNames(settingValue) {
+    if (typeof settingValue !== 'string') {
+        return [];
+    }
+    return settingValue.split(',').map(name => name.trim()).filter(Boolean);
+}
+
+// Insightly answers 4xx when a configured custom field name does not exist on the entity.
+// That is a user-configuration problem, not a server fault, and it recurs on every lookup,
+// so it is logged as a warning with the field name rather than as an error with a stack.
+async function searchByExtraPhoneFields({ user, authHeader, numberToQuery, entity, contactType, fieldNames, failedFieldNames }) {
+    const results = [];
+    for (const extraPhoneFieldName of fieldNames) {
+        const failureKey = `${entity}:${extraPhoneFieldName}`;
+        if (failedFieldNames.has(failureKey)) {
+            continue;
+        }
+        try {
+            const response = await axios.get(
+                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/${entity}/search?field_name=${extraPhoneFieldName}&field_value=${numberToQuery}&brief=false`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+            for (const rawContactInfo of response.data) {
+                rawContactInfo.contactType = contactType;
+                rawContactInfo.extraPhoneFieldName = extraPhoneFieldName;
+                rawContactInfo.extraPhoneFieldNameValue = rawContactInfo.CUSTOMFIELDS?.find(f => f.FIELD_NAME === extraPhoneFieldName)?.FIELD_VALUE;
+                results.push(rawContactInfo);
+            }
+        }
+        catch (e) {
+            const status = e.response?.status;
+            if (status >= 400 && status < 500) {
+                failedFieldNames.add(failureKey);
+                logger.warn('Insightly extra phone field lookup rejected, skipping field for this request', {
+                    entity,
+                    extraPhoneFieldName,
+                    status
+                });
+            }
+            else {
+                logger.error('Insightly extra phone field lookup failed', {
+                    entity,
+                    extraPhoneFieldName,
+                    status,
+                    stack: e.stack
+                });
+            }
+        }
+    }
+    return results;
+}
+
 async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
     if (isExtension === 'true') {
         return {
@@ -135,6 +188,11 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         }
     }
     const rawContacts = [];
+    const extraPhoneFieldNamesForContact = parseExtraPhoneFieldNames(user.userSettings?.insightlyExtraPhoneFieldNameForContact?.value);
+    const extraPhoneFieldNamesForLead = parseExtraPhoneFieldNames(user.userSettings?.insightlyExtraPhoneFieldNameForLead?.value);
+    // Field names that Insightly rejected during this lookup. Shared across entity types and
+    // number formats so a misconfigured field costs one request, not one per attempt.
+    const failedExtraPhoneFields = new Set();
     for (const numberToQuery of numberToQueryArray) {
         // try Contact by PHONE
         const contactPhonePersonInfo = await axios.get(
@@ -156,26 +214,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             rawContactInfo.contactType = 'contactMobile';
             rawContacts.push(rawContactInfo);
         }
-        const extraPhoneFieldNamesForContact = user.userSettings?.insightlyExtraPhoneFieldNameForContact?.value ? user.userSettings?.insightlyExtraPhoneFieldNameForContact?.value?.split(',') : [];
         // try Contact by extra phone fields
-        for (const extraPhoneFieldName of extraPhoneFieldNamesForContact) {
-            try {
-                const contactExtraPhonePersonInfo = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=${extraPhoneFieldName}&field_value=${numberToQuery}&brief=false`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                for (let rawContactInfo of contactExtraPhonePersonInfo.data) {
-                    rawContactInfo.contactType = 'contactExtraPhone';
-                    rawContactInfo.extraPhoneFieldName = extraPhoneFieldName;
-                    rawContactInfo.extraPhoneFieldNameValue = rawContactInfo.CUSTOMFIELDS.find(f => f.FIELD_NAME === extraPhoneFieldName)?.FIELD_VALUE;
-                    rawContacts.push(rawContactInfo);
-                }
-            }
-            catch (e) {
-                logger.error('Insightly extra phone field not found', { stack: e.stack });
-            }
-        }
+        rawContacts.push(...await searchByExtraPhoneFields({
+            user, authHeader, numberToQuery,
+            entity: 'contacts',
+            contactType: 'contactExtraPhone',
+            fieldNames: extraPhoneFieldNamesForContact,
+            failedFieldNames: failedExtraPhoneFields
+        }));
         // try Lead by PHONE
         const leadPhonePersonInfo = await axios.get(
             `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=PHONE&field_value=${numberToQuery}&brief=false`,
@@ -197,25 +243,13 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             rawContacts.push(rawContactInfo);
         }
         // try Lead by extra phone fields
-        const extraPhoneFieldNamesForLead = user.userSettings?.insightlyExtraPhoneFieldNameForLead?.value ? user.userSettings?.insightlyExtraPhoneFieldNameForLead?.value?.split(',') : [];
-        for (const extraPhoneFieldName of extraPhoneFieldNamesForLead) {
-            try {
-                const leadExtraPhonePersonInfo = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=${extraPhoneFieldName}&field_value=${numberToQuery}&brief=false`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                for (let rawContactInfo of leadExtraPhonePersonInfo.data) {
-                    rawContactInfo.contactType = 'leadExtraPhone';
-                    rawContactInfo.extraPhoneFieldName = extraPhoneFieldName;
-                    rawContactInfo.extraPhoneFieldNameValue = rawContactInfo.CUSTOMFIELDS.find(f => f.FIELD_NAME === extraPhoneFieldName)?.FIELD_VALUE;
-                    rawContacts.push(rawContactInfo);
-                }
-            }
-            catch (e) {
-                logger.error('Insightly extra phone field not found', { stack: e.stack });
-            }
-        }
+        rawContacts.push(...await searchByExtraPhoneFields({
+            user, authHeader, numberToQuery,
+            entity: 'leads',
+            contactType: 'leadExtraPhone',
+            fieldNames: extraPhoneFieldNamesForLead,
+            failedFieldNames: failedExtraPhoneFields
+        }));
     }
     const matchedContactInfo = [];
     for (let singlePersonInfo of rawContacts) {

@@ -58,7 +58,7 @@ async function getUserInfo({ authHeader, query }) {
             });
             oneWorldEnabled = oneWorldLicenseResponse?.data?.oneWorldEnabled;
         } catch (error) {
-            logger.error({ message: "Error in getting OneWorldLicense", stack: error.stack });
+            logger.error("Error in getting OneWorldLicense", { stack: error.stack });
             const subsidiaryId = getCurrentLoggedInUserResponse?.data?.subsidiary;
             if (subsidiaryId !== undefined && subsidiaryId !== '') {
                 oneWorldEnabled = true;
@@ -113,7 +113,7 @@ async function getUserInfo({ authHeader, query }) {
             }
 
         } catch (error) {
-            logger.error({ message: "Error in getting permission set", stack: error.stack });
+            logger.error("Error in getting permission set", { stack: error.stack });
         }
         // Validate that we have the required NetSuite parameters
         if (!query.entity || !query.company) {
@@ -148,7 +148,7 @@ async function getUserInfo({ authHeader, query }) {
         };
     } catch (error) {
         const errorDetails = netSuiteErrorDetails(error, "Could not load user information");
-        logger.error({ message: "Error in getting employee information", Path: error?.request?.path, Host: error?.request?.host, errorDetails, responseHeader: error?.response?.headers });
+        logger.error("Error in getting employee information", { status: error?.response?.status, errorDetails });
         return {
             successful: false,
             returnMessage: {
@@ -195,7 +195,7 @@ async function getUserList({ user, authHeader }) {
         }
         return userList;
     } catch (error) {
-        logger.error({ message: "Error in getting user list", errorDetails: netSuiteErrorDetails(error, "Error in getting user list") });
+        logger.error("Error in getting user list", { errorDetails: netSuiteErrorDetails(error, "Error in getting user list") });
         return [];
     }
 }
@@ -275,7 +275,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 
         return { logId: existingCallLogId };
     } catch (error) {
-        logger.error({ message: "Error in upsertCallDisposition", stack: error.stack });
+        logger.error("Error in upsertCallDisposition", { stack: error.stack });
     }
 }
 
@@ -345,7 +345,7 @@ async function handleDispositionNote({
             return sanitizedNote;
         }
     } catch (error) {
-        logger.error({ message: `Error in logging calls against ${dispositionType}`, stack: error.stack });
+        logger.error(`Error in logging calls against ${dispositionType}`, { stack: error.stack });
         throw error;
     }
 }
@@ -449,7 +449,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                                         }
                                     }
                                 } catch (error) {
-                                    logger.error({ message: "Error in SalesOrder/Opportunity in contact", stack: error.stack });
+                                    logger.error("Error in SalesOrder/Opportunity in contact", { stack: error.stack });
                                 }
                             }
                             matchedContactInfo.push({
@@ -470,7 +470,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         }
                     }
                 })().catch(error => {
-                    logger.error({ message: 'Error in contact search', stack: error.stack });
+                    logger.error('Error in contact search', { stack: error.stack });
                 }));
             }
 
@@ -509,7 +509,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                                     }
                                 }
                             } catch (error) {
-                                logger.error({ message: "Error in SalesOrder/Opportunity search", stack: error.stack });
+                                logger.error("Error in SalesOrder/Opportunity search", { stack: error.stack });
                             }
                             let firstName = result.firstname ?? '';
                             let middleName = result.middlename ?? '';
@@ -533,7 +533,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         }
                     }
                 })().catch(error => {
-                    logger.error({ message: 'Error in customer search', stack: error.stack });
+                    logger.error('Error in customer search', { stack: error.stack });
                 }));
             }
 
@@ -567,7 +567,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         }
                     }
                 })().catch(error => {
-                    logger.error({ message: 'Error in vendor search', stack: error.stack });
+                    logger.error('Error in vendor search', { stack: error.stack });
                 }));
             }
 
@@ -595,7 +595,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             matchedContactInfo,
         };
     } catch (error) {
-        logger.error({ message: "Error in finding contact", stack: error.stack });
+        logger.error("Error in finding contact", { stack: error.stack });
         let errorMessage = netSuiteErrorDetails(error, "Contact not found");
         errorMessage += ' OR Permission violation: You need the "Lists -> Contact -> FULL, Lists -> Customers -> FULL" permission to access this page.';
         return {
@@ -690,7 +690,7 @@ async function findContactWithName({ user, authHeader, name }) {
             return response.data?.items ?? [];
         }
         catch (error) {
-            logger.error({ message: 'NetSuite findContactWithName SuiteQL query failed', query, stack: error.stack, errorResponse: error.response?.data });
+            logger.error('NetSuite findContactWithName SuiteQL query failed', { status: error.response?.status, errorDetails: netSuiteErrorDetails(error, 'SuiteQL query failed'), stack: error.stack });
             return [];
         }
     };
@@ -726,7 +726,7 @@ async function findContactWithName({ user, authHeader, name }) {
                     }
                 }
                 catch (error) {
-                    logger.error({ message: 'Error in SalesOrder/Opportunity in contact', stack: error.stack });
+                    logger.error('Error in SalesOrder/Opportunity in contact', { stack: error.stack });
                 }
             }
             pushUniqueResult({
@@ -793,7 +793,7 @@ async function findContactWithName({ user, authHeader, name }) {
                         }
                     }
                 } catch (error) {
-                    logger.error({ message: "Error in SalesOrder/Opportunity search", stack: error.stack });
+                    logger.error("Error in SalesOrder/Opportunity search", { stack: error.stack });
                 }
                 pushUniqueResult({
                     id: result.id,
@@ -836,7 +836,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             startTimeSLot = callStartTime.format('HH:mm');
 
         } catch (error) {
-            logger.error({ message: "Error in getting timezone", stack: error.stack });
+            logger.error("Error in getting timezone", { stack: error.stack });
         }
         const callEndTime = (callLog.duration === 'pending') ? moment(callStartTime) : moment(callStartTime).add(callLog.duration, 'seconds');
         let endTimeSlot = callEndTime.format('HH:mm');
@@ -932,7 +932,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             try {
                 await attachFileWithPhoneCall({ callLogId, transcript, authHeader, user, fileName: title });
             } catch (error) {
-                logger.error({ message: "Error in attaching file with phone call", stack: error.stack });
+                logger.error("Error in attaching file with phone call", { stack: error.stack });
             }
         }
         return {
@@ -1055,7 +1055,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, subject, note,
                 startTimeSLot = callStartTime.format('HH:mm');
 
             } catch (error) {
-                logger.error({ message: "Error in getting timezone in updateCallLog", stack: error.stack });
+                logger.error("Error in getting timezone in updateCallLog", { stack: error.stack });
             }
             const callEndTime = moment(callStartTime).add(duration, 'seconds');
             let endTimeSlot = callEndTime.format('HH:mm');
@@ -1087,7 +1087,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, subject, note,
             try {
                 await attachFileWithPhoneCall({ callLogId: existingLogId, transcript, authHeader, user, fileName: subject });
             } catch (error) {
-                logger.error({ message: "Error in attaching file with phone call", stack: error.stack });
+                logger.error("Error in attaching file with phone call", { stack: error.stack });
             }
         }
         return {
@@ -1099,7 +1099,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, subject, note,
             }
         };
     } catch (error) {
-        logger.error({ message: "Error in updating call log", stack: error.stack });
+        logger.error("Error in updating call log", { stack: error.stack });
         return {
             successful: false,
             returnMessage: {
@@ -1191,7 +1191,7 @@ async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLo
                     headers: { 'Authorization': authHeader }
                 });
             } catch (error) {
-                logger.error({ message: "Error in logging calls against salesOrder", stack: error.stack });
+                logger.error("Error in logging calls against salesOrder", { stack: error.stack });
             }
         }
         return {
@@ -1737,7 +1737,7 @@ function netSuiteErrorDetails(error, message) {
         }
         return concatenatedErrorDetails.length > 0 ? concatenatedErrorDetails : message;
     } catch (error) {
-        logger.error({ message: "Error in netSuiteErrorDetails", stack: error.stack });
+        logger.error("Error in netSuiteErrorDetails", { stack: error.stack });
         return message;
     }
 }
@@ -1821,7 +1821,7 @@ function extractNoteIdFromNote({ note, targetSalesOrderId }) {
         }
         return undefined; // if not found
     } catch (error) {
-        logger.error({ message: "Error in extractNoteIdFromNote", stack: error.stack });
+        logger.error("Error in extractNoteIdFromNote", { stack: error.stack });
         return undefined;
     }
 
@@ -1845,7 +1845,7 @@ function extractNoteIdFromOpportunityNote({ note, targetOpportunityId }) {
         }
         return undefined; // if not found
     } catch (error) {
-        logger.error({ message: "Error in extractNoteIdFromOpportunityNote", stack: error.stack });
+        logger.error("Error in extractNoteIdFromOpportunityNote", { stack: error.stack });
         return undefined;
     }
 
@@ -1942,7 +1942,7 @@ function truncateAiTranscript({ composedLogDetails, transcript }) {
         }
 
     } catch (error) {
-        logger.error({ message: "Error in upsertTranscript", stack: error.stack });
+        logger.error("Error in upsertTranscript", { stack: error.stack });
     }
     return composedLogDetails;
 }
@@ -1955,7 +1955,7 @@ async function overrideDateTimeInComposedLogDetails({ composedLogDetails, startT
             composedLogDetails = composedLogDetails.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}`);
         }
     } catch (error) {
-        logger.error({ message: "Error in overrideDateTimeInComposedLogDetails", stack: error.stack });
+        logger.error("Error in overrideDateTimeInComposedLogDetails", { stack: error.stack });
     }
     return composedLogDetails;
 }

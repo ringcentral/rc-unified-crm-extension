@@ -158,6 +158,38 @@ describe('Pipedrive Redirect Routes', () => {
             expect(res.text).toEqual('Missing user_id');
         });
 
+        test('should delete user when Pipedrive sends its numeric user id', async () => {
+            // Pipedrive's uninstall webhook sends the numeric id; we store `${id}-pipedrive`.
+            const numericId = Date.now();
+            const storedUserId = `${numericId}-pipedrive`;
+            await UserModel.create({
+                id: storedUserId,
+                hostname: 'test.pipedrive.com',
+                platform: 'pipedrive',
+                rcUserNumber: '+19876543213',
+                accessToken: 'numericAccessToken',
+                refreshToken: 'numericRefreshToken'
+            });
+
+            nock('https://oauth.pipedrive.com')
+                .post('/oauth/revoke')
+                .times(2)
+                .reply(200, {});
+
+            const credentials = Buffer.from(
+                `${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`
+            ).toString('base64');
+
+            const res = await request(getServer())
+                .delete('/pipedrive-redirect')
+                .set('Authorization', `Basic ${credentials}`)
+                .send({ user_id: numericId });
+
+            expect(res.status).toEqual(200);
+            const userCheck = await UserModel.findByPk(storedUserId);
+            expect(userCheck).toBeNull();
+        });
+
         test('should handle non-existent user_id gracefully', async () => {
             const credentials = Buffer.from(
                 `${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`

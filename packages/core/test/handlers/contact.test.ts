@@ -71,6 +71,8 @@ describe('Contact Handler', () => {
       expect(result.successful).toBe(false);
       expect(result.returnMessage.message).toBe('Contact not found');
       expect(result.returnMessage.messageType).toBe('warning');
+      // No credential to call the CRM with, so a client must reconnect rather than retry.
+      expect(result.errorCode).toBe('CRM_SESSION_INVALID');
     });
 
     test('should return warning when user has no access token', async () => {
@@ -91,6 +93,7 @@ describe('Contact Handler', () => {
       // Assert
       expect(result.successful).toBe(false);
       expect(result.returnMessage.message).toBe('Contact not found');
+      expect(result.errorCode).toBe('CRM_SESSION_INVALID');
     });
 
     test.each<[any]>(phoneContactMatchCases as [any][])(
