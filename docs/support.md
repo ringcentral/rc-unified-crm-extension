@@ -1,5 +1,11 @@
 # Getting help with App Connect
 
+!!! tip "Need help connecting to your CRM?"
+
+    If App Connect doesn't yet support your CRM, an [App Connect partner](build/index.md) can build the connection for you.
+
+## Get help using App Connect
+
 <div class="grid cards rc-bar" markdown>
 
 -    **[:material-forum: Search the Community](https://community.ringcentral.com/integrations-app-connect-33)**
@@ -12,13 +18,17 @@
 
 </div>
 
-!!! tip "Always make sure you are running the latest version"
-    
-    App Connect is frequently updated with fixes and feature enhancements. While the extension is updated automatically, you may need to restart your browser in order for those updates to take effect. 
-
 ## Knowledge base
 
 <div class="grid cards" markdown>
+
+-   **[What does App Connect cost?](troubleshooting/app-connect-cost.md)**
+
+    A breakdown of what's free and what costs extra when using App Connect.
+
+-   **[How long will the introductory period last?](troubleshooting/introductory-period.md)**
+
+    Find out how long the free introductory period for AI-generated call artifacts will last.
 
 -   **[No "Connect" button visible](troubleshooting/no-connect-button.md)**
 
@@ -36,11 +46,34 @@
 
 ## Does App Connect support contact synchronization?
 
-No. App Connect does not currently support contact synchronization between your CRM and RingCentral.
+Not natively. App Connect's core framework does not write CRM data into RingCentral — but a free plugin adds limited, one-way contact synchronization on top of it.
 
-When users ask for contact sync, they are typically looking for a way to pull CRM contacts into the RingCentral Personal Address Book so that callers are identified by name on the RingCentral desktop or mobile apps. App Connect does not copy data between systems in this way.
+### Contact lookup versus contact synchronization
 
-What App Connect does instead is a real-time, read-only lookup: when a call arrives, App Connect searches your CRM for a matching phone number and displays the contact's information within the App Connect sidebar. No data is written to your RingCentral address book. If you need a contact to appear in your native RingCentral app's directory, they must be added to RingCentral manually or via a CSV import.
+These are two different things, and most requests for "contact sync" are actually asking about the first one:
+
+* **Contact lookup** — **supported.** This is what App Connect does by default: a real-time, read-only search. When a call arrives, App Connect searches your CRM for a matching phone number and displays that contact's information within the App Connect sidebar. Nothing is written anywhere — your CRM remains the only place that record lives.
+* **Contact synchronization** — **not supported.** This means copying contact data from your CRM into RingCentral itself, typically so callers are identified by name in the RingCentral Personal Address Book — on a desk phone, the mobile app, or a softphone, not just inside App Connect. App Connect's core framework does not do this natively; the limited exception provided by a plugin is covered below.
+
+### Native contact lookup (built in, no setup required)
+
+Out of the box, App Connect only performs contact lookup, and only within the App Connect client itself. A caller who is correctly identified in the App Connect sidebar during a call will still show up as an anonymous number on your desk phone or the RingCentral mobile app, because no data has been written back to RingCentral.
+
+### Limited contact synchronization via the Lazy Contact Sync plugin
+
+For customers who want callers identified by name across every RingCentral device — not just inside the App Connect client — [Captivo Labs](build/captivolabs.md) publishes a free plugin, [**Lazy Contact Sync**](plugins/lazy-contact-sync.md), that adds this capability on top of App Connect.
+
+Lazy Contact Sync is deliberately limited in scope, and it's worth understanding those limits before you install it:
+
+* **One direction only.** It syncs from your CRM into the RingCentral Personal Address Book. It never writes back to your CRM.
+* **Lazy, call-triggered sync.** There is no bulk import and no sync schedule. A contact is only created or updated in RingCentral the moment they call in (or are called) through App Connect.
+* **Grows from real activity only.** Your RingCentral address book accumulates the people you've actually corresponded with, not your entire CRM contact base.
+
+See [Lazy Contact Sync](plugins/lazy-contact-sync.md) for details on how it works and how to install it, and [Plugins](users/plugins.md) for how to browse and manage App Connect plugins generally.
+
+### If you need full, two-way contact synchronization
+
+There is currently no native feature or plugin that performs bulk, two-way synchronization of your entire CRM contact list with RingCentral. If you need a contact to appear in RingCentral's directory regardless of call history, they must be added to RingCentral manually or via a CSV import.
 
 ## Managing software updates
 

@@ -2,9 +2,26 @@
 
 App Connect 2.0 is a turning point for the product as not only does it make it easier for developers to connect RingCentral to more CRMs, it contains many new features that will bring greater value to App Connects thousands of users. 
 
-## Download the beta
+<div class="ac-v5-auto-banner">
+<div class="ac-v5-auto-banner__inner">
 
-The App Connect 2.0 beta is being distributed as "App Connect 1.7" via an unlisted and private Chrome Store extension. 
+<a href="https://community.ringcentral.com/integrations-app-connect-33/app-connect-2-0-is-right-around-the-corner-12077" class="ac-v5-auto-banner__card" target="_blank" rel="noopener">
+<span class="ac-v5-auto-banner__icon-wrap">
+<svg class="ac-v5-auto-banner__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+</span>
+<span class="ac-v5-auto-banner__copy">
+<span class="ac-v5-auto-banner__title">App Connect 2.0 is scheduled for release on October 8</span>
+<span class="ac-v5-auto-banner__sub">Read the community announcement to learn what's changing and how to prepare.</span>
+</span>
+<span class="ac-v5-auto-banner__arrow">→</span>
+</a>
+
+</div>
+</div>
+
+## Download the release candidate
+
+The App Connect 2.0 release candidate is being distributed as "App Connect 1.7" via an unlisted and private Chrome Store extension. 
 
 <a href="https://chrome.google.com/webstore/detail/ringcentral-crm-extension/bgpkbcidaabaeioilooghlffdcmlimgk"><img class="mw-350" src="../img/chrome-web-store.png"></a>
 

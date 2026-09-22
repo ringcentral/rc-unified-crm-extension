@@ -57,6 +57,7 @@ plugins:
       glob:
         - crm/jobadder.md
         - solutions/solutions-footer.md
+        - _snippets/ai-artifacts-free-period.md
         - build.md
         - developers/crm-server-openapi.json
   - openapi:
@@ -278,6 +279,8 @@ nav:
 - 'Support':
   - 'Getting help': support.md
   - 'Knowledge base':
+    - 'What does App Connect cost?': troubleshooting/app-connect-cost.md
+    - 'How long will the introductory period last?': troubleshooting/introductory-period.md
     - 'No "Connect" button visible': troubleshooting/no-connect-button.md
     - 'Contact not found during call lookup': troubleshooting/contact-not-found.md
     - 'Calls stuck in "Pending" or "preparing data..."': troubleshooting/calls-stuck-pending.md
