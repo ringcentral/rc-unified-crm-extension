@@ -4,16 +4,19 @@ import type { JsonObject, JsonValue } from './json';
 export type LoggerLevelName = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
 
 export type LoggerContext = Record<string, any>;
+// A structured message must carry a string `message`; arbitrary objects are rejected at the
+// type level so callers cannot accidentally dump records with PII or tokens into the log.
+export type LoggerMessage = string | Error | { message: string; [key: string]: any };
 
 export interface LoggerOptions {
   level?: string;
 }
 
 export interface ChildLogger {
-  error(message: string, context?: LoggerContext): void;
-  warn(message: string, context?: LoggerContext): void;
-  info(message: string, context?: LoggerContext): void;
-  debug(message: string, context?: LoggerContext): void;
+  error(message: LoggerMessage, context?: LoggerContext): void;
+  warn(message: LoggerMessage, context?: LoggerContext): void;
+  info(message: LoggerMessage, context?: LoggerContext): void;
+  debug(message: LoggerMessage, context?: LoggerContext): void;
   child(additionalContext?: LoggerContext): ChildLogger;
 }
 

@@ -302,6 +302,59 @@ describe('Logger', () => {
       expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('Message normalization', () => {
+    test('should not print [object Object] when a plain object is passed as the message', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'INFO' });
+
+      logger.info({ message: 'Report generated', count: 3 });
+
+      const output = JSON.parse(consoleSpy.mock.calls[0][0]);
+      expect(output.message).toBe('Report generated');
+      expect(output.count).toBe(3);
+      expect(consoleSpy.mock.calls[0][0]).not.toContain('[object Object]');
+    });
+
+    test('should not serialize an object message that has no message property', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'ERROR' });
+
+      // Simulates a caller passing a record by mistake; the values must never reach the log.
+      logger.error({ accessToken: 'secret-token', phoneNumber: '+15551234567' } as any);
+
+      const raw = consoleErrorSpy.mock.calls[0][0];
+      const output = JSON.parse(raw);
+      expect(output.message).toBe('Logger called with a non-message object');
+      expect(output.objectKeys).toEqual(['accessToken', 'phoneNumber']);
+      expect(raw).not.toContain('secret-token');
+      expect(raw).not.toContain('+15551234567');
+      expect(raw).not.toContain('[object Object]');
+    });
+
+    test('should accept an Error as the message and keep its stack', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'ERROR' });
+      const error = new Error('Something exploded');
+
+      logger.error(error, { userId: 'u1' });
+
+      const output = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
+      expect(output.message).toBe('Something exploded');
+      expect(output.stack).toContain('Something exploded');
+      expect(output.userId).toBe('u1');
+    });
+
+    test('should let explicit context override keys carried on an object message', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'WARN' });
+
+      logger.warn({ message: 'dup', source: 'object' }, { source: 'context' });
+
+      const output = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
+      expect(output.source).toBe('context');
+    });
+  });
 });
 
 

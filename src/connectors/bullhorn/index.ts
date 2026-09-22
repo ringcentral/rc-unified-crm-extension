@@ -155,7 +155,7 @@ async function authValidation({ user }) {
         }
     }
     catch (e) {
-        if (isAuthError(e.response.status)) {
+        if (isAuthError(e.response?.status)) {
             user = await refreshSessionToken(user);
             try {
                 pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}ping`,
@@ -177,7 +177,7 @@ async function authValidation({ user }) {
                         message: 'It seems like your Bullhorn session has expired. Please re-connect.',
                         ttl: 3000
                     },
-                    status: e.response.status
+                    status: e.response?.status ?? 500
                 }
             }
         }
@@ -188,7 +188,7 @@ async function authValidation({ user }) {
                 message: 'It seems like your Bullhorn session has expired. Please re-connect.',
                 ttl: 3000
             },
-            status: e.response.status
+            status: e.response?.status ?? 500
         }
     }
 }
@@ -352,8 +352,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, s
         // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
         user.platformAdditionalInfo = {};
         user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
-        const date = new Date();
-        user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
+        user.tokenExpiry = getTokenExpiryDate(expires);
         logger.info('Bullhorn token refreshing finished')
         if (newLock) {
             const deletionStartTime = moment();
@@ -609,7 +608,7 @@ async function overrideSessionWithAuthInfo({ user, authData }) {
     // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
     user.platformAdditionalInfo = {};
     user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
-    user.tokenExpiry = expires;
+    user.tokenExpiry = getTokenExpiryDate(expires);
     logger.info('Bullhorn session overridden with auth info')
     try {
         await user.save();
@@ -1165,7 +1164,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
         }
     }
     catch (e) {
-        if (isAuthError(e.response.status)) {
+        if (isAuthError(e.response?.status)) {
             user = await refreshSessionToken(user);
             addLogRes = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/Note`,
@@ -1216,7 +1215,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             }
         }
         catch (e) {
-            if (isAuthError(e.response.status)) {
+            if (isAuthError(e.response?.status)) {
                 user = await refreshSessionToken(user);
                 getLogRes = await axios.get(
                     `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments,commentingPerson`,
@@ -1229,7 +1228,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             else {
                 throw e;
             }
-            extraDataTracking['statusCode'] = e.response.status;
+            extraDataTracking['statusCode'] = e.response?.status;
         }
     }
 
@@ -1323,7 +1322,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
     }
     catch (e) {
-        if (isAuthError(e.response.status)) {
+        if (isAuthError(e.response?.status)) {
             user = await refreshSessionToken(user);
             patchLogRes = await axios.post(
                 `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
@@ -1337,7 +1336,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         else {
             throw e;
         }
-        extraDataTracking['statusCode'] = e.response.status;
+        extraDataTracking['statusCode'] = e.response?.status;
     }
     return {
         updatedNote: postBody.comments,
@@ -1374,7 +1373,7 @@ async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
         }
     }
     catch (e) {
-        if (e.response.status === 403) {
+        if (e.response?.status === 403) {
             return {
                 extraDataTracking,
                 returnMessage: {
@@ -1421,7 +1420,7 @@ async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLo
             });
     }
     catch (e) {
-        if (isAuthError(e.response.status)) {
+        if (isAuthError(e.response?.status)) {
             user = await refreshSessionToken(user);
             userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
                 {
@@ -1523,7 +1522,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
             });
     }
     catch (e) {
-        if (isAuthError(e.response.status)) {
+        if (isAuthError(e.response?.status)) {
             user = await refreshSessionToken(user);
             userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
                 {
@@ -1584,7 +1583,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
         }
     }
     catch (e) {
-        if (e.response.status === 403) {
+        if (e.response?.status === 403) {
             return {
                 extraDataTracking,
                 returnMessage: {
@@ -1630,7 +1629,7 @@ async function getCallLog({ user, callLogId }) {
         }
     }
     catch (e) {
-        if (isAuthError(e.response.status)) {
+        if (isAuthError(e.response?.status)) {
             user = await refreshSessionToken(user);
             getLogRes = await axios.get(
                 `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts,action`,
@@ -1688,6 +1687,19 @@ async function refreshSessionToken(user) {
         return null;
     }
     return user;
+}
+
+// Bullhorn access tokens live for 10 minutes. Fall back to that when the token response
+// omits or malforms expires_in, so a bad value never reaches the timestamp column as
+// "Invalid date".
+const DEFAULT_BULLHORN_TOKEN_TTL_SECONDS = 600;
+function getTokenExpiryDate(expiresInSeconds) {
+    const seconds = Number(expiresInSeconds);
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+        logger.warn('Bullhorn token response has invalid expires_in, using default TTL', { expiresIn: expiresInSeconds });
+        return new Date(Date.now() + DEFAULT_BULLHORN_TOKEN_TTL_SECONDS * 1000);
+    }
+    return new Date(Date.now() + seconds * 1000);
 }
 
 function isAuthError(statusCode) {
@@ -2281,10 +2293,7 @@ async function generateMonthlyCsvReport() {
     const batchConcurrency = Number(process.env.BULLHORN_REPORT_CONCURRENCY) || 8;
     const batchDelayMs = Number(process.env.BULLHORN_REPORT_BATCH_DELAY_MS) || 200;
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    logger.info({
-        message: 'Generating Bullhorn monthly CSV report for', Length: boundedUsers.length
-    }
-    );
+    logger.info('Generating Bullhorn monthly CSV report for', { Length: boundedUsers.length });
     for (let startIndex = 0; startIndex < boundedUsers.length; startIndex += batchConcurrency) {
         const currentBatch = boundedUsers.slice(startIndex, startIndex + batchConcurrency);
         const batchResults = await Promise.allSettled(
@@ -2292,8 +2301,7 @@ async function generateMonthlyCsvReport() {
                 try {
                     const profile = await fetchBullhornUserProfile({ user: currentUser });
                     if (!profile?.email && !profile?.name) {
-                        logger.info({
-                            message: 'Skipping user because email and name are not found',
+                        logger.info('Skipping user because email and name are not found', {
                             userId: currentUser.id
                         });
                         return null;
