@@ -26,6 +26,19 @@ function getAuthHeader({ userKey }) {
     return Buffer.from(`${process.env.REDTAIL_API_KEY}:${userKey}`).toString('base64');
 }
 
+const REDTAIL_ACTIVITY_COMPLETION_MODE = {
+    MANUAL: 'manual',
+    AUTO_WHEN_ALL_DATA_AVAILABLE: 'autoWhenAllDataAvailable'
+};
+
+function shouldCompleteActivity({ user, activityCompletionReady, defaultCompletionReady = false }) {
+    const completionMode = user.userSettings?.redtailActivityCompletionMode?.value ?? REDTAIL_ACTIVITY_COMPLETION_MODE.AUTO_WHEN_ALL_DATA_AVAILABLE;
+    if (completionMode === REDTAIL_ACTIVITY_COMPLETION_MODE.MANUAL) {
+        return false;
+    }
+    return activityCompletionReady ?? defaultCompletionReady;
+}
+
 async function getUserInfo({ additionalInfo }) {
     try {
         const overrideAPIKey = `${process.env.REDTAIL_API_KEY}:${additionalInfo.username}:${additionalInfo.password}`;
@@ -226,7 +239,7 @@ async function getUserList({ user }) {
     return userList;
 }
 
-async function createCallLog({ user, contactInfo, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
+async function createCallLog({ user, contactInfo, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId, activityCompletionReady }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
 
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
@@ -298,19 +311,23 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
                 headers: { 'Authorization': overrideAuthHeader }
             });
     }
-    const completeLogRes = await axios.put(
-        `${process.env.REDTAIL_API_SERVER}/activities/${addLogRes.data.activity.id}`,
-        {
-            completed: true
-        },
-        {
-            headers: { 'Authorization': overrideAuthHeader }
-        });
+    let logId = addLogRes.data.activity.id;
+    if (shouldCompleteActivity({ user, activityCompletionReady, defaultCompletionReady: true })) {
+        const completeLogRes = await axios.put(
+            `${process.env.REDTAIL_API_SERVER}/activities/${logId}`,
+            {
+                completed: true
+            },
+            {
+                headers: { 'Authorization': overrideAuthHeader }
+            });
+        logId = completeLogRes.data.activity.id;
+    }
 
     await updateCategoryToUserSetting({ user, authHeader: overrideAuthHeader });
 
     return {
-        logId: completeLogRes.data.activity.id,
+        logId,
         returnMessage: {
             message: 'Call logged',
             messageType: 'success',
@@ -320,7 +337,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     };
 }
 
-async function updateCallLog({ user, existingCallLog, subject, startTime, duration, additionalSubmission, composedLogDetails, hashedAccountId }) {
+async function updateCallLog({ user, existingCallLog, subject, startTime, duration, additionalSubmission, composedLogDetails, hashedAccountId, activityCompletionReady }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingRedtailLogId = existingCallLog.thirdPartyLogId;
 
@@ -363,6 +380,9 @@ async function updateCallLog({ user, existingCallLog, subject, startTime, durati
                 user_id: Number(assigneeId)
             }
         ];
+    }
+    if (shouldCompleteActivity({ user, activityCompletionReady })) {
+        putBody.completed = true;
     }
     await axios.put(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,

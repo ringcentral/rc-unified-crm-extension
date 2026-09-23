@@ -661,6 +661,65 @@ describe('Redtail Connector', () => {
             // extraDataTracking.withSmartNoteLog and .withTranscript are set by core handler (log.js)
             expect(result.extraDataTracking).toBeDefined();
         });
+
+        it('should leave activity open when completion mode is manual', async () => {
+            const manualCompletionUser = {
+                ...mockUser,
+                userSettings: {
+                    redtailActivityCompletionMode: { value: 'manual' }
+                }
+            };
+
+            nock(apiUrl)
+                .post('/activities')
+                .reply(201, { activity: { id: 206 } });
+
+            nock(apiUrl)
+                .get('/lists/categories')
+                .reply(200, { categories: [] });
+
+            const result = await redtail.createCallLog({
+                user: manualCompletionUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: '',
+                additionalSubmission: null,
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Details',
+                hashedAccountId: 'hash-123',
+                activityCompletionReady: true
+            });
+
+            expect(result.logId).toBe(206);
+        });
+
+        it('should leave activity open when auto completion data is not ready', async () => {
+            nock(apiUrl)
+                .post('/activities')
+                .reply(201, { activity: { id: 207 } });
+
+            nock(apiUrl)
+                .get('/lists/categories')
+                .reply(200, { categories: [] });
+
+            const result = await redtail.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: '',
+                additionalSubmission: null,
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Details',
+                hashedAccountId: 'hash-123',
+                activityCompletionReady: false
+            });
+
+            expect(result.logId).toBe(207);
+        });
     });
 
     // ==================== updateCallLog ====================
@@ -771,6 +830,94 @@ describe('Redtail Connector', () => {
                 composedLogDetails: 'New details',
                 existingCallLogDetails,
                 hashedAccountId: 'hash-123'
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should mark activity completed when auto completion data is ready', async () => {
+            nock(apiUrl)
+                .put('/activities/201', body => body.completed === true)
+                .reply(200, { activity: { id: 201 } });
+
+            const result = await redtail.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: null,
+                note: null,
+                startTime: Date.now(),
+                duration: 300,
+                result: null,
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: null,
+                composedLogDetails: 'New details',
+                existingCallLogDetails: null,
+                hashedAccountId: 'hash-123',
+                activityCompletionReady: true
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should keep activity open when update completion mode is manual', async () => {
+            const manualCompletionUser = {
+                ...mockUser,
+                userSettings: {
+                    redtailActivityCompletionMode: { value: 'manual' }
+                }
+            };
+
+            nock(apiUrl)
+                .put('/activities/201', body => !Object.prototype.hasOwnProperty.call(body, 'completed'))
+                .reply(200, { activity: { id: 201 } });
+
+            const result = await redtail.updateCallLog({
+                user: manualCompletionUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: null,
+                note: null,
+                startTime: Date.now(),
+                duration: 300,
+                result: null,
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: null,
+                composedLogDetails: 'New details',
+                existingCallLogDetails: null,
+                hashedAccountId: 'hash-123',
+                activityCompletionReady: true
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should keep activity open when auto completion data is not ready on update', async () => {
+            nock(apiUrl)
+                .put('/activities/201', body => !Object.prototype.hasOwnProperty.call(body, 'completed'))
+                .reply(200, { activity: { id: 201 } });
+
+            const result = await redtail.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: null,
+                note: null,
+                startTime: Date.now(),
+                duration: 300,
+                result: null,
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: null,
+                composedLogDetails: 'New details',
+                existingCallLogDetails: null,
+                hashedAccountId: 'hash-123',
+                activityCompletionReady: false
             });
 
             expect(result.returnMessage.messageType).toBe('success');
@@ -1400,6 +1547,42 @@ describe('Redtail Connector', () => {
             });
 
             expect(result.logId).toBe(301);
+        });
+
+        it('should apply custom timezone when updating a call log', async () => {
+            const userWithTimezone = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    redtailCustomTimezone: { value: -420 } // UTC-7
+                }
+            });
+            const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '302' });
+
+            nock(apiUrl)
+                .put('/activities/302')
+                .reply(200, { activity: { id: 302 } });
+
+            const result = await redtail.updateCallLog({
+                user: userWithTimezone,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: 'Timezone Subject',
+                note: null,
+                startTime: Date.now(),
+                duration: 300,
+                result: null,
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: null,
+                composedLogDetails: '<li><b>Date/time</b>: 2024-01-15 10:00:00 AM</li>',
+                existingCallLogDetails: null,
+                hashedAccountId: 'hash-123',
+                activityCompletionReady: true
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+            expect(result.updatedNote).toContain('Date/time');
         });
     });
 });
