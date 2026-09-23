@@ -47,7 +47,7 @@ Under **Enable server side logging**, select "Enable for admin only (trial mode)
 
 ## Configuring server-side call logging
 
-From the Server side logging page, an admin can enable call logging for their entire organization. Once enabled, automatic logging from the client will be disabled across your entire organization. Users will still be able to log calls manually, or edit call log entries made by the server-side call logging service. 
+From the Universal Logging page, an admin can enable call logging for their entire organization. Once enabled, automatic logging from the client will be disabled across your entire organization. Users will still be able to log calls manually, or edit call log entries made by the server-side call logging service. 
 
 ### Activity record owner
 
@@ -87,7 +87,7 @@ From the "Server-side call logging" page, you can specify a list of phone number
 
 ### Use admin settings
 
-Server side logging uses some admin settings to automate the logging process. Settings are cached and refreshed once every hour. If you want to change setting values and have them reflected immediately in the logging process, please go to server side logging page and save it again so that it will be re-subscribed with new setting values.  
+Server side logging uses some admin settings to automate the logging process. Settings are cached and refreshed once every hour. If you want to change setting values and have them reflected immediately in the logging process, please go to the Universal Logging page and save it again so that it will be re-subscribed with new setting values.  
 
 ### When client side extension is in-use
 

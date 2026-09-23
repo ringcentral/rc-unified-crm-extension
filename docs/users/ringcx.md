@@ -28,7 +28,7 @@ As this is an experimental release, please be aware of the following:
 Configuration must be performed by a SuperAdmin.
 
 1. Navigate to the Admin tab within App Connect.
-2. Locate the Server side logging section.
+2. Locate the Universal Logging section.
 3. For RingCX customers, a new option will be visible here.
 4. Select both RingEX and RingCX (Experimental).
 
