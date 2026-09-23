@@ -42,6 +42,10 @@
 
     Call log records are created in the CRM but never fully populated — they stay in a Pending state indefinitely.
 
+-   **["Could not load user information" (GoHighLevel)](troubleshooting/gohighlevel-could-not-load-user-information.md)**
+
+    GoHighLevel authorization completes but App Connect can't load your user information.
+
 </div>
 
 ## Does App Connect support contact synchronization?

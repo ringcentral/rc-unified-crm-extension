@@ -53,3 +53,7 @@ And with that, you will be connected to HighLevel and ready to begin using the i
 ### Automated call logging
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/gq7ru9Fx8Rs?si=JStLkTshem7vChcd" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+## Troubleshooting
+
+- [I completed authorization but see "Could not load user information"](../troubleshooting/gohighlevel-could-not-load-user-information.md)

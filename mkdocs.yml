@@ -284,6 +284,7 @@ nav:
     - 'No "Connect" button visible': troubleshooting/no-connect-button.md
     - 'Contact not found during call lookup': troubleshooting/contact-not-found.md
     - 'Calls stuck in "Pending" or "preparing data..."': troubleshooting/calls-stuck-pending.md
+    - '"Could not load user information" (GoHighLevel)': troubleshooting/gohighlevel-could-not-load-user-information.md
   - 'Submitting bug reports': collect-logs.md
   - 'Build a CRM connector':
     - 'Overview': build/index.md
