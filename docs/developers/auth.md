@@ -99,7 +99,7 @@ The flow is:
 4. Later users in the same RingCentral account connect through the normal OAuth flow without seeing the credentials.
 5. On successful callback, pending credentials are promoted to account-managed credentials.
 
-Connector code usually does not need to know whether credentials came from `getOauthInfo()` or managed OAuth. App Connect resolves managed values before calling `getOauthInfo()`.
+Connector code usually does not need to know whether credentials came from `getOauthInfo()` or managed OAuth. On callback, App Connect still calls `getOauthInfo()` and then layers the admin-managed values (client ID, client secret, token URL, authorization URL, redirect URI, scopes, hostname) on top of it. Managed values win for those fields; any other setting returned by `getOauthInfo()`, such as a proxy connector's `tokenEndpointAuthMethod`, stays in effect.
 
 ### Step 4: Implement the required interfaces
 

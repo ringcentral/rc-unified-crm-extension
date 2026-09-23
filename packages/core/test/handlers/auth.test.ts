@@ -1040,7 +1040,10 @@ describe('Auth Handler', () => {
       });
 
       expect(result.userInfo.id).toBe('managed-oauth-user');
-      expect(mockConnector.getOauthInfo).not.toHaveBeenCalled();
+      expect(mockConnector.getOauthInfo).toHaveBeenCalledWith(expect.objectContaining({
+        hostname: 'managed.example.com',
+        rcAccountId: 'rc-managed'
+      }));
       expect(oauth.getOAuthApp).toHaveBeenCalledWith(expect.objectContaining({
         clientId: 'managed-client-id',
         clientSecret: 'managed-client-secret',
@@ -1061,6 +1064,170 @@ describe('Auth Handler', () => {
       expect(promoted).not.toBeNull();
       const pending = await CacheModel.findByPk('rc-managed-managed-oauth-account');
       expect(pending).toBeNull();
+    });
+
+    const createPendingManagedOAuth = async (rcAccountId) => {
+      const encrypt = (value) => ({ version: 1, encrypted: true, value: encode(JSON.stringify(value)) });
+      await CacheModel.create({
+        id: rcAccountId + '-managed-oauth-account',
+        status: 'pending',
+        userId: rcAccountId,
+        cacheKey: 'managed-oauth-account',
+        expiry: new Date(Date.now() + 60000),
+        data: {
+          fields: {
+            clientId: encrypt('managed-client-id'),
+            clientSecret: encrypt('managed-client-secret'),
+            accessTokenUri: encrypt('https://managed.service-now.com/oauth_token.do'),
+            authorizationUri: encrypt('https://managed.service-now.com/oauth_auth.do'),
+            redirectUri: encrypt('https://ringcentral.github.io/ringcentral-embeddable/redirect.html'),
+            hostname: encrypt('managed.service-now.com')
+          }
+        }
+      });
+    };
+
+    test('should keep connector tokenEndpointAuthMethod when managed OAuth values are present', async () => {
+      await createPendingManagedOAuth('rc-managed-post');
+      const getOverridingOAuthOption = jest.fn().mockImplementation(({ oauthInfo }) => (
+        oauthInfo?.tokenEndpointAuthMethod === 'client_secret_post'
+          ? { body: { client_id: oauthInfo.clientId, client_secret: oauthInfo.clientSecret }, headers: { Authorization: '' } }
+          : null
+      ));
+      const mockConnector = global.testUtils.createMockConnector({
+        getOauthInfo: jest.fn().mockResolvedValue({
+          clientId: 'connector-client-id',
+          clientSecret: 'connector-client-secret',
+          accessTokenUri: 'https://connector.example.com/token',
+          redirectUri: 'https://connector.example.com/redirect',
+          tokenEndpointAuthMethod: 'client_secret_post'
+        }),
+        getOverridingOAuthOption,
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: { id: 'managed-post-user', name: 'Managed Post User' },
+          returnMessage: { messageType: 'success', message: 'OK' }
+        })
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      mockOAuthApp.code.getToken.mockResolvedValue({
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        expires: new Date()
+      });
+
+      const result = await authHandler.onOAuthCallback({
+        platform: 'testCRM',
+        hostname: 'old.example.com',
+        tokenUrl: '',
+        query: {
+          callbackUri: 'https://app.example.com/callback?code=code123',
+          rcAccountId: 'rc-managed-post',
+          proxyId: 'proxy-1'
+        }
+      });
+
+      expect(result.userInfo.id).toBe('managed-post-user');
+      // Managed values win for credentials/endpoints, connector value kept for auth method
+      const expectedOauthInfo = {
+        clientId: 'managed-client-id',
+        clientSecret: 'managed-client-secret',
+        accessTokenUri: 'https://managed.service-now.com/oauth_token.do',
+        authorizationUri: 'https://managed.service-now.com/oauth_auth.do',
+        redirectUri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
+        hostname: 'managed.service-now.com',
+        tokenEndpointAuthMethod: 'client_secret_post'
+      };
+      expect(oauth.getOAuthApp).toHaveBeenCalledWith(expectedOauthInfo);
+      expect(getOverridingOAuthOption).toHaveBeenCalledWith(expect.objectContaining({
+        code: 'code123',
+        oauthInfo: expectedOauthInfo
+      }));
+      expect(mockOAuthApp.code.getToken).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          body: { client_id: 'managed-client-id', client_secret: 'managed-client-secret' },
+          headers: { Authorization: '' }
+        }
+      );
+      const promoted = await AccountDataModel.findOne({
+        where: { rcAccountId: 'rc-managed-post', platformName: 'testCRM', dataKey: 'managed-oauth-account' }
+      });
+      expect(promoted).not.toBeNull();
+    });
+
+    test('should ignore connector failMessage when managed OAuth values are present', async () => {
+      await createPendingManagedOAuth('rc-managed-fail');
+      const mockConnector = global.testUtils.createMockConnector({
+        getOauthInfo: jest.fn().mockResolvedValue({
+          failMessage: 'Proxy config missing',
+          tokenEndpointAuthMethod: 'client_secret_post'
+        }),
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: { id: 'managed-fail-user', name: 'Managed Fail User' },
+          returnMessage: { messageType: 'success', message: 'OK' }
+        })
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      mockOAuthApp.code.getToken.mockResolvedValue({
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        expires: new Date()
+      });
+
+      const result = await authHandler.onOAuthCallback({
+        platform: 'testCRM',
+        hostname: 'old.example.com',
+        tokenUrl: '',
+        query: {
+          callbackUri: 'https://app.example.com/callback?code=code123',
+          rcAccountId: 'rc-managed-fail'
+        }
+      });
+
+      expect(result.userInfo.id).toBe('managed-fail-user');
+      const oauthInfoArg = oauth.getOAuthApp.mock.calls[0][0];
+      expect(oauthInfoArg).toEqual(expect.objectContaining({
+        clientId: 'managed-client-id',
+        tokenEndpointAuthMethod: 'client_secret_post'
+      }));
+      expect(oauthInfoArg.failMessage).toBeUndefined();
+    });
+
+    test('should fall back to managed OAuth values when connector getOauthInfo throws', async () => {
+      await createPendingManagedOAuth('rc-managed-throw');
+      const mockConnector = global.testUtils.createMockConnector({
+        getOauthInfo: jest.fn().mockRejectedValue(new Error('config lookup failed')),
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: { id: 'managed-throw-user', name: 'Managed Throw User' },
+          returnMessage: { messageType: 'success', message: 'OK' }
+        })
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      mockOAuthApp.code.getToken.mockResolvedValue({
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        expires: new Date()
+      });
+
+      const result = await authHandler.onOAuthCallback({
+        platform: 'testCRM',
+        hostname: 'old.example.com',
+        tokenUrl: '',
+        query: {
+          callbackUri: 'https://app.example.com/callback?code=code123',
+          rcAccountId: 'rc-managed-throw'
+        }
+      });
+
+      expect(result.userInfo.id).toBe('managed-throw-user');
+      expect(oauth.getOAuthApp).toHaveBeenCalledWith(expect.objectContaining({
+        clientId: 'managed-client-id',
+        clientSecret: 'managed-client-secret',
+        accessTokenUri: 'https://managed.service-now.com/oauth_token.do'
+      }));
     });
   });
 

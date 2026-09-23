@@ -22,6 +22,7 @@ const { handleDatabaseError } = require('../lib/errorHandler');
 const managedAuthCore = /** @type {any} */ (require('./managedAuth'));
 const managedOAuthCore = /** @type {any} */ (require('./managedOAuth'));
 const { getHashValue } = require('../lib/util');
+const logger = require('../lib/logger');
 
 /**
  * @param {OAuthCallbackParams} params
@@ -39,18 +40,46 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
         proxyConfig = await Connector.getProxyConfig(proxyId);
     }
     let managedOAuthSource = null;
-    let oauthInfo = null;
+    let managedOAuthValues = null;
     if (query.rcAccountId) {
         const managedOAuthResult = await managedOAuthCore.resolveManagedOAuthInfo({
             rcAccountId: query.rcAccountId,
             platform
         });
         managedOAuthSource = managedOAuthResult.source;
-        oauthInfo = managedOAuthResult.oauthInfo;
+        managedOAuthValues = managedOAuthResult.oauthInfo;
     }
-    if (!oauthInfo) {
-        oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig, userEmail, isFromMCP });
+    // Connector-level OAuth info (e.g. proxy config) is always loaded so that non-credential
+    // settings such as tokenEndpointAuthMethod stay in effect. Admin managed OAuth values
+    // (credentials, endpoints, hostname) are layered on top and take precedence.
+    let connectorOauthInfo = null;
+    if (managedOAuthValues) {
+        try {
+            connectorOauthInfo = await platformModule.getOauthInfo({
+                tokenUrl,
+                hostname: managedOAuthValues.hostname ?? hostname,
+                rcAccountId: query.rcAccountId,
+                proxyId,
+                proxyConfig,
+                userEmail,
+                isFromMCP
+            });
+        }
+        catch (error) {
+            logger.warn('Failed to load connector OAuth info while managed OAuth is configured, using managed values only', { platform, stack: error.stack });
+        }
+        if (connectorOauthInfo?.failMessage) {
+            // Managed OAuth supplies the required values; a connector-level failure must not block it
+            connectorOauthInfo = { ...connectorOauthInfo };
+            delete connectorOauthInfo.failMessage;
+        }
     }
+    else {
+        connectorOauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig, userEmail, isFromMCP });
+    }
+    const oauthInfo = managedOAuthValues
+        ? { ...(connectorOauthInfo ?? {}), ...managedOAuthValues }
+        : connectorOauthInfo;
     const resolvedHostname = oauthInfo?.hostname ?? hostname;
     const resolvedTokenUrl = oauthInfo?.accessTokenUri ?? tokenUrl;
     if (oauthInfo.failMessage) {
