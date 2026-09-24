@@ -277,7 +277,8 @@ nav:
     - 'Plugins': developers/plugin-server-openapi.json
 
 - 'Support':
-  - 'Getting help': support.md
+  - 'Getting help': support/index.md
+  - 'Usage & Warranty': support/warranty.md
   - 'Knowledge base':
     - 'What does App Connect cost?': troubleshooting/app-connect-cost.md
     - 'How long will the introductory period last?': troubleshooting/introductory-period.md
