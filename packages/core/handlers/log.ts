@@ -1451,6 +1451,7 @@ async function logSelectedMessagesAsSingleEntry({
         correspondents,
         assigneeName,
         ownerName,
+        messages: messagesToLog,
         sharedSMSLogContent,
         authHeader,
         additionalSubmission,
