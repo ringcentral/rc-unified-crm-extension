@@ -488,6 +488,17 @@ describe('Core Models', () => {
       expect(log.id).toBe('msg-find');
     });
 
+    test('should store the same message ID for different CRM users', async () => {
+      await MessageLogModel.bulkCreate([
+        { id: 'msg-shared', platform: 'redtail', userId: 'redtail-user' },
+        { id: 'msg-shared', platform: 'clio', userId: 'clio-user' }
+      ]);
+
+      const logs = await MessageLogModel.findAll({ where: { id: 'msg-shared' } });
+
+      expect(logs).toHaveLength(2);
+    });
+
     test('should find message logs by conversationLogId', async () => {
       // Arrange
       await MessageLogModel.create({

@@ -2356,6 +2356,10 @@ describe('Log Handler', () => {
       expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
       // The composed note is passed as shared-SMS content (subject + body).
       expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        messages: [
+          expect.objectContaining({ id: 'msg-1' }),
+          expect.objectContaining({ id: 'msg-3' }),
+        ],
         sharedSMSLogContent: expect.objectContaining({
           subject: 'SMS conversation with Test Contact - 01/01/2024 10:00 AM',
           body: expect.stringContaining('First'),

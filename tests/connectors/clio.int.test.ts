@@ -1065,6 +1065,72 @@ describe('Clio Connector', () => {
             expect(result.logId).toBe(405);
         });
 
+        it('should create one cumulative time entry for selected outbound messages', async () => {
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, {
+                    data: { name: 'Test User' }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, {
+                    data: { id: 407 }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/activities.json', body => {
+                    return body.data.quantity === 36
+                        && body.data.communication.id === 407
+                        && body.data.note.includes('2 selected SMS messages');
+                })
+                .once()
+                .reply(201, {
+                    data: { id: 507 }
+                }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: {
+                    ...mockUser,
+                    userSettings: {
+                        smsTimeTrackingEnabled: { value: true },
+                        smsTimeTrackingMinimumDuration: { value: '5' }
+                    }
+                },
+                contactInfo: mockContact,
+                authHeader,
+                messages: [
+                    createMockMessage({
+                        id: 'selected-1',
+                        direction: 'Outbound',
+                        creationTime: '2026-09-23T10:00:00Z',
+                        typingDurationMs: 12000
+                    }),
+                    createMockMessage({
+                        id: 'selected-2',
+                        direction: 'Inbound',
+                        creationTime: '2026-09-23T10:01:00Z',
+                        typingDurationMs: 50000
+                    }),
+                    createMockMessage({
+                        id: 'selected-3',
+                        direction: 'Outbound',
+                        creationTime: '2026-09-23T10:02:00Z',
+                        typingDurationMs: 24000
+                    })
+                ],
+                sharedSMSLogContent: {
+                    subject: 'Selected SMS messages',
+                    body: 'Selected message transcript',
+                    conversationCreatedDate: '2026-09-23T10:00:00Z'
+                },
+                additionalSubmission: { matters: 201 }
+            });
+
+            expect(result.logId).toBe(407);
+        });
+
         it('should keep message logging successful when SMS time entry creation fails', async () => {
             nock(apiUrl)
                 .get('/api/v4/users/who_am_i.json')
