@@ -69,6 +69,29 @@ function calculateSmsTimeEntry({ message, user }) {
     };
 }
 
+function aggregateOutboundSmsMessages({ message, messages = [] }) {
+    const candidates = Array.isArray(messages) && messages.length > 0
+        ? messages
+        : message
+            ? [message]
+            : [];
+    const outboundMessages = candidates.filter(candidate => candidate?.direction === 'Outbound');
+    if (outboundMessages.length === 0) {
+        return null;
+    }
+    const typingDurationMs = outboundMessages.reduce((total, candidate) => {
+        const duration = Number(candidate?.typingDurationMs);
+        return total + (Number.isFinite(duration) && duration > 0 ? duration : 0);
+    }, 0);
+    return {
+        message: {
+            ...outboundMessages[0],
+            typingDurationMs,
+        },
+        messageCount: outboundMessages.length,
+    };
+}
+
 async function getOauthInfo({ hostname, isFromMCP }) {
     if (hostname.startsWith('au.')) {
         return {
@@ -772,7 +795,8 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, correspondents = [], sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink }) {
+async function createMessageLog({ user, contactInfo, correspondents = [], sharedSMSLogContent, authHeader, message, messages = [], additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink }) {
+    console.log('createMessageLog function called', { contactInfo, correspondents, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink });
     let extraDataTracking = {};
     let logBody = '';
     let logSubject = '';
@@ -825,7 +849,7 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
                         messageSubject = `[Message]: ${messageSubject ?? 'N/A'}\n[Link - failed to upload]: ${imageDownloadLink}`;
                     }
                 }
-                logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')}`;
+                logSubject = sharedSMSLogContent?.subject ?? `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY hh:mm A')}`;
                 logBody =
                     '\nConversation summary\n' +
                     `${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('dddd, MMMM DD, YYYY')}\n` +
@@ -843,7 +867,7 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
                     '--- Created via RingCentral App Connect';
                 break;
             case 'Voicemail':
-                logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')}`;
+                logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY hh:mm A')}`;
                 logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
                 break;
             case 'Fax':
@@ -884,16 +908,23 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
         {
             headers: { 'Authorization': authHeader }
         });
+     console.log({m:"Create Message Logged Outside timed entry"});
     // Create SMS time entry if SMS time tracking is enabled
-    if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
+    const aggregatedSms = aggregateOutboundSmsMessages({ message, messages });
+    if (user.userSettings?.smsTimeTrackingEnabled?.value && aggregatedSms) {
+        console.log({m:"Inside timed entry"});
         try {
-            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({ message, user });
+            const { message: timeEntryMessage, messageCount } = aggregatedSms;
+            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({
+                message: timeEntryMessage,
+                user
+            });
             const timeEntryBody: any = {
                 data: {
                     type: "TimeEntry",
-                    date: moment(message.creationTime).format('YYYY-MM-DD'),
+                    date: moment(timeEntryMessage.creationTime).format('YYYY-MM-DD'),
                     quantity: billableTimeSeconds,
-                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')} at ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('HH:mm:ss')}`,
+                    note: `${messageCount > 1 ? `${messageCount} selected SMS messages` : 'SMS message'} with ${contactInfo.name} sent on ${moment(timeEntryMessage.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')} at ${moment(timeEntryMessage.creationTime).utcOffset(Number(user.timezoneOffset)).format('HH:mm:ss')}`,
                     communication: {
                         id: addLogRes.data.data.id
                     },
@@ -905,6 +936,8 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
             if (additionalSubmission?.matters) {
                 timeEntryBody.data.matter = { id: additionalSubmission.matters };
             }
+
+            console.log({m:"Timed ENtry Body is", timeEntryBody});
 
             const timeEntryRes = await axios.post(
                 `https://${user.hostname}/api/v4/activities.json`,
@@ -997,16 +1030,23 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
         {
             headers: { 'Authorization': authHeader }
         });
+     console.log({m:"Update Message Log OutSide Time ENtry", message,Entry:user.userSettings?.smsTimeTrackingEnabled?.value });
     // Create SMS time entry if SMS time tracking is enabled
-    if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
+    const aggregatedSms = aggregateOutboundSmsMessages({ message });
+    if (user.userSettings?.smsTimeTrackingEnabled?.value && aggregatedSms) {
+        console.log("Inside entry");
         try {
-            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({ message, user });
+            const { message: timeEntryMessage } = aggregatedSms;
+            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({
+                message: timeEntryMessage,
+                user
+            });
             const timeEntryBody: any = {
                 data: {
                     type: "TimeEntry",
-                    date: moment(message.creationTime).format('YYYY-MM-DD'),
+                    date: moment(timeEntryMessage.creationTime).format('YYYY-MM-DD'),
                     quantity: billableTimeSeconds,
-                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')} at ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('HH:mm:ss')}`,
+                    note: `SMS message with ${contactInfo.name} sent on ${moment(timeEntryMessage.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')} at ${moment(timeEntryMessage.creationTime).utcOffset(Number(user.timezoneOffset)).format('HH:mm:ss')}`,
                     communication: {
                         id: existingClioLogId
                     },
@@ -1018,6 +1058,8 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
             if (additionalSubmission.matters) {
                 timeEntryBody.data.matter = { id: additionalSubmission.matters };
             }
+
+            console.log({m:"Body", timeEntryBody});
 
             const timeEntryRes = await axios.post(
                 `https://${user.hostname}/api/v4/activities.json`,

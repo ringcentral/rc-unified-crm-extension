@@ -25,6 +25,7 @@ import type {
     ManagedAuthOptionsResponse,
     ManagedAuthUpdateRequest,
     ManagedOAuthStateResponse,
+    MessageLogMatchResponse,
     MessageLogResponse,
     PluginMutationResponse,
     PluginRegisterRequest,
@@ -44,6 +45,7 @@ import {
     AppointmentRangeSchema,
     AppointmentRecordResponseSchema,
     AppointmentStatusRequestSchema,
+    MessageLogMatchRequestSchema,
 } from './contracts';
 
 const express = /** @type {any} */ (require('express'));
@@ -2762,7 +2764,85 @@ function createCoreRouter() {
             eventAddedVia
         });
     });
+    router.post('/messageLog/match', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('matchMessageLog:start', {
+            conversationId: req.body?.conversationId,
+            messageIdsCount: Array.isArray(req.body?.messageIds) ? req.body.messageIds.length : undefined,
+        });
+        let platformName = null;
+        let success = false;
+        let extraData: any = {};
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (jwtToken) {
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('matchMessageLog:invalidToken', {});
+                    res.status(400).send(wrapDebugResponse(tracer, 'Please go to Settings and authorize CRM platform'));
+                    return;
+                }
+                const parsedBody = MessageLogMatchRequestSchema.safeParse(req.body ?? {});
+                if (!parsedBody.success) {
+                    tracer?.trace('matchMessageLog:invalidBody', { issues: parsedBody.error.issues });
+                    extraData.statusCode = 400;
+                    res.status(400).send(wrapDebugResponse(tracer, {
+                        successful: false,
+                        returnMessage: {
+                            message: 'Invalid message log match request',
+                            messageType: 'warning',
+                        },
+                    }));
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
+                platformName = platform;
+                const { conversationId, messageIds } = parsedBody.data;
+                const { successful, logs, messageLogs, returnMessage } = await logCore.getMessageLog({
+                    userId,
+                    platform,
+                    conversationId: String(conversationId),
+                    messageIds,
+                });
+                const response = { successful, logs, messageLogs, returnMessage } satisfies MessageLogMatchResponse;
+                res.status(200).send(wrapDebugResponse(tracer, response));
+                success = true;
+            }
+            else {
+                tracer?.trace('matchMessageLog:noToken', {});
+                res.status(400).send(wrapDebugResponse(tracer, 'Please go to Settings and authorize CRM platform'));
+                success = false;
+            }
+        }
+        catch (e) {
+            logger.error('Match message log failed', { platform: platformName, stack: e.stack });
+            extraData.statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(wrapDebugResponse(tracer, { error: getErrorResponse(e) }));
+            tracer?.traceError('matchMessageLog:error', e, { platform: platformName });
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Match message log',
+            interfaceName: 'matchMessageLog',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: {
+                ...extraData
+            },
+            eventAddedVia
+        });
+    });
     router.post('/messageLog', async function (req, res) {
+        console.log('createMessageLog:start', req.body);
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('createMessageLog:start', { query: req.query });
@@ -2782,7 +2862,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, logIds, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY) });
+                const { successful, returnMessage, logIds, messageLogs, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY) });
                 if (isRevokeUserSession) {
                     sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
@@ -2791,7 +2871,7 @@ function createCoreRouter() {
                     if (extraDataTracking) {
                         extraData = extraDataTracking;
                     }
-                    const response = { successful, returnMessage, logIds } satisfies MessageLogResponse;
+                    const response = { successful, returnMessage, logIds, messageLogs } satisfies MessageLogResponse;
                     res.status(200).send(wrapDebugResponse(tracer, response));
                     success = true;
                 }

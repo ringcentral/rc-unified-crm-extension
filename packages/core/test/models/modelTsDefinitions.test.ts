@@ -146,7 +146,7 @@ describe('TypeScript model definitions', () => {
     const modules: Array<[string, string, string, string[]]> = [
       ['../../models/adminConfigModel.ts', 'AdminConfigModel', 'adminConfigs', ['id', 'userSettings', 'adminAccessToken']],
       ['../../models/llmSessionModel.ts', 'LlmSessionModel', 'llmSessions', ['id', 'jwtToken', 'expiry']],
-      ['../../models/messageLogModel.ts', 'MessageLogModel', 'messageLogs', ['id', 'conversationId', 'conversationLogId']]
+      ['../../models/messageLogModel.ts', 'MessageLogModel', 'messageLogs', ['id', 'conversationId', 'conversationLogId', 'thirdPartyLogId', 'userId', 'platform']],
     ];
 
     for (const [modulePath, exportName, modelName, expectedFields] of modules) {
@@ -160,6 +160,23 @@ describe('TypeScript model definitions', () => {
         expect(attributes[field]).toBeDefined();
       }
     }
+  });
+
+  test('messageLogModel.ts exposes lookup indexes for selected-message matching', () => {
+    const { define } = loadSequelizeModel('../../models/messageLogModel.ts');
+    const defineCalls = define.mock.calls as unknown as Array<[string, any, any]>;
+    const [, attributes, options] = defineCalls[0];
+
+    expect(attributes.id).toEqual(expect.objectContaining({ primaryKey: true }));
+    expect(attributes.userId).toBeDefined();
+    expect(attributes.platform).toBeDefined();
+    expect(options.indexes).toEqual(expect.arrayContaining([
+      { fields: ['conversationId'] },
+      { fields: ['conversationLogId'] },
+      expect.objectContaining({
+        fields: ['userId', 'platform', 'conversationId', 'id']
+      })
+    ]));
   });
 
   const loadSequelizeConfig = ({

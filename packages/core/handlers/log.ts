@@ -47,6 +47,12 @@ const ASYNC_PLUGIN_CACHE_KEY = 'asyncPluginTask';
 const ASYNC_PLUGIN_CALLBACK_PATH = '/plugin/async-callback';
 const ASYNC_PLUGIN_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+function normalizeMessageIdArray(messageIds) {
+    return Array.isArray(messageIds)
+        ? messageIds.map(id => String(id).trim()).filter(Boolean)
+        : [];
+}
+
 function mergePluginWarnings({ returnMessage, warningMessages }) {
     if (!warningMessages.length) {
         return returnMessage;
@@ -1120,6 +1126,30 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
             }
         }
 
+        // Case: selective message logging.
+        // The client explicitly selects a set of messages that should be logged
+        // as a single CRM entry. Store each selected message in `messageLogs`,
+        // the same message-to-CRM mapping table used by the normal path, so
+        // duplicate detection and logged-state matching have one source of truth.
+        const selectedMessageIds = incomingData.selectedMessageIds ?? incomingData.logInfo?.selectedMessageIds;
+        if (Array.isArray(selectedMessageIds) && selectedMessageIds.length > 0) {
+            return await logSelectedMessagesAsSingleEntry({
+                platform,
+                userId,
+                user,
+                incomingData,
+                platformModule,
+                contactInfo,
+                assigneeName,
+                ownerName,
+                authHeader,
+                additionalSubmission,
+                proxyConfig,
+                selectedMessageIds,
+                pluginWarnings,
+            });
+        }
+
         let messageIds = [];
         const correspondents = [];
         if (isGroupSMS) {
@@ -1145,6 +1175,8 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         try {
             existingMessages = await MessageLogModel.findAll({
                 where: {
+                    userId,
+                    platform,
                     [Op.or]: messageIds
                 }
             });
@@ -1158,10 +1190,12 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         if (isSharedSMS) {
             const existingMessageLog = await MessageLogModel.findOne({
                 where: {
-                    conversationLogId: incomingData.logInfo.conversationLogId
+                    conversationLogId: incomingData.logInfo.conversationLogId,
+                    userId,
+                    platform
                 }
             });
-            const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset });
+            const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset, customSubject: incomingData.logInfo?.customSubject });
             if (existingMessageLog) {
                 const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog: existingMessageLog, authHeader, additionalSubmission, proxyConfig });
                 returnMessage = updateMessageResult?.returnMessage;
@@ -1235,7 +1269,9 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
                 }
                 const existingSameDateMessageLog = await MessageLogModel.findOne({
                     where: {
-                        conversationLogId: incomingData.logInfo.conversationLogId
+                        conversationLogId: incomingData.logInfo.conversationLogId,
+                        userId,
+                        platform
                     }
                 });
                 let crmLogId = ''
@@ -1281,6 +1317,235 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
     }
 }
 
+// Logs an explicit set of selected messages as a single CRM entry and records a
+// per-message `messageLogs` row so the client can render a { messageId: logId } map.
+// All selected messages are composed into one note (via the shared-SMS composer)
+// and written with a single createMessageLog call, so they land in one CRM
+// record rather than being created/appended one by one.
+async function logSelectedMessagesAsSingleEntry({
+    platform,
+    userId,
+    user,
+    incomingData,
+    platformModule,
+    contactInfo,
+    assigneeName,
+    ownerName,
+    authHeader,
+    additionalSubmission,
+    proxyConfig,
+    selectedMessageIds,
+    pluginWarnings,
+}) {
+    let returnMessage = null;
+    let extraDataTracking = {};
+
+    const conversationId = incomingData.logInfo.conversationId;
+    const conversationLogId = incomingData.logInfo.conversationLogId ?? null;
+    const selectedIdSet = new Set(selectedMessageIds.map(id => id.toString()));
+    const selectedMessages = incomingData.logInfo.messages.filter(m => selectedIdSet.has(m.id.toString()));
+    if (selectedMessages.length === 0) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'No selected message to log.',
+                messageType: 'warning',
+                ttl: 3000
+            }
+        };
+    }
+
+    // Resolve group-SMS correspondents the same way the daily-digest path does.
+    const correspondents = [];
+    if (incomingData.logInfo.correspondents.length > 1) {
+        for (let i = 0; i < incomingData.logInfo.correspondents.length; i++) {
+            const correspondentContactInfo = await AccountDataModel.findOne({
+                where: {
+                    rcAccountId: user.rcAccountId,
+                    platformName: platform,
+                    dataKey: `contact-${incomingData.logInfo.correspondents[i].phoneNumber}`
+                }
+            });
+            if (correspondentContactInfo && correspondentContactInfo.data[0]?.name != incomingData.contactName) {
+                correspondents.push(correspondentContactInfo.data);
+            }
+        }
+    }
+
+    let existingMessageLogs = [];
+    try {
+        existingMessageLogs = await MessageLogModel.findAll({
+            where: {
+                userId,
+                platform,
+                conversationId,
+                id: { [Op.in]: [...selectedIdSet] }
+            }
+        });
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error finding existing message logs');
+    }
+    const messageLogs = {};
+    for (const log of existingMessageLogs) {
+        messageLogs[log.id] = log.thirdPartyLogId;
+    }
+    const alreadyLoggedIds = new Set(existingMessageLogs.map(log => log.id));
+
+    const messagesToLog = selectedMessages
+        .filter(m => !alreadyLoggedIds.has(m.id.toString()))
+        // oldest first so the single entry reads chronologically
+        .sort((a, b) => new Date(a.creationTime).getTime() - new Date(b.creationTime).getTime());
+
+    if (messagesToLog.length === 0) {
+        return {
+            successful: true,
+            logIds: Object.values(messageLogs),
+            messageLogs,
+            returnMessage: {
+                message: 'Selected messages already logged.',
+                messageType: 'success',
+                ttl: 2000
+            }
+        };
+    }
+
+    // Compose every selected message into one note and write it in a single
+    // createMessageLog call, using the same shared-SMS content mechanism that all
+    // connectors already support. messagesToLog is oldest-first, so the first
+    // message drives the conversation's created date.
+    const logFormat = platformModule.getLogFormatType
+        ? platformModule.getLogFormatType(platform, proxyConfig)
+        : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+    const conversationCreatedDate = messagesToLog[0]?.creationTime;
+    const sharedSMSLogContent = composeSharedSMSLog({
+        logFormat,
+        conversation: {
+            ...incomingData.logInfo,
+            creationTime: conversationCreatedDate,
+            messages: messagesToLog,
+            // Adapt RingCentral message-store records into the entity shape the
+            // shared-SMS composer expects.
+            entities: messagesToLog.map(m => ({
+                recordType: 'AliveMessage',
+                creationTime: m.creationTime,
+                direction: m.direction,
+                from: m.from,
+                author: m.from,
+                subject: m.subject,
+                text: m.subject,
+            })),
+        },
+        contactName: contactInfo.name,
+        timezoneOffset: user.timezoneOffset,
+        customSubject: incomingData.logInfo?.customSubject,
+    });
+    // Connectors that key the CRM record date off the conversation read this.
+    sharedSMSLogContent.conversationCreatedDate = conversationCreatedDate;
+
+    const createResult = await platformModule.createMessageLog({
+        user,
+        contactInfo,
+        correspondents,
+        assigneeName,
+        ownerName,
+        messages: messagesToLog,
+        sharedSMSLogContent,
+        authHeader,
+        additionalSubmission,
+        proxyConfig
+    });
+    // Normalize to a string; connectors may return a numeric logId (e.g. clio).
+    const crmLogId = createResult?.logId != null ? String(createResult.logId) : null;
+    returnMessage = createResult?.returnMessage;
+    extraDataTracking = createResult?.extraDataTracking;
+
+    if (!crmLogId) {
+        return {
+            successful: false,
+            returnMessage: returnMessage ?? {
+                message: 'Failed to log selected messages.',
+                messageType: 'warning',
+                ttl: 3000
+            },
+            extraDataTracking
+        };
+    }
+
+    // Point every logged message at the single CRM record.
+    const messageLogRows = messagesToLog.map(message => ({
+        id: message.id.toString(),
+        conversationId,
+        conversationLogId,
+        thirdPartyLogId: crmLogId,
+        userId,
+        platform
+    }));
+    try {
+        await MessageLogModel.bulkCreate(messageLogRows);
+        for (const row of messageLogRows) {
+            messageLogs[row.id] = crmLogId;
+        }
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error creating message logs');
+    }
+
+    return {
+        successful: true,
+        logIds: Object.values(messageLogs),
+        messageLogs,
+        returnMessage: mergePluginWarnings({ returnMessage, warningMessages: pluginWarnings }),
+        extraDataTracking
+    };
+}
+
+// Returns which of the requested message ids are already logged and their CRM
+// log record ids so the client can render logged icons.
+async function getMessageLog({ userId, platform, conversationId, messageIds }) {
+    try {
+        const user = await UserModel.findByPk(userId);
+        if (!user || !user.accessToken) {
+            return { successful: false, message: `Contact not found` };
+        }
+        const requestedIds: string[] = normalizeMessageIdArray(messageIds);
+        if (!conversationId && requestedIds.length === 0) {
+            return { successful: false, message: `No conversationId or messageIds provided` };
+        }
+        const where: any = { userId, platform };
+        if (conversationId) {
+            where.conversationId = conversationId;
+        }
+        if (requestedIds.length > 0) {
+            where.id = { [Op.in]: requestedIds };
+        }
+        let messageLogRows = [];
+        try {
+            messageLogRows = await MessageLogModel.findAll({ where });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding message logs');
+        }
+        const messageLogs = {};
+        for (const log of messageLogRows) {
+            messageLogs[log.id] = log.thirdPartyLogId;
+        }
+        let logs;
+        if (requestedIds.length > 0) {
+            logs = requestedIds.map(id => messageLogs[id]
+                ? { messageId: id, matched: true, logId: messageLogs[id] }
+                : { messageId: id, matched: false });
+        }
+        else {
+            logs = messageLogRows.map(log => ({ messageId: log.id, matched: true, logId: log.thirdPartyLogId }));
+        }
+        return { successful: true, logs, messageLogs };
+    }
+    catch (e) {
+        return handleApiError(e, platform, 'getMessageLog', { userId, conversationId, messageIds });
+    }
+}
+
 async function saveNoteCache({ platform, userId, sessionId, note }) {
     try {
         const now = moment();
@@ -1294,6 +1559,7 @@ async function saveNoteCache({ platform, userId, sessionId, note }) {
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.createMessageLog = createMessageLog;
+exports.getMessageLog = getMessageLog;
 exports.getCallLog = getCallLog;
 exports.saveNoteCache = saveNoteCache;
 exports.handleAsyncPluginCallback = handleAsyncPluginCallback;

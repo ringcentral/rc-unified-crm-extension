@@ -94,6 +94,17 @@ async function refreshUserInfo({ platform, userId, tracer }) {
                 break;
         }
 
+        // refreshUserInfo is an optional connector interface (see the
+        // implementedInterfaces capability flag). Connectors that don't support
+        // it (e.g. netsuite) should no-op rather than throw a TypeError. Token
+        // refresh above still runs so the session stays valid.
+        if (typeof platformModule.refreshUserInfo !== 'function') {
+            tracer?.trace('refreshUserInfo:notSupported', { platform });
+            return {
+                successful: true
+            };
+        }
+
         const { successful, returnMessage } = await platformModule.refreshUserInfo({ user, authHeader, proxyConfig });
         tracer?.trace('refreshUserInfo:platformRefreshResult', { successful, returnMessage });
         return {

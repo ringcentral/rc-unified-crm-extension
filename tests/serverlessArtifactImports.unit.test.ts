@@ -21,7 +21,7 @@ function validateArtifactInChildProcess() {
   const fs = require('fs');
   const path = require('path');
   const { createRequire } = require('module');
-  const artifactRoot = process.argv[1];
+  const artifactRoot = fs.realpathSync.native(process.argv[1]);
 
   function jsFilesUnder(directory) {
     return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

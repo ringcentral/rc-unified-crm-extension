@@ -107,11 +107,35 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('SMS conversation with John Customer');
+      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
       expect(result.body).toContain('Conversation summary');
       expect(result.body).toContain('John Customer (customer)');
       expect(result.body).toContain('BEGIN');
       expect(result.body).toContain('END');
+    });
+
+    test('should use customSubject when provided', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        customSubject: 'Updated  title - SMS conversation with Testsushil Labsaccount - 08/21/2026 07:28 AM'
+      });
+
+      expect(result.subject).toBe('Updated  title - SMS conversation with Testsushil Labsaccount - 08/21/2026 07:28 AM');
+    });
+
+    test('should ignore blank customSubject and keep the default title', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        customSubject: '   '
+      });
+
+      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
     });
 
     test('should compose SMS log in HTML format', () => {
@@ -122,7 +146,7 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('SMS conversation with John Customer');
+      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
       expect(result.body).toContain('<b>Conversation summary</b>');
       expect(result.body).toContain('<b>Participants</b>');
       expect(result.body).toContain('<li>');
@@ -136,7 +160,7 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('**SMS conversation with John Customer**');
+      expect(result.subject).toBe('**SMS conversation with John Customer - 01/15/2024 10:30 AM**');
       expect(result.body).toContain('## Conversation summary');
       expect(result.body).toContain('### Participants');
       expect(result.body).toContain('---');
@@ -765,6 +789,11 @@ describe('sharedSMSComposer', () => {
       expect(allContent).toContain('First message');
       expect(allContent).toContain('Second message');
       expect(allContent).toContain('Third message');
+      expect(result.map(r => r.content)).toEqual([
+        expect.stringContaining('First message'),
+        expect.stringContaining('Second message'),
+        expect.stringContaining('Third message'),
+      ]);
     });
 
     test('should apply timezone offset to timestamps', () => {
@@ -1117,7 +1146,7 @@ describe('sharedSMSComposer', () => {
         contactName: 'Customer'
       });
 
-      expect(result.subject).toBe('SMS conversation with Customer');
+      expect(result.subject).toMatch(/^SMS conversation with Customer - \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} (AM|PM)$/);
       expect(result.body).toContain('Conversation summary');
     });
 
@@ -1133,7 +1162,7 @@ describe('sharedSMSComposer', () => {
         contactName: 'Customer'
       });
 
-      expect(result.subject).toBe('SMS conversation with Customer');
+      expect(result.subject).toMatch(/^SMS conversation with Customer - \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} (AM|PM)$/);
       expect(result.body).not.toContain('<b>');
       expect(result.body).not.toContain('##');
     });
