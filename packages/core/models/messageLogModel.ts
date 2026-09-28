@@ -22,6 +22,9 @@ const MessageLogModel = sequelize.define('messageLogs', {
     thirdPartyLogId: {
         type: Sequelize.STRING,
     },
+    contactId: {
+        type: Sequelize.STRING,
+    },
     userId: {
         type: Sequelize.STRING,
         primaryKey: true,

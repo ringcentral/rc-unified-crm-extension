@@ -2368,8 +2368,8 @@ describe('Log Handler', () => {
       // Per-message mapping points every selected message at the same CRM record.
       expect(result.messageLogs).toEqual({ 'msg-1': 'crm-entry-1', 'msg-3': 'crm-entry-1' });
       expect(bulkCreateSpy).toHaveBeenCalledWith(expect.arrayContaining([
-        expect.objectContaining({ id: 'msg-1', thirdPartyLogId: 'crm-entry-1' }),
-        expect.objectContaining({ id: 'msg-3', thirdPartyLogId: 'crm-entry-1' }),
+        expect.objectContaining({ id: 'msg-1', thirdPartyLogId: 'crm-entry-1', contactId: 'contact-123' }),
+        expect.objectContaining({ id: 'msg-3', thirdPartyLogId: 'crm-entry-1', contactId: 'contact-123' }),
       ]));
 
       // Selected-message mappings are persisted in the same table as the
@@ -2377,6 +2377,7 @@ describe('Log Handler', () => {
       const messageRows = await MessageLogModel.findAll({ where: { conversationId: 'conv-123' } });
       expect(messageRows.map((a) => a.id).sort()).toEqual(['msg-1', 'msg-3']);
       expect(messageRows.every((a) => a.thirdPartyLogId === 'crm-entry-1')).toBe(true);
+      expect(messageRows.every((a) => a.contactId === 'contact-123')).toBe(true);
     });
 
     test('uses logInfo.customSubject as the CRM entry title', async () => {
@@ -2581,8 +2582,8 @@ describe('Log Handler', () => {
         platformAdditionalInfo: {},
       });
       await MessageLogModel.bulkCreate([
-        { id: 'msg-1', conversationId: 'conv-123', conversationLogId: 'c-1', thirdPartyLogId: 'crm-1', userId: 'test-user-id', platform: 'testCRM' },
-        { id: 'msg-2', conversationId: 'conv-123', conversationLogId: 'c-1', thirdPartyLogId: 'crm-1', userId: 'test-user-id', platform: 'testCRM' },
+        { id: 'msg-1', conversationId: 'conv-123', conversationLogId: 'c-1', thirdPartyLogId: 'crm-1', contactId: 'contact-1', userId: 'test-user-id', platform: 'testCRM' },
+        { id: 'msg-2', conversationId: 'conv-123', conversationLogId: 'c-1', thirdPartyLogId: 'crm-1', contactId: 'contact-1', userId: 'test-user-id', platform: 'testCRM' },
       ]);
     }
 
@@ -2598,8 +2599,8 @@ describe('Log Handler', () => {
 
       expect(result.successful).toBe(true);
       expect(result.logs).toEqual([
-        { messageId: 'msg-1', matched: true, logId: 'crm-1' },
-        { messageId: 'msg-2', matched: true, logId: 'crm-1' },
+        { messageId: 'msg-1', matched: true, logId: 'crm-1', contactId: 'contact-1' },
+        { messageId: 'msg-2', matched: true, logId: 'crm-1', contactId: 'contact-1' },
         { messageId: 'msg-unknown', matched: false },
       ]);
       expect(result.messageLogs).toEqual({ 'msg-1': 'crm-1', 'msg-2': 'crm-1' });
@@ -2629,7 +2630,7 @@ describe('Log Handler', () => {
 
       expect(result.successful).toBe(true);
       expect(result.logs).toEqual([
-        { messageId: 'msg-1', matched: true, logId: 'crm-1' },
+        { messageId: 'msg-1', matched: true, logId: 'crm-1', contactId: 'contact-1' },
         { messageId: 'msg-unknown', matched: false },
       ]);
     });
