@@ -72,6 +72,7 @@ export const MessageLogMatchResponseSchema = z.looseObject({
     messageId: EntityIdSchema.describe('RingCentral message identifier from the request.'),
     matched: z.boolean().describe('Whether this message has already been logged.'),
     logId: EntityIdSchema.describe('CRM log record identifier for matched messages.').optional(),
+    contactId: EntityIdSchema.describe('CRM contact associated with the logged message.').optional(),
   })).describe('Matched/unmatched status for the requested message ids.').optional(),
   messageLogs: z.record(z.string(), EntityIdSchema).describe(
     'Per-message mapping of RingCentral message id to CRM log record id.',

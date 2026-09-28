@@ -1214,7 +1214,8 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
                             conversationId: incomingData.logInfo.conversationId,
                             thirdPartyLogId: createMessageLogResult.logId,
                             userId,
-                            conversationLogId: incomingData.logInfo.conversationLogId
+                            conversationLogId: incomingData.logInfo.conversationLogId,
+                            contactId: incomingData.contactId
                         });
                     logIds.push(createdMessageLog.id);
                 }
@@ -1298,7 +1299,8 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
                                 conversationId: incomingData.logInfo.conversationId,
                                 thirdPartyLogId: crmLogId,
                                 userId,
-                                conversationLogId: incomingData.logInfo.conversationLogId
+                                conversationLogId: incomingData.logInfo.conversationLogId,
+                                contactId: incomingData.contactId
                             });
                         logIds.push(createdMessageLog.id);
                     } catch (error) {
@@ -1481,7 +1483,8 @@ async function logSelectedMessagesAsSingleEntry({
         conversationLogId,
         thirdPartyLogId: crmLogId,
         userId,
-        platform
+        platform,
+        contactId: incomingData.contactId
     }));
     try {
         await MessageLogModel.bulkCreate(messageLogRows);
@@ -1529,17 +1532,29 @@ async function getMessageLog({ userId, platform, conversationId, messageIds }) {
             return handleDatabaseError(error, 'Error finding message logs');
         }
         const messageLogs = {};
+        const messageLogRowsById = {};
         for (const log of messageLogRows) {
             messageLogs[log.id] = log.thirdPartyLogId;
+            messageLogRowsById[log.id] = log;
         }
         let logs;
         if (requestedIds.length > 0) {
             logs = requestedIds.map(id => messageLogs[id]
-                ? { messageId: id, matched: true, logId: messageLogs[id] }
+                ? {
+                    messageId: id,
+                    matched: true,
+                    logId: messageLogs[id],
+                    contactId: messageLogRowsById[id].contactId
+                }
                 : { messageId: id, matched: false });
         }
         else {
-            logs = messageLogRows.map(log => ({ messageId: log.id, matched: true, logId: log.thirdPartyLogId }));
+            logs = messageLogRows.map(log => ({
+                messageId: log.id,
+                matched: true,
+                logId: log.thirdPartyLogId,
+                contactId: log.contactId
+            }));
         }
         return { successful: true, logs, messageLogs };
     }

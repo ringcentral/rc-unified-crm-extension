@@ -86,6 +86,7 @@ const s3ErrorLogReport = /** @type {any} */ (require('./lib/s3ErrorLogReport'));
 const pluginCore = /** @type {any} */ (require('./handlers/plugin'));
 const { sequelize } = /** @type {any} */ (require('./models/sequelize'));
 const { runCallLogsSchemaMigration } = /** @type {any} */ (require('./lib/migrateCallLogsSchema'));
+const { migrateMessageLogsSchema } = /** @type {any} */ (require('./lib/migrateMessageLogsSchema'));
 const { handleDatabaseError } = /** @type {any} */ (require('./lib/errorHandler'));
 const { updateAuthSession } = /** @type {any} */ (require('./lib/authSession'));
 const managedAuthCore = /** @type {any} */ (require('./handlers/managedAuth'));
@@ -134,6 +135,7 @@ async function initDB() {
         await LlmSessionModel.sync();
         await CallLogModel.sync();
         await MessageLogModel.sync();
+        await migrateMessageLogsSchema(sequelize);
         await AdminConfigModel.sync();
         await CacheModel.sync();
         await CallDownListModel.sync();
