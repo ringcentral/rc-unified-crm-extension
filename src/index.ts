@@ -22,6 +22,7 @@ const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const adminCore = /** @type {any} */ (require('@app-connect/core/handlers/admin'));
 const googleDrivePlugin = /** @type {any} */ (require('./plugins/googleDrivePlugin'));
 const allCapPlugin = /** @type {any} */ (require('./plugins/allCapPlugin'));
+const supportAuth = /** @type {any} */ (require('./support/auth'));
 
 /**
  * Log internal failures without serializing request credentials back to clients.
@@ -511,6 +512,11 @@ app.post('/googleDrive/logout', async function (req, res) {
         console.log(e.stack);
         res.status(400).send();
     }
+});
+
+// Support console routes. Every /support/* route must go through requireSupportUser.
+app.get('/support/session', supportAuth.requireSupportUser, function (req, res) {
+    res.status(200).json(req.supportUser);
 });
 
 exports.getServer = function getServer() {

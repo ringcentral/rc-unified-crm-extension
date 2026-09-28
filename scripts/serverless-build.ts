@@ -30,6 +30,7 @@ rm('-rf', `${deployPath}/*.json`);
 rm('-rf', `${deployPath}/packages`);
 rm('-rf', `${deployPath}/node_modules`);
 rm('-rf', `${deployPath}/connectors`);
+rm('-rf', `${deployPath}/support`);
 rm('-rf', `${deployPath}/plugins`);
 echo('building...');
 mkdir(deployPath)
@@ -47,6 +48,7 @@ rm('-rf', `${deployPath}/packages/core/mcp/ui/node_modules`);
 rm('-rf', `${deployPath}/packages/core/mcp/ui/App`);
 cp('-r', `${buildPath}/src/connectors`, `${deployPath}/connectors`);
 cp('-r', `${buildPath}/src/plugins`, `${deployPath}/plugins`);
+cp('-r', `${buildPath}/src/support`, `${deployPath}/support`);
 async function run() {
     const installCmd = 'npm i --production';
     console.log(`run cmd: ${installCmd}`);

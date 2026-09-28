@@ -101,6 +101,10 @@
     {
       "name": "Pipedrive",
       "description": "Bundled Pipedrive redirect helper and authenticated uninstall callback; these routes are omitted from the public connector reference."
+    },
+    {
+      "name": "Support Console",
+      "description": "Internal RingCentral Support console routes; access is limited to enabled extensions of the RingCentral corporate account and these routes are omitted from the public connector reference."
     }
   ],
   "security": [],
@@ -4264,6 +4268,49 @@
         },
         "description": "Returns account-level CRM metadata (e.g. Pipedrive activity types) registered by the connector's accountData descriptor table. Values are cached per (rcAccountId, platform, dataKey) with a lazy TTL refresh; pass forceRefresh=true to bypass the cache. Unknown keys return 400."
       }
+    },
+    "/support/session": {
+      "get": {
+        "tags": [
+          "Support Console"
+        ],
+        "summary": "Validate Support console session",
+        "operationId": "getSupportSession",
+        "description": "Validates the RingCentral access token in X-RC-Access-Token and returns the staff identity when it belongs to an enabled extension of the RingCentral corporate account. Only the header location is accepted. Successful validations are cached per token for five minutes.",
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The token belongs to RingCentral staff.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportSessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8286,6 +8333,35 @@
         },
         "description": "Connector-provided options for a dynamic managed authentication field.",
         "x-app-connect-generated-contract": true
+      },
+      "SupportSessionResponse": {
+        "type": "object",
+        "description": "RingCentral staff identity admitted to the Support console.",
+        "required": [
+          "accountId",
+          "extensionId",
+          "name",
+          "email"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "RingCentral account ID; always the RingCentral corporate account."
+          },
+          "extensionId": {
+            "type": "string",
+            "description": "RingCentral extension ID of the signed-in staff member."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the RingCentral extension."
+          },
+          "email": {
+            "type": "string",
+            "description": "Contact email of the RingCentral extension, or an empty string."
+          }
+        }
       }
     },
     "headers": {

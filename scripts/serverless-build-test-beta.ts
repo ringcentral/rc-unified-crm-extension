@@ -30,6 +30,7 @@ rm('-rf', `${deployPath}/*.json`);
 rm('-rf', `${deployPath}/packages`);
 rm('-rf', `${deployPath}/node_modules`);
 rm('-rf', `${deployPath}/connectors`);
+rm('-rf', `${deployPath}/support`);
 rm('-rf', `${deployPath}/src/plugins`);
 echo('building...');
 mkdir(deployPath)
@@ -44,6 +45,7 @@ mkdir(`${deployPath}/packages`);
 cp('-r', `${buildPath}/packages/core`, `${deployPath}/packages/core`);
 cp('-r', `${buildPath}/src/connectors`, `${deployPath}/connectors`);
 cp('-r', `${buildPath}/src/plugins`, `${deployPath}/plugins`);
+cp('-r', `${buildPath}/src/support`, `${deployPath}/support`);
 const manifestPath = resolve(projectPath, 'serverless-deploy-test-beta/connectors/manifest.json');
 const manifest = require(manifestPath);
 manifest.serverUrl = 'https://unified-crm-extension-test-beta.labs.ringcentral.com';

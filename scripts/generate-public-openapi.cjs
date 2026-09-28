@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace']);
-const HIDDEN_TAGS = Object.freeze(['MCP', 'Google Integrations', 'Pipedrive']);
+const HIDDEN_TAGS = Object.freeze(['MCP', 'Google Integrations', 'Pipedrive', 'Support Console']);
 const SOURCE_PATH = path.resolve(__dirname, '..', 'docs', 'developers', 'crm-server-openapi.json');
 const OUTPUT_PATH = path.resolve(__dirname, '..', 'docs', 'developers', 'crm-server-openapi-public.json');
 
