@@ -796,6 +796,45 @@ describe('sharedSMSComposer', () => {
       ]);
     });
 
+    test('should sort entities with numeric creation times oldest first', () => {
+      const entities = [
+        {
+          recordType: 'AliveMessage',
+          creationTime: 3000,
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Third numeric message'
+        },
+        {
+          recordType: 'AliveMessage',
+          creationTime: 1000,
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'First numeric message'
+        },
+        {
+          recordType: 'AliveMessage',
+          creationTime: 2000,
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Second numeric message'
+        }
+      ];
+
+      const result = processEntities({
+        entities,
+        timezoneOffset: '+00:00',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        contactName: 'Customer'
+      });
+
+      expect(result.map(r => r.content)).toEqual([
+        expect.stringContaining('First numeric message'),
+        expect.stringContaining('Second numeric message'),
+        expect.stringContaining('Third numeric message'),
+      ]);
+    });
+
     test('should apply timezone offset to timestamps', () => {
       const entities = [
         {

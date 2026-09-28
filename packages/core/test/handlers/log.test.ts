@@ -2380,6 +2380,56 @@ describe('Log Handler', () => {
       expect(messageRows.every((a) => a.contactId === 'contact-123')).toBe(true);
     });
 
+    test('returns a warning when none of the selected ids exist in the conversation', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['missing-message']),
+      });
+
+      expect(result).toEqual({
+        successful: false,
+        returnMessage: {
+          message: 'No selected message to log.',
+          messageType: 'warning',
+          ttl: 3000,
+        },
+      });
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
+    test('includes resolved group correspondents in the selected-message entry', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-1',
+        platformName: 'testCRM',
+        dataKey: 'contact-+19876543210',
+        data: [{ id: 'contact-456', name: 'Other Contact' }],
+      });
+      const incomingData = buildIncomingData(['msg-1']);
+      incomingData.logInfo.correspondents = [
+        { phoneNumber: '+1234567890' },
+        { phoneNumber: '+19876543210' },
+      ];
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData,
+      });
+
+      expect(result.successful).toBe(true);
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        correspondents: [[{ id: 'contact-456', name: 'Other Contact' }]],
+      }));
+    });
+
     test('uses logInfo.customSubject as the CRM entry title', async () => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
