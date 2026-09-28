@@ -43,4 +43,16 @@ describe('migrateMessageLogsSchema', () => {
       getQueryInterface: () => queryInterface,
     })).resolves.toBeUndefined();
   });
+
+  test('rethrows an add-column failure when contactId is still missing', async () => {
+    const migrationError = new Error('database unavailable');
+    const queryInterface = {
+      describeTable: jest.fn().mockResolvedValue({ id: {} }),
+      addColumn: jest.fn().mockRejectedValue(migrationError),
+    };
+
+    await expect(migrateMessageLogsSchema({
+      getQueryInterface: () => queryInterface,
+    })).rejects.toBe(migrationError);
+  });
 });
