@@ -1,6 +1,8 @@
 // @ts-check
 
+const crypto = require('crypto');
 const { Op } = /** @type {any} */ (require('sequelize'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { AccountDataModel } = /** @type {any} */ (require('@app-connect/core/models/accountDataModel'));
 const vinsolutions = /** @type {any} */ (require('./vinsolutions'));
 
@@ -18,7 +20,8 @@ const providers = {
 const SUPPORT_ACCOUNT_ID = 'support';
 const ALLOWLIST_KEY_PREFIX = 'support-allowlist:';
 const HISTORY_KEY_PREFIX = 'support-history:';
-const MAX_EVENTS_PER_INTEGRATION = 100;
+// One row per audit event, so concurrent requests never overwrite each other's records.
+const EVENT_KEY_PREFIX = 'support-event:';
 
 class SupportCrmError extends Error {
     status: number;
@@ -118,6 +121,7 @@ async function getAllowlistedIds(platform) {
 /**
  * Keeps a running record of every integration seen as active, per service.
  * One row per integration, so staff working on different dealers never overwrite each other.
+ * Audit events live in their own rows and are never touched here.
  *
  * @param {string} platform
  * @param {any[]} integrations
@@ -136,8 +140,7 @@ async function recordSeenIntegrations(platform, integrations) {
 
     await Promise.all(integrations.map(async (integration) => {
         const dataKey = `${HISTORY_KEY_PREFIX}${integration.id}`;
-        const row = rowsByKey.get(dataKey);
-        const previous = row?.data || {};
+        const previous = rowsByKey.get(dataKey)?.data || {};
         const services = { ...(previous.services || {}) };
         for (const [service, status] of Object.entries(integration.services)) {
             if (status !== 'active') continue;
@@ -146,15 +149,46 @@ async function recordSeenIntegrations(platform, integrations) {
                 lastSeenAt: now,
             };
         }
-        await saveRow(platform, dataKey, row, {
-            ...previous,
-            name: integration.name,
-            details: integration.details,
-            firstSeenAt: previous.firstSeenAt || now,
-            services,
-            events: previous.events || [],
+        // upsert, not create: two listings may both see a new integration at once.
+        await AccountDataModel.upsert({
+            rcAccountId: SUPPORT_ACCOUNT_ID,
+            platformName: platform,
+            dataKey,
+            data: {
+                name: integration.name,
+                details: integration.details,
+                firstSeenAt: previous.firstSeenAt || now,
+                services,
+            },
         });
     }));
+}
+
+/**
+ * @param {string} platform
+ * @param {string} integrationId
+ * @param {any} event
+ * @param {number} [order] position within one action, so events from one request keep their order
+ */
+function createEventRow(platform, integrationId, event, order = 0) {
+    const dataKey = `${EVENT_KEY_PREFIX}${integrationId}:${event.createdAt}-${order}-${crypto.randomBytes(4).toString('hex')}`;
+    return AccountDataModel.create({
+        rcAccountId: SUPPORT_ACCOUNT_ID,
+        platformName: platform,
+        dataKey,
+        data: { ...event, order },
+    });
+}
+
+/**
+ * @param {any} supportUser
+ */
+function actorFields(supportUser) {
+    return {
+        actorExtensionId: supportUser?.extensionId || '',
+        actorName: supportUser?.name || '',
+        actorEmail: supportUser?.email || '',
+    };
 }
 
 /**
@@ -209,28 +243,71 @@ async function removeIntegration({ platform, integrationId, services, supportUse
         throw new SupportCrmError(409, 'Integration is on the allowlist; confirm to remove it');
     }
 
-    const results = await provider.removeIntegration(integrationId, selectedServices);
+    // Record the attempt before calling the CRM: if this write fails nothing has been removed,
+    // and if the CRM call succeeds there is already a row saying who asked for it.
     const createdAt = new Date().toISOString();
-    const events = Object.entries(results).map(([service, result]: [string, any]) => ({
+    const attemptResults = await Promise.allSettled(selectedServices.map((service, order) => createEventRow(platform, integrationId, {
         service,
         action: 'remove',
-        result: result.status,
-        errorMessage: result.message?.slice(0, 1000) || '',
-        actorExtensionId: supportUser?.extensionId || '',
-        actorName: supportUser?.name || '',
-        actorEmail: supportUser?.email || '',
+        result: 'attempted',
+        errorMessage: '',
+        ...actorFields(supportUser),
         createdAt,
-    }));
+    }, order)));
+    const rejected: any = attemptResults.find((result) => result.status === 'rejected');
+    if (rejected) {
+        // Nothing is removed, so close out the attempts that did get written.
+        await Promise.allSettled(attemptResults.map((result: any) => result.status === 'fulfilled'
+            && result.value.update({
+                data: { ...result.value.data, result: 'failed', errorMessage: 'Removal was not attempted' },
+            })));
+        throw rejected.reason;
+    }
+    const attempts = attemptResults.map((result: any) => result.value);
 
-    const dataKey = `${HISTORY_KEY_PREFIX}${integrationId}`;
-    const row = await findRow(platform, dataKey);
-    const previous = row?.data || {};
-    await saveRow(platform, dataKey, row, {
-        ...previous,
-        // Newest first, capped so one row's JSON cannot grow without bound.
-        events: [...events, ...(previous.events || [])].slice(0, MAX_EVENTS_PER_INTEGRATION),
-    });
+    const results = await provider.removeIntegration(integrationId, selectedServices);
+
+    await Promise.all(attempts.map(async (attempt, index) => {
+        const result: any = results[selectedServices[index]];
+        try {
+            await attempt.update({
+                data: { ...attempt.data, result: result.status, errorMessage: result.message?.slice(0, 1000) || '' },
+            });
+        }
+        catch (e) {
+            // The removal already happened; report it instead of failing the request.
+            logger.error('Error recording Support console removal result', {
+                platform,
+                integrationId,
+                service: selectedServices[index],
+                message: /** @type {any} */ (e)?.message,
+            });
+        }
+    }));
     return { platform, integrationId, results };
+}
+
+/**
+ * @param {any} row
+ */
+function serializeEvent(row) {
+    const { actorExtensionId, order, ...event } = row.data || {};
+    // A row still "attempted" means the CRM call's outcome was never recorded.
+    return event.result === 'attempted'
+        ? { ...event, result: 'failed', errorMessage: 'Outcome was not recorded' }
+        : event;
+}
+
+/**
+ * Newest first; events from the same request keep the order they were made in.
+ *
+ * @param {any[]} rows
+ */
+function sortEventRows(rows) {
+    return [...rows].sort((a, b) => (
+        (b.data?.createdAt || '').localeCompare(a.data?.createdAt || '')
+        || (a.data?.order || 0) - (b.data?.order || 0)
+    ));
 }
 
 /**
@@ -238,26 +315,40 @@ async function removeIntegration({ platform, integrationId, services, supportUse
  */
 async function getHistory(platform) {
     getProvider(platform);
-    const [rows, allowlistedIds] = await Promise.all([
+    const [historyRows, eventRows, allowlistedIds] = await Promise.all([
         findRows(platform, HISTORY_KEY_PREFIX),
+        findRows(platform, EVENT_KEY_PREFIX),
         getAllowlistedIds(platform),
     ]);
-    const history = rows.map((row) => {
-        const id = integrationIdOf(row, HISTORY_KEY_PREFIX);
+
+    const entries = new Map<string, any>();
+    const entryFor = (id) => {
+        if (!entries.has(id)) {
+            // Null firstSeenAt: integrations only ever acted on, never seen in a listing.
+            entries.set(id, {
+                id, name: '', details: {}, services: {}, firstSeenAt: null,
+                allowlisted: allowlistedIds.has(id), events: [], allowlistEvents: [],
+            });
+        }
+        return entries.get(id);
+    };
+    for (const row of historyRows) {
         const data = row.data || {};
-        return {
-            id,
+        Object.assign(entryFor(integrationIdOf(row, HISTORY_KEY_PREFIX)), {
             name: data.name || '',
             details: data.details || {},
             services: data.services || {},
-            // Null for integrations only ever removed, never seen in a listing.
             firstSeenAt: data.firstSeenAt || null,
-            allowlisted: allowlistedIds.has(id),
-            events: (data.events || []).map(({ actorExtensionId, ...event }) => event),
-        };
-    });
+        });
+    }
+    for (const row of sortEventRows(eventRows)) {
+        const integrationId = integrationIdOf(row, EVENT_KEY_PREFIX).split(':')[0];
+        const entry = entryFor(integrationId);
+        (row.data?.action === 'remove' ? entry.events : entry.allowlistEvents).push(serializeEvent(row));
+    }
+
     // Most recently first seen first; integrations never listed go last.
-    history.sort((a, b) => (b.firstSeenAt || '').localeCompare(a.firstSeenAt || ''));
+    const history = [...entries.values()].sort((a, b) => (b.firstSeenAt || '').localeCompare(a.firstSeenAt || ''));
     return { platform, history };
 }
 
@@ -285,8 +376,19 @@ async function upsertAllowlistEntry({ platform, integrationId, note, supportUser
     const dataKey = `${ALLOWLIST_KEY_PREFIX}${integrationId}`;
     const row = await findRow(platform, dataKey);
     const previous = row?.data;
+    const nextNote = (note ?? previous?.note ?? '').slice(0, 1000);
+    // Audit first: the allowlist protects integrations from removal, so changes must leave a trail.
+    await createEventRow(platform, integrationId, {
+        service: '',
+        action: row ? 'allowlist-update' : 'allowlist-add',
+        result: 'done',
+        errorMessage: '',
+        note: nextNote,
+        ...actorFields(supportUser),
+        createdAt: new Date().toISOString(),
+    });
     const saved = await saveRow(platform, dataKey, row, {
-        note: (note ?? previous?.note ?? '').slice(0, 1000),
+        note: nextNote,
         addedByExtensionId: previous ? previous.addedByExtensionId || '' : supportUser?.extensionId || '',
         addedByName: previous ? previous.addedByName || '' : supportUser?.name || '',
     });
@@ -294,17 +396,26 @@ async function upsertAllowlistEntry({ platform, integrationId, note, supportUser
 }
 
 /**
- * @param {{ platform: string, integrationId: string }} params
+ * @param {{ platform: string, integrationId: string, supportUser: any }} params
  */
-async function deleteAllowlistEntry({ platform, integrationId }) {
+async function deleteAllowlistEntry({ platform, integrationId, supportUser }) {
     const provider = getProvider(platform);
     assertIntegrationId(provider, integrationId);
-    const deleted = await AccountDataModel.destroy({
-        where: { rcAccountId: SUPPORT_ACCOUNT_ID, platformName: platform, dataKey: `${ALLOWLIST_KEY_PREFIX}${integrationId}` },
-    });
-    if (!deleted) {
+    const dataKey = `${ALLOWLIST_KEY_PREFIX}${integrationId}`;
+    const row = await findRow(platform, dataKey);
+    if (!row) {
         throw new SupportCrmError(404, 'Integration is not on the allowlist');
     }
+    await createEventRow(platform, integrationId, {
+        service: '',
+        action: 'allowlist-remove',
+        result: 'done',
+        errorMessage: '',
+        note: row.data?.note || '',
+        ...actorFields(supportUser),
+        createdAt: new Date().toISOString(),
+    });
+    await row.destroy();
 }
 
 exports.SUPPORT_ACCOUNT_ID = SUPPORT_ACCOUNT_ID;

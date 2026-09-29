@@ -590,7 +590,7 @@ app.put('/support/crm/:platform/allowlist/:id', supportAuth.requireSupportUser, 
 
 app.delete('/support/crm/:platform/allowlist/:id', supportAuth.requireSupportUser, async function (req, res) {
     try {
-        await supportCrm.deleteAllowlistEntry({ platform: req.params.platform, integrationId: req.params.id });
+        await supportCrm.deleteAllowlistEntry({ platform: req.params.platform, integrationId: req.params.id, supportUser: req.supportUser });
         res.status(204).send();
     }
     catch (e) {

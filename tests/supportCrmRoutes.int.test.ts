@@ -3,6 +3,7 @@ process.env.DISABLE_SYNC_DB_TABLE = 'true';
 
 const request = require('supertest');
 const nock = require('nock');
+const { Op } = require('sequelize');
 
 const logger = require('@app-connect/core/lib/logger');
 const { CacheModel } = require('@app-connect/core/models/cacheModel');
@@ -15,6 +16,13 @@ async function historyData(dealerId) {
     where: { rcAccountId: 'support', platformName: 'vinsolutions', dataKey: `support-history:${dealerId}` },
   });
   return row?.data;
+}
+
+async function eventRows(dealerId) {
+  const rows = await AccountDataModel.findAll({
+    where: { rcAccountId: 'support', platformName: 'vinsolutions', dataKey: { [Op.like]: `support-event:${dealerId}:%` } },
+  });
+  return rows.map((row) => row.data).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
 }
 
 const RC_SERVER = 'https://platform.ringcentral.com';
@@ -259,10 +267,10 @@ describe('Support console CRM routes', () => {
       integrationId: '12617',
       results: {
         leadManagement: { status: 'removed' },
-        callTracking: { status: 'alreadyRemoved' },
+        callTracking: { status: 'alreadyRemoved', message: 'VinSolutions returned 404: Not found' },
       },
     });
-    const { events } = await historyData(12617);
+    const events = await eventRows(12617);
     expect(events.map((event) => [event.service, event.result, event.actorName, event.actorExtensionId])).toEqual([
       ['leadManagement', 'removed', 'Support Agent', '101'],
       ['callTracking', 'alreadyRemoved', 'Support Agent', '101'],
@@ -279,7 +287,7 @@ describe('Support console CRM routes', () => {
     expect(response.status).toBe(200);
     expect(response.body.results).toEqual({ callTracking: { status: 'removed' } });
     expect(nock.isDone()).toBe(true);
-    const { events } = await historyData(12617);
+    const events = await eventRows(12617);
     expect(events.map((event) => event.service)).toEqual(['callTracking']);
   });
 
@@ -309,7 +317,7 @@ describe('Support console CRM routes', () => {
       leadManagement: { status: 'failed', message: 'VinSolutions returned 500: Upstream failure' },
       callTracking: { status: 'removed' },
     });
-    const failed = (await historyData(12617)).events.find((event) => event.service === 'leadManagement');
+    const failed = (await eventRows(12617)).find((event) => event.service === 'leadManagement');
     expect(failed.errorMessage).toBe('VinSolutions returned 500: Upstream failure');
   });
 
@@ -388,37 +396,90 @@ describe('Support console CRM routes', () => {
     expect(unlisted.events.map((event) => event.result)).toEqual(['alreadyRemoved', 'alreadyRemoved']);
   });
 
-  test('caps stored removal events per dealer and keeps staff extension IDs out of history responses', async () => {
-    const oldEvents = Array.from({ length: 100 }, (_, index) => ({
-      service: 'leadManagement',
-      action: 'remove',
-      result: 'failed',
-      errorMessage: `old ${index}`,
-      actorExtensionId: '7',
-      actorName: 'Earlier Agent',
-      actorEmail: '',
-      createdAt: '2026-01-01T00:00:00.000Z',
-    }));
-    await AccountDataModel.create({
-      rcAccountId: 'support',
-      platformName: 'vinsolutions',
-      dataKey: 'support-history:12617',
-      data: { name: 'Data Gateway Motors', firstSeenAt: '2026-01-01T00:00:00.000Z', services: {}, events: oldEvents },
-    });
+  test('keeps staff extension IDs out of history responses', async () => {
+    mockToken('lm-client', 'lm-token');
+    mockRemove('lm-api-key', 'lm-token', 12617);
+    await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'))
+      .send({ services: ['leadManagement'] });
+
+    const response = await withStaff(api().get('/support/crm/vinsolutions/history'));
+    expect(response.body.history[0].events).toHaveLength(1);
+    expect(JSON.stringify(response.body)).not.toContain('actorExtensionId');
+  });
+
+  test('a listing never overwrites removal events, even when it overlaps a removal', async () => {
     mockToken('lm-client', 'lm-token');
     mockToken('ct-client', 'ct-token');
+    mockDealers('lm-api-key', 'lm-token', [dealerA]);
+    mockDealers('ct-api-key', 'ct-token', []);
     mockRemove('lm-api-key', 'lm-token', 12617);
     mockRemove('ct-api-key', 'ct-token', 12617);
 
-    await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove')).send(BOTH_SERVICES);
+    await Promise.all([
+      withStaff(api().get('/support/crm/vinsolutions/integrations')),
+      withStaff(api().get('/support/crm/vinsolutions/integrations')),
+      withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove')).send(BOTH_SERVICES),
+    ]);
 
-    const { events, name } = await historyData(12617);
-    expect(name).toBe('Data Gateway Motors');
-    expect(events).toHaveLength(100);
-    expect(events.slice(0, 2).map((event) => event.actorName)).toEqual(['Support Agent', 'Support Agent']);
-    expect(events[99].errorMessage).toBe('old 97');
+    expect(await eventRows(12617)).toHaveLength(2);
+    expect((await historyData(12617)).name).toBe('Data Gateway Motors');
+  });
+
+  test('records the removal attempt before calling the CRM, and does not call it when that fails', async () => {
+    const spy = jest.spyOn(AccountDataModel, 'create').mockRejectedValueOnce(new Error('db down'));
+    const response = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove')).send(BOTH_SERVICES);
+    expect(response.status).toBe(500);
+    spy.mockRestore();
+    // The second attempt row was written before the first failed; it must not look like a removal.
+    expect((await eventRows(12617)).map((event) => [event.result, event.errorMessage]))
+      .toEqual([['failed', 'Removal was not attempted']]);
+
+    mockToken('lm-client', 'lm-token');
+    mockRemove('lm-api-key', 'lm-token', 12617);
+    const seen: string[] = [];
+    const original = AccountDataModel.create.bind(AccountDataModel);
+    const createSpy = jest.spyOn(AccountDataModel, 'create').mockImplementation(async (values: any) => {
+      seen.push(values.data.result);
+      return original(values);
+    });
+    await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove')).send({ services: ['leadManagement'] });
+    createSpy.mockRestore();
+    expect(seen).toEqual(['attempted']);
+    expect((await eventRows(12617))[0].result).toBe('removed');
+  });
+
+  test('still reports the removal when saving its result fails', async () => {
+    mockToken('lm-client', 'lm-token');
+    mockRemove('lm-api-key', 'lm-token', 12617);
+    const original = AccountDataModel.create.bind(AccountDataModel);
+    const createSpy = jest.spyOn(AccountDataModel, 'create').mockImplementation(async (values: any) => {
+      const row = await original(values);
+      row.update = jest.fn().mockRejectedValue(new Error('db down'));
+      return row;
+    });
+
+    const response = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'))
+      .send({ services: ['leadManagement'] });
+    createSpy.mockRestore();
+
+    expect(response.status).toBe(200);
+    expect(response.body.results.leadManagement).toEqual({ status: 'removed' });
+    expect(errorSpy).toHaveBeenCalled();
+    const history = await withStaff(api().get('/support/crm/vinsolutions/history'));
+    expect(history.body.history[0].events[0]).toMatchObject({ result: 'failed', errorMessage: 'Outcome was not recorded' });
+  });
+
+  test('records allowlist changes with who made them', async () => {
+    await withStaff(api().put('/support/crm/vinsolutions/allowlist/12617')).send({ note: 'Pilot' });
+    await withStaff(api().put('/support/crm/vinsolutions/allowlist/12617')).send({ note: 'Paid' });
+    await withStaff(api().delete('/support/crm/vinsolutions/allowlist/12617'));
 
     const response = await withStaff(api().get('/support/crm/vinsolutions/history'));
+    const entry = response.body.history.find((item) => item.id === '12617');
+    expect(entry.events).toEqual([]);
+    expect(entry.allowlistEvents.map((event) => event.action).sort())
+      .toEqual(['allowlist-add', 'allowlist-remove', 'allowlist-update']);
+    expect(entry.allowlistEvents.every((event) => event.actorName === 'Support Agent')).toBe(true);
     expect(JSON.stringify(response.body)).not.toContain('actorExtensionId');
   });
 

@@ -8,6 +8,8 @@ const API_BASE_URL = 'https://api.vinsolutions.com';
 const TOKEN_URI = 'https://authentication.vinsolutions.com/connect/token';
 const TOKEN_SCOPE = 'PublicAPI';
 const TOKEN_EXPIRY_BUFFER_MS = 60 * 1000;
+// Without a timeout a stalled VinSolutions connection would hold the Support console request open.
+const REQUEST_TIMEOUT_MS = 15 * 1000;
 // The remove endpoint rejects vendor media types: VinSolutions requires plain application/json on POST.
 const REMOVE_CONTENT_TYPE = 'application/json';
 
@@ -76,7 +78,8 @@ async function getAccessToken(service, { forceNew = false } = {}) {
         scope: TOKEN_SCOPE,
     });
     const response = await axios.post(TOKEN_URI, params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: REQUEST_TIMEOUT_MS
     });
     const accessToken = response.data?.access_token;
     if (!accessToken) {
@@ -134,7 +137,7 @@ function describeError(error) {
 async function fetchDealers(service) {
     const response = await withServiceAuth(service, (headers) => axios.get(
         `${API_BASE_URL}/gateway/v1/organization/dealers`,
-        { headers: { ...headers, Accept: 'application/json' } }
+        { headers: { ...headers, Accept: 'application/json' }, timeout: REQUEST_TIMEOUT_MS }
     ));
     return Array.isArray(response.data?.Items) ? response.data.Items : [];
 }
@@ -200,12 +203,13 @@ async function removeIntegration(dealerId, services) {
             await withServiceAuth(service, (headers) => axios.post(
                 `${API_BASE_URL}/gateway/v1/organization/dealers/id/${encodeURIComponent(dealerId)}/remove`,
                 {},
-                { headers: { ...headers, Accept: REMOVE_CONTENT_TYPE, 'Content-Type': REMOVE_CONTENT_TYPE } }
+                { headers: { ...headers, Accept: REMOVE_CONTENT_TYPE, 'Content-Type': REMOVE_CONTENT_TYPE }, timeout: REQUEST_TIMEOUT_MS }
             ));
             return [service, { status: 'removed' }];
         }
         catch (e) {
-            if (e?.response?.status === 404) return [service, { status: 'alreadyRemoved' }];
+            // Keep the upstream detail: a 404 can also mean a wrong dealer ID or a changed endpoint.
+            if (e?.response?.status === 404) return [service, { status: 'alreadyRemoved', message: describeError(e) }];
             return [service, { status: 'failed', message: describeError(e) }];
         }
     }));

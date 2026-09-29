@@ -9,6 +9,7 @@ const RC_EXTENSION_INFO_URL = 'https://platform.ringcentral.com/restapi/v1.0/acc
 // Only RingCentral staff signed in with the RingCentral corporate account may use the Support console.
 const SUPPORT_RC_ACCOUNT_ID = '37439510';
 
+const RC_REQUEST_TIMEOUT_MS = 10 * 1000;
 const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
 
 /**
@@ -84,7 +85,8 @@ async function validateSupportUser(rcAccessToken) {
     let extensionInfo;
     try {
         const response = await axios.get(RC_EXTENSION_INFO_URL, {
-            headers: { Authorization: `Bearer ${rcAccessToken}` }
+            headers: { Authorization: `Bearer ${rcAccessToken}` },
+            timeout: RC_REQUEST_TIMEOUT_MS
         });
         extensionInfo = response.data;
     }
