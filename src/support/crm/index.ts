@@ -179,18 +179,37 @@ async function listIntegrations(platform) {
 }
 
 /**
- * @param {{ platform: string, integrationId: string, supportUser: any, confirmAllowlisted?: boolean }} params
+ * Staff choose which of the CRM's services to remove the integration from.
+ *
+ * @param {any} provider
+ * @param {unknown} services
+ * @returns {string[]}
  */
-async function removeIntegration({ platform, integrationId, supportUser, confirmAllowlisted = false }) {
+function resolveServices(provider, services) {
+    if (
+        !Array.isArray(services)
+        || services.length === 0
+        || services.some((service) => !provider.services.includes(service))
+    ) {
+        throw new SupportCrmError(400, `services must be a non-empty list of: ${provider.services.join(', ')}`);
+    }
+    return [...new Set(services)];
+}
+
+/**
+ * @param {{ platform: string, integrationId: string, services: unknown, supportUser: any, confirmAllowlisted?: boolean }} params
+ */
+async function removeIntegration({ platform, integrationId, services, supportUser, confirmAllowlisted = false }) {
     const provider = getProvider(platform);
     assertIntegrationId(provider, integrationId);
+    const selectedServices = resolveServices(provider, services);
     const allowlistRow = await findRow(platform, `${ALLOWLIST_KEY_PREFIX}${integrationId}`);
     // Allowlisted integrations can still be removed, but only with an explicit second confirmation.
     if (allowlistRow && !confirmAllowlisted) {
         throw new SupportCrmError(409, 'Integration is on the allowlist; confirm to remove it');
     }
 
-    const results = await provider.removeIntegration(integrationId);
+    const results = await provider.removeIntegration(integrationId, selectedServices);
     const createdAt = new Date().toISOString();
     const events = Object.entries(results).map(([service, result]: [string, any]) => ({
         service,

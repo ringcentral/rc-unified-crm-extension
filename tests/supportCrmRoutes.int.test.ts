@@ -67,10 +67,12 @@ function mockRemove(apiKey, accessToken, dealerId, status = 200) {
     .post(`/gateway/v1/organization/dealers/id/${dealerId}/remove`)
     .matchHeader('api_key', apiKey)
     .matchHeader('authorization', `Bearer ${accessToken}`)
-    .matchHeader('content-type', 'application/vnd.coxauto.v1+json')
+    .matchHeader('content-type', 'application/json')
+    .matchHeader('accept', 'application/json')
     .reply(status, status === 200 ? {} : { Message: status === 404 ? 'Not found' : 'Upstream failure' });
 }
 
+const BOTH_SERVICES = { services: ['leadManagement', 'callTracking'] };
 const dealerA = { DealerId: 12617, Name: 'Data Gateway Motors', City: 'Mission', State: 'KS' };
 const dealerB = { DealerId: 6946, Name: 'Gordon Chevrolet of Orange Park', City: 'Orange Park', State: 'FL' };
 
@@ -249,7 +251,7 @@ describe('Support console CRM routes', () => {
     mockRemove('lm-api-key', 'lm-token', 12617);
     mockRemove('ct-api-key', 'ct-token', 12617, 404);
 
-    const response = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'));
+    const response = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove')).send(BOTH_SERVICES);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -267,13 +269,41 @@ describe('Support console CRM routes', () => {
     ]);
   });
 
+  test('removes a dealer from only the selected service', async () => {
+    mockToken('ct-client', 'ct-token');
+    mockRemove('ct-api-key', 'ct-token', 12617);
+
+    const response = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'))
+      .send({ services: ['callTracking', 'callTracking'] });
+
+    expect(response.status).toBe(200);
+    expect(response.body.results).toEqual({ callTracking: { status: 'removed' } });
+    expect(nock.isDone()).toBe(true);
+    const { events } = await historyData(12617);
+    expect(events.map((event) => event.service)).toEqual(['callTracking']);
+  });
+
+  test.each([
+    ['missing', undefined],
+    ['empty', []],
+    ['unknown', ['leadManagement', 'appointments']],
+    ['not a list', 'callTracking'],
+  ])('rejects %s services without calling VinSolutions', async (_label, services) => {
+    const response = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'))
+      .send(services === undefined ? {} : { services });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain('leadManagement, callTracking');
+    expect(await historyData(12617)).toBeUndefined();
+  });
+
   test('returns per-service failures from remove', async () => {
     mockToken('lm-client', 'lm-token');
     mockToken('ct-client', 'ct-token');
     mockRemove('lm-api-key', 'lm-token', 12617, 500);
     mockRemove('ct-api-key', 'ct-token', 12617);
 
-    const response = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'));
+    const response = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove')).send(BOTH_SERVICES);
 
     expect(response.body.results).toEqual({
       leadManagement: { status: 'failed', message: 'VinSolutions returned 500: Upstream failure' },
@@ -286,7 +316,7 @@ describe('Support console CRM routes', () => {
   test('requires explicit confirmation to remove an allowlisted dealer', async () => {
     await withStaff(api().put('/support/crm/vinsolutions/allowlist/12617'));
 
-    const refused = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'));
+    const refused = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove')).send(BOTH_SERVICES);
     expect(refused.status).toBe(409);
     expect(await historyData(12617)).toBeUndefined();
 
@@ -295,7 +325,7 @@ describe('Support console CRM routes', () => {
     mockRemove('lm-api-key', 'lm-token', 12617);
     mockRemove('ct-api-key', 'ct-token', 12617);
     const confirmed = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'))
-      .send({ confirmAllowlisted: true });
+      .send({ ...BOTH_SERVICES, confirmAllowlisted: true });
     expect(confirmed.status).toBe(200);
   });
 
@@ -339,10 +369,10 @@ describe('Support console CRM routes', () => {
     await withStaff(api().get('/support/crm/vinsolutions/integrations'));
     mockRemove('lm-api-key', 'lm-token', 12617);
     mockRemove('ct-api-key', 'ct-token', 12617, 404);
-    await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'));
+    await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove')).send(BOTH_SERVICES);
     mockRemove('lm-api-key', 'lm-token', 999, 404);
     mockRemove('ct-api-key', 'ct-token', 999, 404);
-    await withStaff(api().post('/support/crm/vinsolutions/integrations/999/remove'));
+    await withStaff(api().post('/support/crm/vinsolutions/integrations/999/remove')).send(BOTH_SERVICES);
     await withStaff(api().put('/support/crm/vinsolutions/allowlist/999'));
 
     const response = await withStaff(api().get('/support/crm/vinsolutions/history'));
@@ -380,7 +410,7 @@ describe('Support console CRM routes', () => {
     mockRemove('lm-api-key', 'lm-token', 12617);
     mockRemove('ct-api-key', 'ct-token', 12617);
 
-    await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'));
+    await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove')).send(BOTH_SERVICES);
 
     const { events, name } = await historyData(12617);
     expect(name).toBe('Data Gateway Motors');

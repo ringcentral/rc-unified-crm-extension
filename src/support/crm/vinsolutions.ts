@@ -8,7 +8,8 @@ const API_BASE_URL = 'https://api.vinsolutions.com';
 const TOKEN_URI = 'https://authentication.vinsolutions.com/connect/token';
 const TOKEN_SCOPE = 'PublicAPI';
 const TOKEN_EXPIRY_BUFFER_MS = 60 * 1000;
-const REMOVE_CONTENT_TYPE = 'application/vnd.coxauto.v1+json';
+// The remove endpoint rejects vendor media types: VinSolutions requires plain application/json on POST.
+const REMOVE_CONTENT_TYPE = 'application/json';
 
 // Lead Management and Call Tracking are separate VinSolutions products with their own
 // client credentials and API keys; a dealer enables each one independently.
@@ -187,13 +188,14 @@ async function listIntegrations() {
 }
 
 /**
- * Removes RingCentral from the dealer in every VinSolutions product. A 404 means the dealer had
- * already removed it (or was removed outside the console) and counts as done.
+ * Removes RingCentral from the dealer in the given VinSolutions products. A 404 means the dealer
+ * had already removed it (or was removed outside the console) and counts as done.
  *
  * @param {string} dealerId
+ * @param {string[]} services
  */
-async function removeIntegration(dealerId) {
-    const entries = await Promise.all(serviceNames.map(async (service) => {
+async function removeIntegration(dealerId, services) {
+    const entries = await Promise.all(services.map(async (service) => {
         try {
             await withServiceAuth(service, (headers) => axios.post(
                 `${API_BASE_URL}/gateway/v1/organization/dealers/id/${encodeURIComponent(dealerId)}/remove`,

@@ -4391,7 +4391,7 @@
         ],
         "summary": "Remove a CRM integration",
         "operationId": "removeSupportCrmIntegration",
-        "description": "Removes RingCentral from the integration in every CRM service and records each result with the acting staff member. VinSolutions keeps listing a removed dealer for about 10 minutes. There is no way to re-enable a removed integration from RingCentral.",
+        "description": "Removes RingCentral from the integration in the selected CRM services and records each result with the acting staff member. VinSolutions keeps listing a removed dealer for about 10 minutes. There is no way to re-enable a removed integration from RingCentral.",
         "parameters": [
           {
             "name": "platform",
@@ -4417,7 +4417,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4438,7 +4438,7 @@
             }
           },
           "400": {
-            "description": "The integration ID is invalid.",
+            "description": "The integration ID is invalid, or services is not a non-empty list of supported services.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8930,9 +8930,25 @@
       },
       "SupportCrmRemoveRequest": {
         "type": "object",
-        "description": "Options for removing a CRM integration.",
+        "description": "Which CRM services to remove the integration from.",
+        "required": [
+          "services"
+        ],
         "additionalProperties": false,
         "properties": {
+          "services": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "leadManagement",
+                "callTracking"
+              ]
+            },
+            "description": "CRM services to remove the integration from; for VinSolutions, leadManagement and/or callTracking."
+          },
           "confirmAllowlisted": {
             "type": "boolean",
             "description": "Must be true to remove an allowlisted integration."
@@ -8958,7 +8974,7 @@
           },
           "results": {
             "type": "object",
-            "description": "Result per CRM service. alreadyRemoved means the CRM returned 404.",
+            "description": "Result per selected CRM service. alreadyRemoved means the CRM returned 404.",
             "additionalProperties": {
               "type": "object",
               "required": [

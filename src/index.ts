@@ -547,6 +547,7 @@ app.post('/support/crm/:platform/integrations/:id/remove', supportAuth.requireSu
             platform: req.params.platform,
             integrationId: req.params.id,
             supportUser: req.supportUser,
+            services: req.body?.services,
             confirmAllowlisted: req.body?.confirmAllowlisted === true,
         }));
     }
