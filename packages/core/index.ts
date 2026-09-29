@@ -2844,7 +2844,6 @@ function createCoreRouter() {
         });
     });
     router.post('/messageLog', async function (req, res) {
-        console.log('createMessageLog:start', req.body);
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('createMessageLog:start', { query: req.query });

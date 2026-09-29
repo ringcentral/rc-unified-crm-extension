@@ -796,7 +796,6 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 }
 
 async function createMessageLog({ user, contactInfo, correspondents = [], sharedSMSLogContent, authHeader, message, messages = [], additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink }) {
-    console.log('createMessageLog function called', { contactInfo, correspondents, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink });
     let extraDataTracking = {};
     let logBody = '';
     let logSubject = '';
@@ -902,17 +901,16 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
     if (additionalSubmission && additionalSubmission.matters) {
         postBody.data['matter'] = { id: additionalSubmission.matters };
     }
+
     const addLogRes = await axios.post(
         `https://${user.hostname}/api/v4/communications.json`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
         });
-     console.log({m:"Create Message Logged Outside timed entry"});
     // Create SMS time entry if SMS time tracking is enabled
     const aggregatedSms = aggregateOutboundSmsMessages({ message, messages });
     if (user.userSettings?.smsTimeTrackingEnabled?.value && aggregatedSms) {
-        console.log({m:"Inside timed entry"});
         try {
             const { message: timeEntryMessage, messageCount } = aggregatedSms;
             const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({
@@ -936,8 +934,6 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
             if (additionalSubmission?.matters) {
                 timeEntryBody.data.matter = { id: additionalSubmission.matters };
             }
-
-            console.log({m:"Timed ENtry Body is", timeEntryBody});
 
             const timeEntryRes = await axios.post(
                 `https://${user.hostname}/api/v4/activities.json`,
@@ -1030,11 +1026,9 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
         {
             headers: { 'Authorization': authHeader }
         });
-     console.log({m:"Update Message Log OutSide Time ENtry", message,Entry:user.userSettings?.smsTimeTrackingEnabled?.value });
     // Create SMS time entry if SMS time tracking is enabled
     const aggregatedSms = aggregateOutboundSmsMessages({ message });
     if (user.userSettings?.smsTimeTrackingEnabled?.value && aggregatedSms) {
-        console.log("Inside entry");
         try {
             const { message: timeEntryMessage } = aggregatedSms;
             const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({
@@ -1058,8 +1052,6 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
             if (additionalSubmission.matters) {
                 timeEntryBody.data.matter = { id: additionalSubmission.matters };
             }
-
-            console.log({m:"Body", timeEntryBody});
 
             const timeEntryRes = await axios.post(
                 `https://${user.hostname}/api/v4/activities.json`,
