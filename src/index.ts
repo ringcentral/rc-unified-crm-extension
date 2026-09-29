@@ -68,7 +68,6 @@ async function initDB() {
         console.log('creating db tables if not exist...');
         await PluginUserModel.sync();
         await GoogleDriveFileModel.sync();
-        await supportCrm.syncSupportCrmModels();
     }
 }
 

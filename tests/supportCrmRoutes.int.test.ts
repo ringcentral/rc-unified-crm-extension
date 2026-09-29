@@ -7,13 +7,15 @@ const nock = require('nock');
 const logger = require('@app-connect/core/lib/logger');
 const { CacheModel } = require('@app-connect/core/models/cacheModel');
 const supportAuth = require('../src/support/auth');
-const supportCrm = require('../src/support/crm');
-const {
-  SupportAllowlistEntryModel,
-  SupportIntegrationEventModel,
-  SupportIntegrationRecordModel,
-} = require('../src/support/models');
+const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
 const { getServer } = require('../src/index');
+
+async function historyData(dealerId) {
+  const row = await AccountDataModel.findOne({
+    where: { rcAccountId: 'support', platformName: 'vinsolutions', dataKey: `support-history:${dealerId}` },
+  });
+  return row?.data;
+}
 
 const RC_SERVER = 'https://platform.ringcentral.com';
 const VIN_API = 'https://api.vinsolutions.com';
@@ -85,7 +87,7 @@ describe('Support console CRM routes', () => {
   let errorSpy;
 
   beforeAll(async () => {
-    await supportCrm.syncSupportCrmModels();
+    await AccountDataModel.sync();
   });
 
   afterAll(() => {
@@ -104,9 +106,7 @@ describe('Support console CRM routes', () => {
     Object.assign(process.env, ENV);
     supportAuth.clearSupportSessionCache();
     await Promise.all([
-      SupportAllowlistEntryModel.destroy({ where: {} }),
-      SupportIntegrationEventModel.destroy({ where: {} }),
-      SupportIntegrationRecordModel.destroy({ where: {} }),
+      AccountDataModel.destroy({ where: { rcAccountId: 'support' } }),
       CacheModel.destroy({ where: { userId: 'support' } }),
     ]);
     mockStaff();
@@ -170,9 +170,10 @@ describe('Support console CRM routes', () => {
       ],
     });
 
-    const record = await SupportIntegrationRecordModel.findByPk('vinsolutions-6946');
+    const record = await historyData(6946);
     expect(Object.keys(record.services)).toEqual(['leadManagement']);
     expect(record.services.leadManagement.firstSeenAt).toEqual(record.services.leadManagement.lastSeenAt);
+    expect(record.firstSeenAt).toEqual(record.services.leadManagement.firstSeenAt);
   });
 
   test('reuses the cached service token and mints a new one when VinSolutions rejects it', async () => {
@@ -202,13 +203,13 @@ describe('Support console CRM routes', () => {
     mockDealers('lm-api-key', 'lm-token', [dealerA]);
     mockDealers('ct-api-key', 'ct-token', []);
     await withStaff(api().get('/support/crm/vinsolutions/integrations'));
-    const first = (await SupportIntegrationRecordModel.findByPk('vinsolutions-12617')).services;
+    const first = (await historyData(12617)).services;
 
     await new Promise((resolve) => setTimeout(resolve, 5));
     mockDealers('lm-api-key', 'lm-token', [{ ...dealerA, Name: 'Renamed Motors' }]);
     mockDealers('ct-api-key', 'ct-token', [dealerA]);
     await withStaff(api().get('/support/crm/vinsolutions/integrations'));
-    const record = await SupportIntegrationRecordModel.findByPk('vinsolutions-12617');
+    const record = await historyData(12617);
 
     expect(record.name).toBe('Renamed Motors');
     expect(record.services.leadManagement.firstSeenAt).toBe(first.leadManagement.firstSeenAt);
@@ -259,10 +260,10 @@ describe('Support console CRM routes', () => {
         callTracking: { status: 'alreadyRemoved' },
       },
     });
-    const events = await SupportIntegrationEventModel.findAll({ order: [['service', 'ASC']] });
+    const { events } = await historyData(12617);
     expect(events.map((event) => [event.service, event.result, event.actorName, event.actorExtensionId])).toEqual([
-      ['callTracking', 'alreadyRemoved', 'Support Agent', '101'],
       ['leadManagement', 'removed', 'Support Agent', '101'],
+      ['callTracking', 'alreadyRemoved', 'Support Agent', '101'],
     ]);
   });
 
@@ -278,7 +279,7 @@ describe('Support console CRM routes', () => {
       leadManagement: { status: 'failed', message: 'VinSolutions returned 500: Upstream failure' },
       callTracking: { status: 'removed' },
     });
-    const failed = await SupportIntegrationEventModel.findOne({ where: { service: 'leadManagement' } });
+    const failed = (await historyData(12617)).events.find((event) => event.service === 'leadManagement');
     expect(failed.errorMessage).toBe('VinSolutions returned 500: Upstream failure');
   });
 
@@ -287,7 +288,7 @@ describe('Support console CRM routes', () => {
 
     const refused = await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'));
     expect(refused.status).toBe(409);
-    expect(await SupportIntegrationEventModel.count()).toBe(0);
+    expect(await historyData(12617)).toBeUndefined();
 
     mockToken('lm-client', 'lm-token');
     mockToken('ct-client', 'ct-token');
@@ -357,8 +358,42 @@ describe('Support console CRM routes', () => {
     expect(unlisted.events.map((event) => event.result)).toEqual(['alreadyRemoved', 'alreadyRemoved']);
   });
 
+  test('caps stored removal events per dealer and keeps staff extension IDs out of history responses', async () => {
+    const oldEvents = Array.from({ length: 100 }, (_, index) => ({
+      service: 'leadManagement',
+      action: 'remove',
+      result: 'failed',
+      errorMessage: `old ${index}`,
+      actorExtensionId: '7',
+      actorName: 'Earlier Agent',
+      actorEmail: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    }));
+    await AccountDataModel.create({
+      rcAccountId: 'support',
+      platformName: 'vinsolutions',
+      dataKey: 'support-history:12617',
+      data: { name: 'Data Gateway Motors', firstSeenAt: '2026-01-01T00:00:00.000Z', services: {}, events: oldEvents },
+    });
+    mockToken('lm-client', 'lm-token');
+    mockToken('ct-client', 'ct-token');
+    mockRemove('lm-api-key', 'lm-token', 12617);
+    mockRemove('ct-api-key', 'ct-token', 12617);
+
+    await withStaff(api().post('/support/crm/vinsolutions/integrations/12617/remove'));
+
+    const { events, name } = await historyData(12617);
+    expect(name).toBe('Data Gateway Motors');
+    expect(events).toHaveLength(100);
+    expect(events.slice(0, 2).map((event) => event.actorName)).toEqual(['Support Agent', 'Support Agent']);
+    expect(events[99].errorMessage).toBe('old 97');
+
+    const response = await withStaff(api().get('/support/crm/vinsolutions/history'));
+    expect(JSON.stringify(response.body)).not.toContain('actorExtensionId');
+  });
+
   test('hides internal failures', async () => {
-    const spy = jest.spyOn(SupportAllowlistEntryModel, 'findAll').mockRejectedValue(new Error('db down'));
+    const spy = jest.spyOn(AccountDataModel, 'findAll').mockRejectedValue(new Error('db down'));
     const response = await withStaff(api().get('/support/crm/vinsolutions/allowlist'));
     expect(response.status).toBe(500);
     expect(response.body).toEqual({ error: 'Internal server error' });
