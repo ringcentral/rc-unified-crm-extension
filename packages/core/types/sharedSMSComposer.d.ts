@@ -45,6 +45,10 @@ export interface ComposeSharedSMSLogParams {
   contactName: string;
   timezoneOffset?: string | number;
   customSubject?: string | null;
+  /** Selected-message logs include a time. Shared SMS keeps the date-only subject other connectors already expect. */
+  includeTime?: boolean;
+  /** Shared SMS stays newest-first. Selected-message logs opt into oldest-first. */
+  entryOrder?: 'newestFirst' | 'oldestFirst';
 }
 
 export interface SharedSMSLogContent {
@@ -80,6 +84,7 @@ export interface ProcessSharedSMSEntitiesParams {
   timezoneOffset?: string | number;
   logFormat: SharedSMSLogFormat;
   contactName: string;
+  entryOrder?: 'newestFirst' | 'oldestFirst';
 }
 
 export interface ProcessSharedSMSEntityParams extends Omit<ProcessSharedSMSEntitiesParams, 'entities'> {

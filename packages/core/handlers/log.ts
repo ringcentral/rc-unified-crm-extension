@@ -982,7 +982,10 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
             }
         }
         const platformModule = connectorRegistry.getConnector(platform);
-        const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
+        const conversationCorrespondents = Array.isArray(incomingData.logInfo?.correspondents)
+            ? incomingData.logInfo.correspondents
+            : [];
+        const contactNumber = conversationCorrespondents[0]?.phoneNumber;
         const additionalSubmission = incomingData.additionalSubmission;
         let user = null;
         try {
@@ -1049,7 +1052,7 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        const isGroupSMS = incomingData.logInfo.correspondents.length > 1;
+        const isGroupSMS = conversationCorrespondents.length > 1;
         // For shared SMS
         const assigneeName = incomingData.logInfo.assignee?.name;
         const ownerName = incomingData.logInfo.owner?.name;
@@ -1132,7 +1135,21 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         // the same message-to-CRM mapping table used by the normal path, so
         // duplicate detection and logged-state matching have one source of truth.
         const selectedMessageIds = incomingData.selectedMessageIds ?? incomingData.logInfo?.selectedMessageIds;
-        if (Array.isArray(selectedMessageIds) && selectedMessageIds.length > 0) {
+        // The manifest flag is the server-side gate. A connector that does not
+        // opt in keeps the existing per-message / daily-digest path.
+        let selectedMessageLogSupported = false;
+        if (typeof connectorRegistry.getManifest === 'function') {
+            try {
+                // The bundled server manifest is registered as the registry's
+                // default manifest, not once per connector.
+                const manifest = connectorRegistry.getManifest(platform, true);
+                selectedMessageLogSupported = manifest?.platforms?.[platform]?.isSelectedMessageLogSupported === true;
+            }
+            catch (error) {
+                selectedMessageLogSupported = false;
+            }
+        }
+        if (selectedMessageLogSupported && Array.isArray(selectedMessageIds) && selectedMessageIds.length > 0) {
             return await logSelectedMessagesAsSingleEntry({
                 platform,
                 userId,
@@ -1154,13 +1171,13 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         const correspondents = [];
         if (isGroupSMS) {
             messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() + `-${incomingData.contactId}` }; });
-            for (var i = 0; i < incomingData.logInfo.correspondents.length; i++) {
+            for (var i = 0; i < conversationCorrespondents.length; i++) {
                 // find cached contact by composite key; findByPk expects raw PK values, so use where clause
                 const correspondentContactInfo = await AccountDataModel.findOne({
                     where: {
                         rcAccountId: user.rcAccountId,
                         platformName: platform,
-                        dataKey: `contact-${incomingData.logInfo.correspondents[i].phoneNumber}`
+                        dataKey: `contact-${conversationCorrespondents[i].phoneNumber}`
                     }
                 })
                 if (correspondentContactInfo && correspondentContactInfo.data[0]?.name != incomingData.contactName) {
@@ -1188,11 +1205,12 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         const logIds = [];
         // Case: Shared SMS
         if (isSharedSMS) {
+            // Shared SMS is one CRM entry updated by every user on the thread.
+            // Do not scope this lookup to the current user, or the next user
+            // creates a duplicate entry instead of updating the shared one.
             const existingMessageLog = await MessageLogModel.findOne({
                 where: {
-                    conversationLogId: incomingData.logInfo.conversationLogId,
-                    userId,
-                    platform
+                    conversationLogId: incomingData.logInfo.conversationLogId
                 }
             });
             const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset, customSubject: incomingData.logInfo?.customSubject });
@@ -1359,13 +1377,16 @@ async function logSelectedMessagesAsSingleEntry({
 
     // Resolve group-SMS correspondents the same way the daily-digest path does.
     const correspondents = [];
-    if (incomingData.logInfo.correspondents.length > 1) {
-        for (let i = 0; i < incomingData.logInfo.correspondents.length; i++) {
+    const conversationCorrespondents = Array.isArray(incomingData.logInfo?.correspondents)
+        ? incomingData.logInfo.correspondents
+        : [];
+    if (conversationCorrespondents.length > 1) {
+        for (let i = 0; i < conversationCorrespondents.length; i++) {
             const correspondentContactInfo = await AccountDataModel.findOne({
                 where: {
                     rcAccountId: user.rcAccountId,
                     platformName: platform,
-                    dataKey: `contact-${incomingData.logInfo.correspondents[i].phoneNumber}`
+                    dataKey: `contact-${conversationCorrespondents[i].phoneNumber}`
                 }
             });
             if (correspondentContactInfo && correspondentContactInfo.data[0]?.name != incomingData.contactName) {
@@ -1422,6 +1443,8 @@ async function logSelectedMessagesAsSingleEntry({
     const conversationCreatedDate = messagesToLog[0]?.creationTime;
     const sharedSMSLogContent = composeSharedSMSLog({
         logFormat,
+        includeTime: true,
+        entryOrder: 'oldestFirst',
         conversation: {
             ...incomingData.logInfo,
             creationTime: conversationCreatedDate,
@@ -1496,6 +1519,7 @@ async function logSelectedMessagesAsSingleEntry({
 
     return {
         successful: true,
+        logId: crmLogId,
         logIds: Object.values(messageLogs),
         messageLogs,
         returnMessage: mergePluginWarnings({ returnMessage, warningMessages: pluginWarnings }),
@@ -1509,11 +1533,25 @@ async function getMessageLog({ userId, platform, conversationId, messageIds }) {
     try {
         const user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
-            return { successful: false, message: `Contact not found` };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: 'User not found',
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
         }
         const requestedIds: string[] = normalizeMessageIdArray(messageIds);
         if (!conversationId && requestedIds.length === 0) {
-            return { successful: false, message: `No conversationId or messageIds provided` };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: 'No conversationId or messageIds provided',
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
         }
         const where: any = { userId, platform };
         if (conversationId) {

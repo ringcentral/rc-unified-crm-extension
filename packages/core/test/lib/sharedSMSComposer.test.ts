@@ -107,7 +107,7 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
+      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/24');
       expect(result.body).toContain('Conversation summary');
       expect(result.body).toContain('John Customer (customer)');
       expect(result.body).toContain('BEGIN');
@@ -135,7 +135,7 @@ describe('sharedSMSComposer', () => {
         customSubject: '   '
       });
 
-      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
+      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/24');
     });
 
     test('should compose SMS log in HTML format', () => {
@@ -146,7 +146,7 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
+      expect(result.subject).toBe('<b>SMS conversation with John Customer - 01/15/24</b>');
       expect(result.body).toContain('<b>Conversation summary</b>');
       expect(result.body).toContain('<b>Participants</b>');
       expect(result.body).toContain('<li>');
@@ -160,7 +160,7 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('**SMS conversation with John Customer - 01/15/2024 10:30 AM**');
+      expect(result.subject).toBe('**SMS conversation with John Customer - 01/15/24**');
       expect(result.body).toContain('## Conversation summary');
       expect(result.body).toContain('### Participants');
       expect(result.body).toContain('---');
@@ -790,13 +790,13 @@ describe('sharedSMSComposer', () => {
       expect(allContent).toContain('Second message');
       expect(allContent).toContain('Third message');
       expect(result.map(r => r.content)).toEqual([
-        expect.stringContaining('First message'),
-        expect.stringContaining('Second message'),
         expect.stringContaining('Third message'),
+        expect.stringContaining('Second message'),
+        expect.stringContaining('First message'),
       ]);
     });
 
-    test('should sort entities with numeric creation times oldest first', () => {
+    test('should sort entities with numeric creation times newest first', () => {
       const entities = [
         {
           recordType: 'AliveMessage',
@@ -829,9 +829,9 @@ describe('sharedSMSComposer', () => {
       });
 
       expect(result.map(r => r.content)).toEqual([
-        expect.stringContaining('First numeric message'),
-        expect.stringContaining('Second numeric message'),
         expect.stringContaining('Third numeric message'),
+        expect.stringContaining('Second numeric message'),
+        expect.stringContaining('First numeric message'),
       ]);
     });
 
@@ -1185,7 +1185,7 @@ describe('sharedSMSComposer', () => {
         contactName: 'Customer'
       });
 
-      expect(result.subject).toMatch(/^SMS conversation with Customer - \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} (AM|PM)$/);
+      expect(result.subject).toMatch(/^SMS conversation with Customer - \d{2}\/\d{2}\/\d{2}$/);
       expect(result.body).toContain('Conversation summary');
     });
 
@@ -1201,7 +1201,7 @@ describe('sharedSMSComposer', () => {
         contactName: 'Customer'
       });
 
-      expect(result.subject).toMatch(/^SMS conversation with Customer - \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} (AM|PM)$/);
+      expect(result.subject).toMatch(/^SMS conversation with Customer - \d{2}\/\d{2}\/\d{2}$/);
       expect(result.body).not.toContain('<b>');
       expect(result.body).not.toContain('##');
     });
