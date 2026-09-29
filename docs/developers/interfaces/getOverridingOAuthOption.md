@@ -20,14 +20,17 @@ An object that overrides the default token-exchange request. The framework merge
 
 | Property  | Type   | Description                                                                                       |
 |-----------|--------|---------------------------------------------------------------------------------------------------|
-| `headers` | object | HTTP headers to include in the token request. Use `{ Authorization: '' }` to suppress Basic Auth. |
+| `headers` | object | HTTP headers to include in the token request. Use `{ Authorization: undefined }` to suppress Basic Auth. |
 | `query`   | object | Query string parameters for the token request, such as `grant_type`, `code`, `client_id`, etc.   |
+
+!!! warning "Use `undefined`, not `''`, to suppress the header"
+    The underlying OAuth client always computes a Basic-auth `Authorization` header internally when a client secret is configured, then shallow-merges these headers on top of it. Setting `Authorization: ''` still sends a present-but-empty header (`Authorization: `), which some servers (e.g. ServiceNow) reject as malformed. Only `Authorization: undefined` actually omits the header from the outgoing request.
 
 **Example**
 ```js
 return {
   headers: {
-    Authorization: '' // suppress default Basic Auth header
+    Authorization: undefined // omit the default Basic Auth header entirely
   },
   query: {
     grant_type: 'authorization_code',

@@ -120,7 +120,7 @@ describe('oauth', () => {
           client_secret: config.clientSecret
         },
         headers: {
-          Authorization: ''
+          Authorization: undefined
         }
       }));
     });

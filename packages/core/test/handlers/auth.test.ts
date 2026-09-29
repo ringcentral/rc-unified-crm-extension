@@ -1091,7 +1091,7 @@ describe('Auth Handler', () => {
       await createPendingManagedOAuth('rc-managed-post');
       const getOverridingOAuthOption = jest.fn().mockImplementation(({ oauthInfo }) => (
         oauthInfo?.tokenEndpointAuthMethod === 'client_secret_post'
-          ? { body: { client_id: oauthInfo.clientId, client_secret: oauthInfo.clientSecret }, headers: { Authorization: '' } }
+          ? { body: { client_id: oauthInfo.clientId, client_secret: oauthInfo.clientSecret }, headers: { Authorization: undefined } }
           : null
       ));
       const mockConnector = global.testUtils.createMockConnector({
@@ -1147,7 +1147,7 @@ describe('Auth Handler', () => {
         expect.any(String),
         {
           body: { client_id: 'managed-client-id', client_secret: 'managed-client-secret' },
-          headers: { Authorization: '' }
+          headers: { Authorization: undefined }
         }
       );
       const promoted = await AccountDataModel.findOne({

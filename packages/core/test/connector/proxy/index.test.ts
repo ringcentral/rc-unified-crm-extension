@@ -189,7 +189,7 @@ describe('proxy connector - more coverage', () => {
         state: 'platform=servicenow'
       },
       headers: {
-        Authorization: ''
+        Authorization: undefined
       }
     });
     expect(proxy.getOverridingOAuthOption({
