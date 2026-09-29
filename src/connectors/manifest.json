@@ -444,6 +444,7 @@
       "embedUrls": [
         "https://*.clio.com/*"
       ],
+      "isSelectedMessageLogSupported":true,
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
         "useAdminAssignedUserToken": true,
