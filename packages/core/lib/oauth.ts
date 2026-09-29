@@ -94,7 +94,11 @@ function getOAuthApp({
                 client_secret: clientSecret
             },
             headers: {
-                Authorization: ''
+                // client-oauth2 always computes a Basic-auth Authorization header internally
+                // when clientSecret is set, then shallow-merges these headers on top. An empty
+                // string still sends a present-but-empty header (`Authorization: `), which some
+                // servers reject as malformed; `undefined` is what actually omits the header.
+                Authorization: undefined
             }
         } : {})
     });

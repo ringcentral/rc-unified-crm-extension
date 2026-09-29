@@ -86,7 +86,9 @@ function getOverridingOAuthOption({ oauthInfo, state }: any = {}) {
       ...(state ? { state } : {}),
     },
     headers: {
-      Authorization: '',
+      // undefined omits the header; '' still sends a present-but-empty Authorization
+      // header, which some OAuth servers (e.g. ServiceNow) reject as malformed.
+      Authorization: undefined,
     },
   };
 }
