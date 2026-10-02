@@ -6,7 +6,7 @@ title: ServiceTitan by Gate6 — App Connect
 
 <div class="bld-hero">
   <div class="bld-hero__logo">
-    <img src="../../img/crm-logo-servicetitan.png" alt="ServiceTitan">
+    <img src="../../img/crm-logos-servicetitan.png" alt="ServiceTitan">
   </div>
   <div>
     <div class="bld-hero__category">Field Service Management</div>

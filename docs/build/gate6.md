@@ -27,7 +27,7 @@ Gate6 offers App Connect connectors for ServiceNow, AgencyZoom, ServiceTitan, an
 <div class="crm-mkt__grid">
 
   <a href="../../crm/servicenow/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-servicenow.png" alt="ServiceNow"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-servicenow.png" alt="ServiceNow"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">ITSM / Enterprise</div>
       <div class="crm-mkt__name">ServiceNow</div>
@@ -40,7 +40,7 @@ Gate6 offers App Connect connectors for ServiceNow, AgencyZoom, ServiceTitan, an
   </a>
 
   <a href="../../crm/agencyzoom/gate6/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-agencyzoom.png" alt="AgencyZoom"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-agencyzoom.png" alt="AgencyZoom"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Insurance Agency Management</div>
       <div class="crm-mkt__name">AgencyZoom</div>
@@ -53,7 +53,7 @@ Gate6 offers App Connect connectors for ServiceNow, AgencyZoom, ServiceTitan, an
   </a>
 
   <a href="../../crm/servicetitan/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-servicetitan.png" alt="ServiceTitan"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-servicetitan.png" alt="ServiceTitan"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Field Service Management</div>
       <div class="crm-mkt__name">ServiceTitan</div>
@@ -66,7 +66,7 @@ Gate6 offers App Connect connectors for ServiceNow, AgencyZoom, ServiceTitan, an
   </a>
 
   <a href="../../crm/monday/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-monday.png" alt="monday.com"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-monday.png" alt="monday.com"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Work OS / Project Management</div>
       <div class="crm-mkt__name">monday.com</div>

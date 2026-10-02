@@ -34,7 +34,7 @@ hide:
 <div class="crm-mkt__grid">
 
   <a href="agencyzoom/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-agencyzoom.png" alt="AgencyZoom"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-agencyzoom.png" alt="AgencyZoom"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Insurance Agency Management</div>
       <div class="crm-mkt__name">AgencyZoom</div>
@@ -47,7 +47,7 @@ hide:
   </a>
 
   <a href="bullhorn/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-bullhorn.png" alt="Bullhorn"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-bullhorn.png" alt="Bullhorn"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Recruiting &amp; Staffing</div>
       <div class="crm-mkt__name">Bullhorn</div>
@@ -60,7 +60,7 @@ hide:
   </a>
 
   <a href="clio/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-clio.png" alt="Clio"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-clio.png" alt="Clio"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Legal</div>
       <div class="crm-mkt__name">Clio</div>
@@ -73,7 +73,7 @@ hide:
   </a>
 
   <a href="connectwise/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-connectwise.png" alt="ConnectWise"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-connectwise.png" alt="ConnectWise"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Professional Services Automation</div>
       <div class="crm-mkt__name">ConnectWise</div>
@@ -86,7 +86,7 @@ hide:
   </a>
 
   <a href="dominion/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-dominion.png" alt="Dominion"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-dominion.png" alt="Dominion"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Automotive / DMS</div>
       <div class="crm-mkt__name">Dominion</div>
@@ -99,7 +99,7 @@ hide:
   </a>
 
   <a href="freshdesk/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-freshdesk.png" alt="Freshdesk"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-freshdesk.png" alt="Freshdesk"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Customer Support</div>
       <div class="crm-mkt__name">Freshdesk</div>
@@ -112,7 +112,7 @@ hide:
   </a>
 
   <a href="gohighlevel/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-highlevel.png" alt="GoHighLevel"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-highlevel.png" alt="GoHighLevel"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Marketing &amp; Sales</div>
       <div class="crm-mkt__name">GoHighLevel</div>
@@ -125,7 +125,7 @@ hide:
   </a>
 
   <a href="google-sheets/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-googlesheets.png" alt="Google Sheets"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-googlesheets.png" alt="Google Sheets"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Spreadsheet / Universal</div>
       <div class="crm-mkt__name">Google Sheets</div>
@@ -138,7 +138,7 @@ hide:
   </a>
 
   <a href="insightly/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-insightly.png" alt="Insightly"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-insightly.png" alt="Insightly"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">CRM</div>
       <div class="crm-mkt__name">Insightly</div>
@@ -151,7 +151,7 @@ hide:
   </a>
 
   <a href="monday/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-monday.png" alt="monday.com"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-monday.png" alt="monday.com"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Work OS / Project Management</div>
       <div class="crm-mkt__name">monday.com</div>
@@ -164,7 +164,7 @@ hide:
   </a>
 
   <a href="netsuite/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-netsuite.png" alt="NetSuite"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-netsuite.png" alt="NetSuite"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">ERP / CRM</div>
       <div class="crm-mkt__name">NetSuite</div>
@@ -177,7 +177,7 @@ hide:
   </a>
 
   <a href="odoo/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-odoo.png" alt="Odoo"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-odoo.png" alt="Odoo"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">ERP / CRM</div>
       <div class="crm-mkt__name">Odoo</div>
@@ -190,7 +190,7 @@ hide:
   </a>
 
   <a href="pipedrive/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-pipedrive.png" alt="Pipedrive"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-pipedrive.png" alt="Pipedrive"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Sales CRM</div>
       <div class="crm-mkt__name">Pipedrive</div>
@@ -203,7 +203,7 @@ hide:
   </a>
 
   <a href="redtail/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-redtail.png" alt="Redtail CRM"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-redtail.png" alt="Redtail CRM"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Financial Services</div>
       <div class="crm-mkt__name">Redtail CRM</div>
@@ -216,7 +216,7 @@ hide:
   </a>
 
   <a href="servicenow/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-servicenow.png" alt="ServiceNow"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-servicenow.png" alt="ServiceNow"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">ITSM / Enterprise</div>
       <div class="crm-mkt__name">ServiceNow</div>
@@ -229,7 +229,7 @@ hide:
   </a>
 
   <a href="servicetitan/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-servicetitan.png" alt="ServiceTitan"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-servicetitan.png" alt="ServiceTitan"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Field Service Management</div>
       <div class="crm-mkt__name">ServiceTitan</div>
@@ -242,7 +242,7 @@ hide:
   </a>
 
   <a href="smokeball/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-smokeball.png" alt="Smokeball"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-smokeball.png" alt="Smokeball"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Legal Practice Management</div>
       <div class="crm-mkt__name">Smokeball</div>
@@ -255,7 +255,7 @@ hide:
   </a>
 
   <a href="vinsolutions/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../img/crm-logo-vinsolutions.png" alt="Vin Solutions"></div>
+    <div class="crm-mkt__logo"><img src="../img/crm-logos-vinsolutions.png" alt="Vin Solutions"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Automotive / DMS</div>
       <div class="crm-mkt__name">Vin Solutions</div>

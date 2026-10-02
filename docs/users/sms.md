@@ -16,7 +16,7 @@ Engaging with communications from customers can be overwhelming, and responding 
 The SMS templates used in App Connect are the same templates you create and manage inside of the RingCentral desktop application to ensure consistency between these two clients. 
 
 <figure markdown>
-  ![SMS templates inside desktop app](../img/sms-templates-glip.png){ .mw-400 }
+  ![SMS templates inside desktop app](../img/chat-sms-templates-glip.png){ .mw-400 }
   <figcaption>Use SMS templates as seen from the RingCentral desktop application</figcaption>
 </figure>
 
@@ -37,7 +37,7 @@ Individual RingCentral users with a direct phone number enabled for SMS can send
     The Shared SMS inbox feature is associated with RingCentral's [Customer Engagement Bundle](https://www.ringcentral.com/products/customer-engagement-bundle.html) which may require an additional fee depending on your account. 
 
 <figure markdown>
-  ![Shared SMS inbox](../img/shared-sms-list.png)
+  ![Shared SMS inbox](../img/sms-shared-list.png)
   <figcaption>A view of a shared SMS inbox in App Connect</figcaption>
 </figure>
 
@@ -52,7 +52,7 @@ Similar to call logging, App Connect can also log SMS messages. To help prevent 
 Shared SMS conversations are different from direct SMS conversations in one key way: they can be resolved. For this reason, the logging of shared SMS conversations are done on a conversation-by-conversation basis, rather than being segmented by calendar day (as it done with direct SMS conversations). This ensures that an entire interaction with a customer is properly and completely memorialized in your CRM. 
 
 <figure markdown>
-  ![Shared SMS inbox message/conversation](../img/shared-sms-message.png)
+  ![Shared SMS inbox message/conversation](../img/sms-shared-message.png)
   <figcaption>A view of a individual shared SMS convesation in App Connect</figcaption>
 </figure>
 

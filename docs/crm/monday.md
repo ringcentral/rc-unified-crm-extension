@@ -6,7 +6,7 @@ title: monday.com by Gate6 — App Connect
 
 <div class="bld-hero">
   <div class="bld-hero__logo">
-    <img src="../../img/crm-logo-monday.png" alt="monday.com">
+    <img src="../../img/crm-logos-monday.png" alt="monday.com">
   </div>
   <div>
     <div class="bld-hero__category">Work OS / Project Management</div>

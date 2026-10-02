@@ -26,7 +26,7 @@ Server-side call logging eliminates these challenges. Operating at the organizat
 Server-side call logging can be enabled from the Admin settings screen as shown below.
 
 <figure markdown>
-  ![Server-side call logging setup](../img/sscl-setup.png){ .mw-400 }
+  ![Server-side call logging setup](../img/logging-sscl-setup.png){ .mw-400 }
   <figcaption>App Connect's server-side call logging settings as seen by an admin. Your available settings depends upon the CRM you are connected to (Bullhorn shown above).</figcaption>
 </figure>
 
@@ -39,7 +39,7 @@ Under **Enable server side logging**, select "Enable for account", and then save
 If you are unsure of turning on server-side call logging across your entire account, the admin in your account can enable server-side call logging for their extension exclusively. It is the intent of this feature to allow admins to try the feature out for a period of time before enabling it for other users. 
 
 <figure markdown>
-  ![Server-side call logging trial setup](../img/sscl-trial-mode.png)
+  ![Server-side call logging trial setup](../img/logging-sscl-trial-mode.png)
   <figcaption>App Connect setup to enable server-side call logging in trial mode</figcaption>
 </figure>
 
@@ -58,7 +58,7 @@ This is sometimes desirable, but other's may prefer for audit trail purposes to 
 To override this behavior, set **Activity record owner** to "Agent/user (if possible)." This will instruct App Connect to attempt to assign ownership of the activity record based on whether it can find a corresponding user in the CRM based on their respective email addresses in the two systems. Any user that cannot be mapped automatically, can be mapped manually by an admin using the "User mapping" setting.
 
 <figure markdown>
-  ![Server-side call logging user mapping setting](../img/sscl-user-mapping.png){ .mw-500 }
+  ![Server-side call logging user mapping setting](../img/logging-sscl-user-mapping.png){ .mw-500 }
   <figcaption>App Connect's user mapping function used by admins to ensure activity records are attributed properly.</figcaption>
 </figure>
 
@@ -67,7 +67,7 @@ If attempts to determine the correct owner of the note fail, the activity record
 To always assign ownership of the activity record to the admin, set **Activity record owner** to `Admin`. 
 
 <figure markdown>
-  ![Server-side call logging setup](../img/sscl-admin-owner.png)
+  ![Server-side call logging setup](../img/logging-sscl-admin-owner.png)
   <figcaption>Server-side call logging setup to assign all activity records to the admin.</figcaption>
 </figure>
 
@@ -76,7 +76,7 @@ To always assign ownership of the activity record to the admin, set **Activity r
 From the "Server-side call logging" page, you can specify a list of phone numbers and/or extensions for which you do not wish to log calls. Phone numbers must be represented usig the E.164 format, e.g. `+15105551234`. Multiple phone numbers and extension numbers can be specified provided they are separated by a `,` comma. 
 
 <figure markdown>
-  ![Server-side call logging - blocked numbers](../img/sscl-blocked.png)
+  ![Server-side call logging - blocked numbers](../img/logging-sscl-blocked.png)
   <figcaption>Server-side call logging can be setup to NOT log calls made to some numbers.</figcaption>
 </figure>
 

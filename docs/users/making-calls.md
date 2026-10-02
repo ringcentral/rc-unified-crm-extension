@@ -23,7 +23,7 @@ Users can manage which screens, websites, and URLs that click-to-dial is enabled
 If either "Block by default" or "Allow by default" are selected, users can then manage a list of URLs for which click-to-dial will be blocked or allowed respectively. 
 
 <figure markdown>
-  ![Click to dial](../img/click-to-dial-settings.png){ .mw-400 }
+  ![Click to dial](../img/settings-click-to-dial.png){ .mw-400 }
   <figcaption>Turn click-to-dial on and off for specific URLs</figcaption>
 </figure>
 

@@ -33,7 +33,7 @@ Configuration must be performed by a SuperAdmin.
 4. Select both RingEX and RingCX (Experimental).
 
 <figure markdown>
-  ![User report](../img/ringcx-logging.png){ .mw-400 }
+  ![User report](../img/logging-ringcx.png){ .mw-400 }
   <figcaption>The Admin settings showing both RingEX and RingCX (Experimental) checkboxes selected under Server Side Logging.</figcaption>
 </figure>
 

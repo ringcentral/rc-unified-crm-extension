@@ -22,7 +22,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Insightly."
 
-    ![Connect to Insightly](../img/insightly-connect.png){ .mw-400 }
+    ![Connect to Insightly](../img/crm-insightly-connect.png){ .mw-400 }
 
 4. Click the "Connect" button. 
 
@@ -30,12 +30,12 @@ Once the extension has been installed, follow these steps to setup and configure
     * API key
     * API URL
 
-    ![Connect to Insightly](../img/insightly-setup.png){ .mw-400 }
+    ![Connect to Insightly](../img/crm-insightly-setup.png){ .mw-400 }
 
 
 6. Click the "Get API Key" button and the extension will attempt to retrieve these values for you. You may also enter these values manually. In Insightly, navigate to User Settings from the pull down menu in the upper-righthand corner. Scroll down until you see a section labeled "API." Copy and paste your API key and API URL into the corresponding fields. 
 
-    ![Insightly API credentials](../img/insightly-apicreds.png){ .mw-600 }
+    ![Insightly API credentials](../img/crm-insightly-apicreds.png){ .mw-600 }
 
 When you login successfully, the Chrome extension will automatically update to show you are connected to Insightly. If you are connected, the button next to Insightly will say, "logout".
 
@@ -83,7 +83,7 @@ We have found the following formats are commonly used among customers (feel free
 Select or enter up to three different formats used by your company and click "Save." 
 
 <figure markdown>
-  ![Advanced settings with format options](../img/adv-settings-formats.png)
+  ![Advanced settings with format options](../img/settings-advanced-formats.png)
   <figcaption>Phone number formats after being properly filled in.</figcaption>
 </figure>
 

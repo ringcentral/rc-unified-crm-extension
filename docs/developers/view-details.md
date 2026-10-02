@@ -2,7 +2,7 @@
 
 App Connect can open the corresponding CRM contact or activity page for matched contacts and logged calls.
 
-![View contact or log details](../img/view-contact-and-log-details.png)
+![View contact or log details](../img/devices-view-contact-and-log-details.png)
 
 Configure this in the platform manifest:
 

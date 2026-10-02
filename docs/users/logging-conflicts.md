@@ -15,7 +15,7 @@ App Connect will give you the option of creating a new contact whenever a call i
 We realize that you may want to enter in a lot more information about a contact. So after the call is complete, navigate to the contact record in the CRM and edit the contact to complete the contact creation process. 
 
 <figure markdown>
-  ![Logging calls](../img/no-contacts.png)
+  ![Logging calls](../img/devices-no-contacts.png)
   <figcaption>Creating a placeholder contact in the connected CRM</figcaption>
 </figure>
 
@@ -34,7 +34,7 @@ We realize that you may want to enter in a lot more information about a contact.
 Most App Connect connectors support the ability to search for a contact when one is not able to be found via a phone number. If you connector supports this capability, you will see a "Search for contact" option in the contact pull-down menu. 
 
 <figure markdown>
-  ![Search contacts in a CRM](../img/search-contacts.png)
+  ![Search contacts in a CRM](../img/devices-search-contacts.png)
   <figcaption>Searching contacts in a CRM via App Connect</figcaption>
 </figure>
 
@@ -47,7 +47,7 @@ If more than one contact in a CRM shares the same phone number, then multiple co
 When multiple contacts are found, users are given an opportunity to disambiguate and select the correct contact record. This is done via a pull-down menu on the call logging screen. 
 
 <figure markdown>
-  ![Logging calls](../img/multi-contacts.png)
+  ![Logging calls](../img/devices-multi-contacts.png)
   <figcaption>Disambiguating between contacts when multiple matches are found in the connected CRM</figcaption>
 </figure>
 
@@ -66,7 +66,7 @@ When multiple contacts are matched, users can select a policy by which one of th
 * Select the earliest created contact record
 
 <figure markdown>
-  ![Logging calls](../img/auto-logging-policies.png)
+  ![Logging calls](../img/logging-auto-logging-policies.png)
   <figcaption>Settings to help users resolve conflicts in an automated fashion</figcaption>
 </figure>
 

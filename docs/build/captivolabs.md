@@ -47,7 +47,7 @@ Captivo Labs is also the first partner to build and publish a plugin for App Con
 <div class="crm-mkt__grid">
 
   <a href="../../crm/smokeball/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-smokeball.png" alt="Smokeball"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-smokeball.png" alt="Smokeball"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Legal Practice Management</div>
       <div class="crm-mkt__name">Smokeball</div>
@@ -60,7 +60,7 @@ Captivo Labs is also the first partner to build and publish a plugin for App Con
   </a>
 
   <a href="../../crm/connectwise/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-connectwise.png" alt="ConnectWise"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-connectwise.png" alt="ConnectWise"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Professional Services Automation</div>
       <div class="crm-mkt__name">ConnectWise</div>
@@ -73,7 +73,7 @@ Captivo Labs is also the first partner to build and publish a plugin for App Con
   </a>
 
   <a href="../../crm/odoo/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-odoo.png" alt="Odoo"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-odoo.png" alt="Odoo"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">ERP / CRM</div>
       <div class="crm-mkt__name">Odoo</div>

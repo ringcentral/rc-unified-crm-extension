@@ -6,7 +6,7 @@ title: Loyally — App Connect Partner
 
 <div class="bld-hero">
   <div class="bld-hero__logo">
-    <img src="../../img/loyally-logo.png" alt="Loyally">
+    <img src="../../img/vendor-loyally-logo.png" alt="Loyally">
   </div>
   <div>
     <div class="bld-hero__category">Customer Service Technology Partner</div>
@@ -29,7 +29,7 @@ Loyally currently supports the following App Connect connectors. [Contact Loyall
 <div class="crm-mkt__grid">
 
   <a href="../../crm/freshdesk/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-freshdesk.png" alt="Freshdesk"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-freshdesk.png" alt="Freshdesk"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Customer Support</div>
       <div class="crm-mkt__name">Freshdesk</div>
@@ -42,7 +42,7 @@ Loyally currently supports the following App Connect connectors. [Contact Loyall
   </a>
 
   <a href="../../crm/gohighlevel/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-highlevel.png" alt="GoHighLevel"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-highlevel.png" alt="GoHighLevel"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Marketing &amp; Sales</div>
       <div class="crm-mkt__name">GoHighLevel</div>

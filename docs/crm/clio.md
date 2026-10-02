@@ -22,7 +22,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Clio."
 
-    ![Connect to Clio](../img/clio-connect.png){ .mw-300 }
+    ![Connect to Clio](../img/crm-clio-connect.png){ .mw-300 }
 
 4. Click the "Connect" button. 
 
@@ -74,7 +74,7 @@ We have found the following formats are commonly used among customers (feel free
 Select or enter up to three different formats used by your practice and click "Save." 
 
 <figure markdown>
-  ![Advanced settings with format options](../img/adv-settings-formats.png)
+  ![Advanced settings with format options](../img/settings-advanced-formats.png)
   <figcaption>Phone number formats after being properly filled in.</figcaption>
 </figure>
 
@@ -91,7 +91,7 @@ Ideally, phone numbers in Clio would all be stored using the E.164 format standa
 
 !!! tip "Use Zapier to automatically format phone numbers"
     Zapier is a great automation tool that can help your organization [reformat phone numbers to E.164](https://zapier.com/apps/clio/integrations/formatter/1481647/format-numbers-for-new-clio-contacts-with-formatter-by-zapier) for all new contacts moving forward.
-    ![Clio number formatter Zap](../img/clio-zapier.png)
+    ![Clio number formatter Zap](../img/crm-clio-zapier.png)
 
 Finally, you can improve performance by going back to existing contacts and updating their phone numbers. This can be a laborious process, but will yield the best results in the long term.
 

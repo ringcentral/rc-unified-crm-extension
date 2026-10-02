@@ -91,7 +91,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Netsuite".
 
-    ![Connect to NetSuite](../img/netsuite-connect.png){ .mw-200 }
+    ![Connect to NetSuite](../img/crm-netsuite-connect.png){ .mw-200 }
 
 4. Click the "Connect" button. 
 
@@ -131,7 +131,7 @@ If you are experiencing a timeout issue during contact search, you can follow th
 * Under "Entities to search," limit your search to only those object types you want returned in your results.
 * Disable  "Sales Order logging" to prevents calls from being logged against sales orders.
 
-![NetSuite contact matching optimization](../img/netsuite-optimization.png){ .mw-200 }
+![NetSuite contact matching optimization](../img/crm-netsuite-optimization.png){ .mw-200 }
 
 ## Entity Search and Creation
 

@@ -35,7 +35,7 @@ Gate6 offers a connector for ServiceNow, developed in partnership with RingCentr
 
 <div class="grid cards" markdown>
 
--    [![ServiceNow](img/crm-logo-servicenow.png){ .mw-250 }](https://www.ringcentral.com/apps/gate6)
+-    [![ServiceNow](img/crm-logos-servicenow.png){ .mw-250 }](https://www.ringcentral.com/apps/gate6)
 
 - 
 
@@ -45,7 +45,7 @@ Gate6 offers a connector for ServiceNow, developed in partnership with RingCentr
 
 ### Loyally
 
-![Loyally Logo](img/loyally-logo.png){ .mw-300 .float-right .ml-30 .mb-30 }
+![Loyally Logo](img/vendor-loyally-logo.png){ .mw-300 .float-right .ml-30 .mb-30 }
 
 Loyally's mission "is to support customer service worldwide by giving them the right data at the right time. The help desk employee can help any customer quickly and easily because all systems and data are linked. We combine the strengths of the customer service systems by presenting customer information with one click in one screen. Easy, time-saving and cost-effective." &mdash; Jan Smulders, CEO
 
@@ -55,9 +55,9 @@ Loyally supports a number of CRMs through App Connect. All connectors come with 
 
 <div class="grid cards" markdown>
 
--    [![GoHighLevel](img/crm-logo-highlevel.png){ .mw-250 }](crm/gohighlevel.md)
+-    [![GoHighLevel](img/crm-logos-highlevel.png){ .mw-250 }](crm/gohighlevel.md)
      
--    [![FreshDesk](img/crm-logo-freshdesk.png){ .mw-250 }](crm/freshdesk.md)
+-    [![FreshDesk](img/crm-logos-freshdesk.png){ .mw-250 }](crm/freshdesk.md)
      
 </div>
 

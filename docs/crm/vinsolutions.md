@@ -23,7 +23,7 @@ Once Sales has enabled the integration for your account, an admin needs to turn 
 5. Under **Application Service Providers**, find **RingCentral** and toggle the integration to the **on** position.
 6. Under **Call Tracking Providers**, find **RingCentral** and enable it as well.
 
-![Enabling RingCentral under Partner enablement in Vin Solutions](../img/vinsolutions-partner-enablement.png){ .mw-600 }
+![Enabling RingCentral under Partner enablement in Vin Solutions](../img/crm-vinsolutions-partner-enablement.png){ .mw-600 }
 
 ### Step 2: Install App Connect
 
@@ -39,7 +39,7 @@ With the integration enabled inside Vin Solutions, installation continues with t
 
 !!! hint "Where do I find my dealer ID?"
     Your dealer ID is located in the upper-righthand corner of the Vin Solutions application after you login. It is in the form of "&lt;dealership name&gt; #&lt;dealer ID&gt;". See the screenshot below. Based on the screenshot, the dealer ID is "12345."
-    ![Dealer ID](../img/vin-solutions-dealerid.png)
+    ![Dealer ID](../img/crm-vinsolutions-dealerid.png)
 
 Once Cox Automotive is selected, log in using:
 
@@ -56,10 +56,10 @@ Rather than having every employee track down their own Dealer ID and User ID, an
 2. Navigate to **Shared authentication**.
 3. Select **Account managed auth** and enter your dealership's **Dealer ID**. This value applies to every user on the account.
 
-![Shared authentication in App Connect, with Account managed auth and User managed auth options](../img/vin-auth-settings.png){ .mw-600 }
+![Shared authentication in App Connect, with Account managed auth and User managed auth options](../img/crm-vinsolutions-auth-settings.png){ .mw-600 }
 
 4. Select **User managed auth** and enter the Vin Solutions **User ID** for each employee.
 
-![Assigning Vin Solutions User IDs to individual RingCentral users under User managed auth](../img/vin-user-credentials.png){ .mw-600 }
+![Assigning Vin Solutions User IDs to individual RingCentral users under User managed auth](../img/crm-vinsolutions-user-credentials.png){ .mw-600 }
 
 With both values configured, dealership personnel can connect to Vin Solutions without ever needing to know or look up their own User ID.

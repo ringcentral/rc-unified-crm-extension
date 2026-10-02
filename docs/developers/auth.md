@@ -66,7 +66,7 @@ The client-visible half (`auth.oauth`) can be entered either through the Develop
 
 === "Developer Console"
 
-    ![Configuring OAuth in the App Connect Developer Console](../img/dev-console-oauth.png){ .mw-600 }
+    ![Configuring OAuth in the App Connect Developer Console](../img/developer-console-oauth.png){ .mw-600 }
 
 === "Manifest"
 
@@ -131,7 +131,7 @@ API-key connectors define a login form in `auth.apiKey.page.content[]`. As with 
 
 === "Developer Console"
 
-    ![Configuring API-key auth in the App Connect Developer Console](../img/dev-console-static-auth.png){ .mw-600 }
+    ![Configuring API-key auth in the App Connect Developer Console](../img/developer-console-static-auth.png){ .mw-600 }
 
 === "Manifest"
 
