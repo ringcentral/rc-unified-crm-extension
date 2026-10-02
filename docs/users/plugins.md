@@ -35,8 +35,17 @@ To install a plugin:
 
 1. Open the **Admin** tab in App Connect.
 2. Open **Plugins** and click **Explore**.
-3. Review the plugin details page.
-4. Click **Install**.
+3. Select a plugin to open its **Plugin details** page.
+4. Click **Install** next to the plugin name.
+
+The plugin details page shows the plugin's description, followed by:
+
+* **Access**: whether the plugin is **Public**, **Shared with you**, or **Private**
+* **Version**: the latest version published by the developer
+* **Processing**: **Synchronous** or **Asynchronous** (see [Sync vs async processing](#sync-vs-async-processing))
+* **Activity types**: the log types the plugin runs for
+* **License**: whether the plugin requires a separate license
+* **Installed version**: the version installed for your account (shown only after installation)
 
 When a plugin is installed, it becomes part of the account configuration for the connected CRM. Users can then see the plugin in their installed plugins list.
 
@@ -44,7 +53,7 @@ When a plugin is installed, it becomes part of the account configuration for the
 
 ### Remove a plugin
 
-On the same plugin details page, admins can click **Uninstall** to remove the plugin from the account.
+On the same plugin details page, admins can click **Uninstall** at the bottom of the page to remove the plugin from the account.
 
 Removing a plugin stops it from executing in workflow and appearing in users' installed plugin list.
 
@@ -52,7 +61,7 @@ Removing a plugin stops it from executing in workflow and appearing in users' in
 
 !!!info "Some plugins may not have anything to configure. If that's the case, you won't see anything in config page."
 
-Installed plugins can also expose admin-managed settings. App Connect provides a dedicated **Managed settings > Plugins** area where admins can review each installed plugin and define default values for plugin fields.
+Installed plugins can also expose admin-managed settings. App Connect provides a dedicated **Managed settings > Plugins** area where admins can review each installed plugin and define default values for plugin fields. For an installed plugin that has configurable fields, you can also click **Plugin settings** on its plugin details page to open the same settings.
 
 Admins can also control whether each field remains customizable by end users.
 

@@ -43,7 +43,8 @@ function validateArtifactInChildProcess() {
     .map((name) => path.join(artifactRoot, name))
     .concat(
       jsFilesUnder(path.join(artifactRoot, 'connectors')),
-      jsFilesUnder(path.join(artifactRoot, 'plugins'))
+      jsFilesUnder(path.join(artifactRoot, 'plugins')),
+      jsFilesUnder(path.join(artifactRoot, 'support'))
     );
   const failures = [];
   const requirePattern = /\brequire\(\s*(['"])([^'"]+)\1\s*\)/g;
@@ -101,7 +102,7 @@ describe('flattened serverless artifact imports', () => {
     ]) {
       copy(path.join(BUILD_ROOT, 'src', name), path.join(artifactRoot, name));
     }
-    for (const name of ['connectors', 'plugins']) {
+    for (const name of ['connectors', 'plugins', 'support']) {
       copy(path.join(BUILD_ROOT, 'src', name), path.join(artifactRoot, name));
     }
 

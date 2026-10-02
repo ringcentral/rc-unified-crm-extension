@@ -22,6 +22,8 @@ const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const adminCore = /** @type {any} */ (require('@app-connect/core/handlers/admin'));
 const googleDrivePlugin = /** @type {any} */ (require('./plugins/googleDrivePlugin'));
 const allCapPlugin = /** @type {any} */ (require('./plugins/allCapPlugin'));
+const supportAuth = /** @type {any} */ (require('./support/auth'));
+const supportCrm = /** @type {any} */ (require('./support/crm'));
 
 /**
  * Log internal failures without serializing request credentials back to clients.
@@ -510,6 +512,89 @@ app.post('/googleDrive/logout', async function (req, res) {
     catch (e) {
         console.log(e.stack);
         res.status(400).send();
+    }
+});
+
+// Support console routes. Every /support/* route must go through requireSupportUser.
+app.get('/support/session', supportAuth.requireSupportUser, function (req, res) {
+    res.status(200).json(req.supportUser);
+});
+
+/**
+ * @param {any} res
+ * @param {unknown} error
+ * @param {string} message
+ */
+function sendSupportCrmError(res, error, message) {
+    if (error instanceof supportCrm.SupportCrmError) {
+        return res.status(/** @type {any} */ (error).status).json({ error: /** @type {any} */ (error).message });
+    }
+    return sendInternalServerError(res, error, message);
+}
+
+app.get('/support/crm/:platform/integrations', supportAuth.requireSupportUser, async function (req, res) {
+    try {
+        res.status(200).json(await supportCrm.listIntegrations(req.params.platform));
+    }
+    catch (e) {
+        sendSupportCrmError(res, e, 'Error listing Support console CRM integrations');
+    }
+});
+
+app.post('/support/crm/:platform/integrations/:id/remove', supportAuth.requireSupportUser, async function (req, res) {
+    try {
+        res.status(200).json(await supportCrm.removeIntegration({
+            platform: req.params.platform,
+            integrationId: req.params.id,
+            supportUser: req.supportUser,
+            services: req.body?.services,
+            confirmAllowlisted: req.body?.confirmAllowlisted === true,
+        }));
+    }
+    catch (e) {
+        sendSupportCrmError(res, e, 'Error removing Support console CRM integration');
+    }
+});
+
+app.get('/support/crm/:platform/history', supportAuth.requireSupportUser, async function (req, res) {
+    try {
+        res.status(200).json(await supportCrm.getHistory(req.params.platform));
+    }
+    catch (e) {
+        sendSupportCrmError(res, e, 'Error reading Support console CRM history');
+    }
+});
+
+app.get('/support/crm/:platform/allowlist', supportAuth.requireSupportUser, async function (req, res) {
+    try {
+        res.status(200).json(await supportCrm.listAllowlist(req.params.platform));
+    }
+    catch (e) {
+        sendSupportCrmError(res, e, 'Error reading Support console CRM allowlist');
+    }
+});
+
+app.put('/support/crm/:platform/allowlist/:id', supportAuth.requireSupportUser, async function (req, res) {
+    try {
+        res.status(200).json(await supportCrm.upsertAllowlistEntry({
+            platform: req.params.platform,
+            integrationId: req.params.id,
+            note: req.body?.note,
+            supportUser: req.supportUser,
+        }));
+    }
+    catch (e) {
+        sendSupportCrmError(res, e, 'Error updating Support console CRM allowlist');
+    }
+});
+
+app.delete('/support/crm/:platform/allowlist/:id', supportAuth.requireSupportUser, async function (req, res) {
+    try {
+        await supportCrm.deleteAllowlistEntry({ platform: req.params.platform, integrationId: req.params.id, supportUser: req.supportUser });
+        res.status(204).send();
+    }
+    catch (e) {
+        sendSupportCrmError(res, e, 'Error removing Support console CRM allowlist entry');
     }
 });
 

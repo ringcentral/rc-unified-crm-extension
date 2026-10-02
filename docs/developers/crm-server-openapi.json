@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "App Connect Connector Server API",
-    "version": "1.7.44",
+    "version": "2.0.0",
     "description": "HTTP API exposed by an App Connect connector server (called the CRM or adapter server in older code). The configured manifest serverUrl is the HTTPS base URL, without a trailing slash, to which App Connect appends these paths. The contract combines shared @app-connect/core routes with connector-specific routes implemented by this server; fields and supported capabilities can vary by connector where an operation delegates to a connector interface.\n\nAuthorization: userJwt is an App Connect CRM-session JWT issued by /apiKeyLogin or /oauth-callback; it is not a RingCentral OAuth token. X-RC-Access-Token carries a RingCentral OAuth credential for RingCentral user or administrator validation. Legacy jwtToken and rcAccessToken query parameters remain active for older clients, but credentials in URLs can leak through logs and browser history and should be avoided.\n\nLegacy response convention: some connector operations return HTTP 200 with successful: false and returnMessage when the request was processed but the CRM operation failed. Callers must inspect the response body rather than treating every 2xx response as business success. Payloads can contain CRM records, communications content, recording URLs, and access tokens; do not log credentials or retain personal data beyond the workflow that requires it.",
     "contact": {
       "name": "RingCentral Labs",
@@ -101,6 +101,10 @@
     {
       "name": "Pipedrive",
       "description": "Bundled Pipedrive redirect helper and authenticated uninstall callback; these routes are omitted from the public connector reference."
+    },
+    {
+      "name": "Support Console",
+      "description": "Internal RingCentral Support console routes; access is limited to enabled extensions of the RingCentral corporate account and these routes are omitted from the public connector reference."
     }
   ],
   "security": [],
@@ -295,7 +299,7 @@
                   "version": {
                     "summary": "Server version",
                     "value": {
-                      "version": "1.7.44"
+                      "version": "2.0.0"
                     }
                   }
                 }
@@ -4263,6 +4267,532 @@
           }
         },
         "description": "Returns account-level CRM metadata (e.g. Pipedrive activity types) registered by the connector's accountData descriptor table. Values are cached per (rcAccountId, platform, dataKey) with a lazy TTL refresh; pass forceRefresh=true to bypass the cache. Unknown keys return 400."
+      }
+    },
+    "/support/session": {
+      "get": {
+        "tags": [
+          "Support Console"
+        ],
+        "summary": "Validate Support console session",
+        "operationId": "getSupportSession",
+        "description": "Validates the RingCentral access token in X-RC-Access-Token and returns the staff identity when it belongs to an enabled extension of the RingCentral corporate account. Only the header location is accepted. Successful validations are cached per token for five minutes.",
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The token belongs to RingCentral staff.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportSessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/support/crm/{platform}/integrations": {
+      "get": {
+        "tags": [
+          "Support Console"
+        ],
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "summary": "List enabled CRM integrations",
+        "operationId": "listSupportCrmIntegrations",
+        "description": "Fetches the dealers that enabled RingCentral in each VinSolutions service, merges them by dealer ID, flags allowlisted ones, and records them in the Support console history. Nothing is cached; every call reads VinSolutions.",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vinsolutions"
+              ]
+            },
+            "description": "CRM whose integrations the Support console manages. Only vinsolutions is supported."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integrations enabled in at least one service.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportCrmIntegrationList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The CRM platform is not supported, or the resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/support/crm/{platform}/integrations/{id}/remove": {
+      "post": {
+        "tags": [
+          "Support Console"
+        ],
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "summary": "Remove a CRM integration",
+        "operationId": "removeSupportCrmIntegration",
+        "description": "Removes RingCentral from the integration in the selected CRM services and records each result with the acting staff member. VinSolutions keeps listing a removed dealer for about 10 minutes. There is no way to re-enable a removed integration from RingCentral.",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vinsolutions"
+              ]
+            },
+            "description": "CRM whose integrations the Support console manages. Only vinsolutions is supported."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            },
+            "description": "CRM-specific integration identifier; the VinSolutions dealer ID."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportCrmRemoveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-service removal results; individual services can fail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportCrmRemoveResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The integration ID is invalid, or services is not a non-empty list of supported services.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The CRM platform is not supported, or the resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The integration is allowlisted and confirmAllowlisted was not true.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/support/crm/{platform}/history": {
+      "get": {
+        "tags": [
+          "Support Console"
+        ],
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "summary": "Read CRM integration history",
+        "operationId": "getSupportCrmHistory",
+        "description": "Returns every integration the Support console has seen when listing, including ones no longer enabled, with removal events.",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vinsolutions"
+              ]
+            },
+            "description": "CRM whose integrations the Support console manages. Only vinsolutions is supported."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration history.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportCrmHistory"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The CRM platform is not supported, or the resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/support/crm/{platform}/allowlist": {
+      "get": {
+        "tags": [
+          "Support Console"
+        ],
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "summary": "List the CRM integration allowlist",
+        "operationId": "listSupportCrmAllowlist",
+        "description": "Returns integrations flagged so staff do not remove them by mistake.",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vinsolutions"
+              ]
+            },
+            "description": "CRM whose integrations the Support console manages. Only vinsolutions is supported."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Allowlist entries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportCrmAllowlist"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The CRM platform is not supported, or the resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/support/crm/{platform}/allowlist/{id}": {
+      "put": {
+        "tags": [
+          "Support Console"
+        ],
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "summary": "Add or update an allowlist entry",
+        "operationId": "upsertSupportCrmAllowlistEntry",
+        "description": "Adds the integration to the allowlist, or updates its note. The integration does not need to be currently enabled.",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vinsolutions"
+              ]
+            },
+            "description": "CRM whose integrations the Support console manages. Only vinsolutions is supported."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            },
+            "description": "CRM-specific integration identifier; the VinSolutions dealer ID."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportCrmAllowlistRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved entry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportCrmAllowlistEntry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The integration ID or note is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The CRM platform is not supported, or the resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Support Console"
+        ],
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "summary": "Delete an allowlist entry",
+        "operationId": "deleteSupportCrmAllowlistEntry",
+        "description": "Removes the integration from the allowlist. It does not change the integration in the CRM.",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vinsolutions"
+              ]
+            },
+            "description": "CRM whose integrations the Support console manages. Only vinsolutions is supported."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            },
+            "description": "CRM-specific integration identifier; the VinSolutions dealer ID."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The entry was deleted."
+          },
+          "400": {
+            "description": "The integration ID is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The CRM platform is not supported, or the integration is not on the allowlist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
       }
     }
   },
@@ -8286,6 +8816,320 @@
         },
         "description": "Connector-provided options for a dynamic managed authentication field.",
         "x-app-connect-generated-contract": true
+      },
+      "SupportSessionResponse": {
+        "type": "object",
+        "description": "RingCentral staff identity admitted to the Support console.",
+        "required": [
+          "accountId",
+          "extensionId",
+          "name",
+          "email"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "RingCentral account ID; always the RingCentral corporate account."
+          },
+          "extensionId": {
+            "type": "string",
+            "description": "RingCentral extension ID of the signed-in staff member."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the RingCentral extension."
+          },
+          "email": {
+            "type": "string",
+            "description": "Contact email of the RingCentral extension, or an empty string."
+          }
+        }
+      },
+      "SupportCrmIntegration": {
+        "type": "object",
+        "description": "One CRM integration (a VinSolutions dealer) that enabled RingCentral in at least one CRM service.",
+        "required": [
+          "id",
+          "name",
+          "details",
+          "services",
+          "allowlisted"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "CRM integration identifier; the VinSolutions dealer ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name reported by the CRM."
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "CRM-specific display fields such as dealer city and state."
+          },
+          "services": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive",
+                "unknown"
+              ],
+              "description": "Whether the integration is enabled in this CRM service; unknown when the service could not be reached."
+            },
+            "description": "Enablement per CRM service, keyed by service name (leadManagement, callTracking)."
+          },
+          "allowlisted": {
+            "type": "boolean",
+            "description": "True when the integration is on the Support console allowlist."
+          }
+        }
+      },
+      "SupportCrmIntegrationList": {
+        "type": "object",
+        "description": "Integrations currently enabled in the CRM, merged across its services.",
+        "required": [
+          "platform",
+          "services",
+          "serviceErrors",
+          "integrations"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "CRM platform key."
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CRM services queried, in display order."
+          },
+          "serviceErrors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Failure message per service that could not be listed."
+          },
+          "integrations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportCrmIntegration"
+            },
+            "description": "Enabled integrations sorted by ID."
+          }
+        }
+      },
+      "SupportCrmRemoveRequest": {
+        "type": "object",
+        "description": "Which CRM services to remove the integration from.",
+        "required": [
+          "services"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "services": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "leadManagement",
+                "callTracking"
+              ]
+            },
+            "description": "CRM services to remove the integration from; for VinSolutions, leadManagement and/or callTracking."
+          },
+          "confirmAllowlisted": {
+            "type": "boolean",
+            "description": "Must be true to remove an allowlisted integration."
+          }
+        }
+      },
+      "SupportCrmRemoveResult": {
+        "type": "object",
+        "description": "Outcome of removing RingCentral from an integration in every CRM service.",
+        "required": [
+          "platform",
+          "integrationId",
+          "results"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "CRM platform key."
+          },
+          "integrationId": {
+            "type": "string",
+            "description": "CRM integration identifier."
+          },
+          "results": {
+            "type": "object",
+            "description": "Result per selected CRM service. alreadyRemoved means the CRM returned 404.",
+            "additionalProperties": {
+              "type": "object",
+              "required": [
+                "status"
+              ],
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "removed",
+                    "alreadyRemoved",
+                    "failed"
+                  ],
+                  "description": "Removal outcome."
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Failure detail when status is failed."
+                }
+              }
+            }
+          }
+        }
+      },
+      "SupportCrmHistory": {
+        "type": "object",
+        "description": "Every integration the Support console has seen, including ones no longer enabled, with removal events.",
+        "required": [
+          "platform",
+          "history"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "CRM platform key."
+          },
+          "history": {
+            "type": "array",
+            "description": "Integrations, most recently first seen first.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CRM integration identifier."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Last known display name."
+                },
+                "details": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "Last known CRM-specific display fields."
+                },
+                "services": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "firstSeenAt and lastSeenAt per CRM service."
+                },
+                "firstSeenAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "description": "When the Support console first saw the integration."
+                },
+                "allowlisted": {
+                  "type": "boolean",
+                  "description": "True when the integration is on the allowlist."
+                },
+                "events": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "description": "Removal events, newest first."
+                }
+              }
+            }
+          }
+        }
+      },
+      "SupportCrmAllowlistEntry": {
+        "type": "object",
+        "description": "An integration flagged so it is not removed by mistake.",
+        "required": [
+          "integrationId",
+          "note",
+          "addedByExtensionId",
+          "addedByName"
+        ],
+        "properties": {
+          "integrationId": {
+            "type": "string",
+            "description": "CRM integration identifier."
+          },
+          "note": {
+            "type": "string",
+            "description": "Why the integration is allowlisted."
+          },
+          "addedByExtensionId": {
+            "type": "string",
+            "description": "RingCentral extension ID of the staff member who added it."
+          },
+          "addedByName": {
+            "type": "string",
+            "description": "Name of the staff member who added it."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the entry was added."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the entry was last changed."
+          }
+        }
+      },
+      "SupportCrmAllowlist": {
+        "type": "object",
+        "description": "Allowlist entries for one CRM.",
+        "required": [
+          "platform",
+          "entries"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "CRM platform key."
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportCrmAllowlistEntry"
+            },
+            "description": "Entries, newest first."
+          }
+        }
+      },
+      "SupportCrmAllowlistRequest": {
+        "type": "object",
+        "description": "Allowlist entry fields.",
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Why the integration is allowlisted."
+          }
+        }
       }
     },
     "headers": {

@@ -1,5 +1,9 @@
 # Release notes
 
+## 2.0.0
+
+- Please refer to [2.0 announcement](https://community.ringcentral.com/integrations-app-connect-33/app-connect-2-0-is-coming-october-8-12077)
+
 ## 1.7.44
 
 - Better: Added AC_DATABASE_URL to prevent conflicts with generic database environment variables while retaining DATABASE_URL compatibility.
