@@ -76,11 +76,9 @@ function hasBullhornNoteUpdateEntitlement(entitlements) {
 
 function isBullhornNoteUpdateRightsError(error) {
     const responseData = error.response?.data;
-    const requestUrl = error.config?.url ?? '';
-    const errorMessage = responseData?.errorMessage ?? '';
     return error.response?.status === 403
         && responseData?.errorMessageKey === BULLHORN_NO_UPDATE_RIGHTS_ERROR_KEY
-        && (requestUrl.includes('/entity/Note/') || errorMessage.includes('entity=com.bullhorn.entity.note.Note'));
+        && !!(error.config?.url?.includes('/entity/Note/') || responseData.errorMessage?.includes('entity=com.bullhorn.entity.note.Note'));
 }
 
 function getOneTimeLogSettings(user) {
@@ -94,7 +92,7 @@ function getOneTimeLogSettings(user) {
 }
 
 async function enableOneTimeCallLogging(user, { clearLoginFlag = false } = {}) {
-    const platformAdditionalInfo = { ...(user.platformAdditionalInfo || {}) };
+    const platformAdditionalInfo = { ...user.platformAdditionalInfo };
     if (clearLoginFlag) {
         delete platformAdditionalInfo[ENABLE_ONE_TIME_LOG_ON_SAVE_KEY];
     }
