@@ -302,7 +302,7 @@ describe('Bullhorn Connector', () => {
             expect(result.successful).toBe(true);
             expect(result.platformUserInfo.platformAdditionalInfo.enableOneTimeLogAfterBullhornLogin).toBe(true);
             expect(result.returnMessage).toMatchObject({
-                messageType: 'warning',
+                messageType: 'success',
                 message: expect.stringContaining('One-time call logging was enabled')
             });
         });
@@ -1142,8 +1142,12 @@ describe('Bullhorn Connector', () => {
         const mockCallLogData = createMockCallLog();
 
         it('should create a Note for call log', async () => {
+            let capturedBody;
             nock(restUrl.slice(0, -1))
-                .put('/entity/Note')
+                .put('/entity/Note', body => {
+                    capturedBody = body;
+                    return true;
+                })
                 .reply(200, {
                     changedEntityId: 501
                 }, mockBullhornRateLimitHeaders);
@@ -1164,6 +1168,11 @@ describe('Bullhorn Connector', () => {
             expect(result.logId).toBe(501);
             expect(result.returnMessage.messageType).toBe('success');
             expect(result.returnMessage.message).toBe('Call logged');
+            expect(capturedBody.personReference).toEqual({
+                id: 101,
+                personSubtype: 'Contact',
+                _subtype: 'ClientContact'
+            });
         });
 
         it('should use default noteActions when not provided', async () => {
