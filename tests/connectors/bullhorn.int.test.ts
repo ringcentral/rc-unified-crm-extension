@@ -248,6 +248,11 @@ describe('Bullhorn Connector', () => {
                     }]
                 }, mockBullhornRateLimitHeaders);
 
+            nock(restUrl.slice(0, -1))
+                .get('/entitlements/Note')
+                .matchHeader('BhRestToken', bhRestToken)
+                .reply(200, ['READ', 'UPDATE_OWN_RECORD']);
+
             const result = await bullhorn.getUserInfo({
                 authHeader,
                 tokenUrl,
@@ -259,6 +264,47 @@ describe('Bullhorn Connector', () => {
             expect(result.platformUserInfo.id).toBe('456-bullhorn');
             expect(result.platformUserInfo.name).toBe('Test User');
             expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('marks one-time call logging for enablement when Note update entitlements are missing', async () => {
+            nock(apiUrl)
+                .post('/login')
+                .query(true)
+                .reply(200, {
+                    BhRestToken: bhRestToken,
+                    restUrl
+                });
+
+            nock(restUrl.slice(0, -1))
+                .get(/query\/CorporateUser/)
+                .query(true)
+                .reply(200, {
+                    data: [{
+                        id: 123,
+                        name: 'Test User',
+                        masterUserID: 456,
+                        timeZoneOffsetEST: -300
+                    }]
+                });
+
+            nock(restUrl.slice(0, -1))
+                .get('/entitlements/Note')
+                .matchHeader('BhRestToken', bhRestToken)
+                .reply(200, ['CREATE', 'READ', 'READ_OWN_RECORD']);
+
+            const result = await bullhorn.getUserInfo({
+                authHeader,
+                tokenUrl,
+                apiUrl,
+                username: 'testuser'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.platformUserInfo.platformAdditionalInfo.enableOneTimeLogAfterBullhornLogin).toBe(true);
+            expect(result.returnMessage).toMatchObject({
+                messageType: 'warning',
+                message: expect.stringContaining('One-time call logging was enabled')
+            });
         });
 
         it('should return error on login failure', async () => {
@@ -1355,6 +1401,50 @@ describe('Bullhorn Connector', () => {
             });
 
             expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('enables one-time call logging when Bullhorn denies updating an existing Note', async () => {
+            const existingCallLogDetails = {
+                comments: 'Existing comments',
+                commentingPerson: { id: 123 }
+            };
+
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Note/501')
+                .reply(403, {
+                    errorMessage: 'No update rights. entity=com.bullhorn.entity.note.Note@2c196a4, PK=46241444',
+                    errorMessageKey: 'errors.entitlements.noUpdateRights',
+                    errorCode: 403
+                });
+
+            const result = await bullhorn.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: null,
+                note: null,
+                startTime: Date.now(),
+                duration: 300,
+                result: null,
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: null,
+                composedLogDetails: 'Updated details',
+                existingCallLogDetails,
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(mockUser.update).toHaveBeenCalledWith({
+                userSettings: {
+                    oneTimeLog: { value: true }
+                }
+            });
+            expect(result.returnMessage).toMatchObject({
+                messageType: 'warning',
+                message: expect.stringContaining('enabled automatically')
+            });
+            expect(result.extraDataTracking.statusCode).toBe(403);
         });
     });
 
@@ -2475,6 +2565,37 @@ describe('Bullhorn Connector', () => {
                 oauthApp: {}
             });
 
+            expect(result).toEqual(userInfo);
+        });
+
+        it('enables one-time call logging and clears the login flag after user persistence', async () => {
+            const userInfo = { id: '456-bullhorn' };
+            const persistedUser = createMockUser({
+                id: '456-bullhorn',
+                userSettings: {
+                    language: { value: 'en-US' }
+                },
+                platformAdditionalInfo: {
+                    enableOneTimeLogAfterBullhornLogin: true,
+                    restUrl
+                }
+            });
+            UserModel.findByPk.mockResolvedValue(persistedUser);
+
+            const result = await bullhorn.postSaveUserInfo({
+                userInfo,
+                oauthApp: {}
+            });
+
+            expect(persistedUser.update).toHaveBeenCalledWith({
+                userSettings: {
+                    language: { value: 'en-US' },
+                    oneTimeLog: { value: true }
+                },
+                platformAdditionalInfo: {
+                    restUrl
+                }
+            });
             expect(result).toEqual(userInfo);
         });
     });
