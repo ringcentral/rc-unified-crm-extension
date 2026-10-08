@@ -16,7 +16,7 @@ title: RingClone — App Connect Partner
 
 ## About RingClone
 
-RingClone focuses on building tight integrations between RingEX and CRM platforms, helping sales and service teams capture every call, message, and interaction without leaving their CRM. Their App Connect connector for Zoho CRM was developed in partnership with RingCentral and is available in App Connect 2.0.
+RingClone focuses on building tight integrations between RingEX and CRM platforms, helping sales and service teams capture every call, message, and interaction without leaving their CRM. Their App Connect connector for Zoho CRM was developed in partnership with RingCentral.
 
 ## Connectors
 
@@ -29,7 +29,7 @@ RingClone currently offers the following App Connect connector. [Contact RingClo
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">CRM</div>
       <div class="crm-mkt__name">Zoho CRM</div>
-      <p class="crm-mkt__desc">Log RingEX calls to Zoho leads, contacts, and deals. Available in App Connect 2.0.</p>
+      <p class="crm-mkt__desc">Log RingEX calls to Zoho leads, contacts, and deals.</p>
     </div>
     <div class="crm-mkt__footer">
       <span class="crm-mkt__by crm-mkt__by--partner">From $10 / user / month</span>

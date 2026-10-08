@@ -272,7 +272,7 @@ hide:
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">CRM</div>
       <div class="crm-mkt__name">Zoho CRM</div>
-      <p class="crm-mkt__desc">Log RingEX calls to Zoho leads, contacts, and deals. Available in App Connect 2.0.</p>
+      <p class="crm-mkt__desc">Log RingEX calls to Zoho leads, contacts, and deals.</p>
     </div>
     <div class="crm-mkt__footer">
       <span class="crm-mkt__by crm-mkt__by--partner">By RingClone</span>

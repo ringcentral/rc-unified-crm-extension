@@ -4,9 +4,6 @@ hide:
 ---
 # Setup and installation
 
-!!! tip "Looking for App Connect 2.0 beta?"
-    Try the new App Connect 2.0 with more features and support for more CRMs. [Get started with App Connect 2.0 &raquo;](2.0/index.md)
-
 RingCentral's App Connect is a browser extension for Google Chrome and Microsoft Edge that is available in their respective stores. Installation is quick and easy if you are accustom to installing browser extensions. Click the web store button below to get started. 
 
 <figure markdown>

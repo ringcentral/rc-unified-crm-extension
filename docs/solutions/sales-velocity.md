@@ -32,7 +32,7 @@ Transform your CRM from a static database into a high-velocity sales machine. Ap
 | **Call-Back Lists** | Eliminates the "procrastination gap" between calls. |
 | **Voicemail Drop** | Reclaims hours of manual speaking time every week. |
 | **Click-to-Dial Later** | Keeps reps focused on one task at a time (Prospecting vs. Calling). |
-| **Performance Metrics** | (2.0 Beta) Real-time tracking of team activity to identify top performers. |
+| **Performance Metrics** | Real-time tracking of team activity to identify top performers. |
 
 ## Built for Modern Sales Teams
 
@@ -41,6 +41,6 @@ Whether you are running a high-volume SDR shop or a focused Account Executive po
 1.  **Queue:** Tag prospects throughout the day using "Click-to-Dial Later."
 2.  **Execute:** Open your Call-Back list and power through your outreach without leaving your CRM.
 3.  **Log:** Every call, outcome, and note is synced back to your CRM automatically.
-4.  **Analyze:** Use 2.0 Dashboards to see exactly how your velocity is impacting your pipeline.
+4.  **Analyze:** Use App Connect Dashboards to see exactly how your velocity is impacting your pipeline.
 
 --8<-- "docs/solutions/solutions-footer.md"

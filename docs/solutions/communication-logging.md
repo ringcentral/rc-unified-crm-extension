@@ -24,7 +24,7 @@ Stop chasing "ghost calls" that aren't in the system. App Connect bridges the ga
 
 ### Advanced: Auto-Logging Rules & Conflict Resolution
 
-Large organizations often face "Logging Conflicts"—where a phone number matches multiple records or no record at all. App Connect 2.0 introduces **Unattended Conflict Resolution** to keep your data flowing without interrupting your reps.
+Large organizations often face "Logging Conflicts"—where a phone number matches multiple records or no record at all. App Connect introduces **Unattended Conflict Resolution** to keep your data flowing without interrupting your reps.
 
 * **Smart Auto-Matching:** Define rules to resolve conflicts automatically without user intervention.
     * **Last Modified:** Automatically log the call to the contact record that was most recently updated in your CRM.

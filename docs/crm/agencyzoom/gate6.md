@@ -14,9 +14,6 @@ title: AgencyZoom by Gate6 — App Connect
   </div>
 </div>
 
-!!! info "Requires App Connect 2.0"
-    This integration is only available in [App Connect 2.0](../../2.0/index.md). Make sure you have the latest version installed before getting started.
-
 Gate6 specializes in connecting business applications and platforms into cohesive enterprise solutions. Their App Connect connector for AgencyZoom brings the full RingEX communications stack into your agency management platform — logging every call, tracking every contact, and surfacing client records the moment your phone rings.
 
 Built for larger agencies and multi-location operations, the Gate6 connector is designed for environments where reliability, configurability, and enterprise support matter.
@@ -34,7 +31,6 @@ Built for larger agencies and multi-location operations, the Gate6 connector is 
 
 - An active RingEX account
 - AgencyZoom subscription
-- App Connect 2.0 or later
 - Gate6 connector license
 
 ## Setup and configuration
