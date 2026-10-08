@@ -17,7 +17,7 @@ Call-back lists are personal contact lists that streamline your outbound calling
 Find your call-back lists in the **Call-back** tab within App Connect.
 
 <figure markdown>
-  ![User report](../img/call-back-lists.png){ .mw-400 }
+  ![User report](../img/calls-back-lists.png){ .mw-400 }
   <figcaption>Call-back lists tab</figcaption>
 </figure>
 
@@ -31,7 +31,7 @@ You can add contacts to your call-back list in several ways:
 Hover on contact number and use click-to-dial to schedule it.
 
 <figure markdown>
-  ![User report](../img/call-back-lists-c2d-schedule.png){ .mw-400 }
+  ![User report](../img/calls-back-lists-c2d-schedule.png){ .mw-400 }
   <figcaption>Schedule with c2d</figcaption>
 </figure>
 
@@ -41,7 +41,7 @@ Hover on contact number and use click-to-dial to schedule it.
 After completing a call, you can schedule a callback by selecting the option to call this contact at a later time. This automatically adds them to your call-back list.
 
 <figure markdown>
-  ![User report](../img/call-back-lists-log-form-schedule.png){ .mw-400 }
+  ![User report](../img/calls-back-lists-log-form-schedule.png){ .mw-400 }
   <figcaption>Schedule on call log form</figcaption>
 </figure>
 
@@ -54,7 +54,7 @@ After completing a call, you can schedule a callback by selecting the option to 
 4. Choose when you want to call them
 
 <figure markdown>
-  ![User report](../img/call-back-lists-log-form-call-history.png){ .mw-400 }
+  ![User report](../img/calls-back-lists-log-form-call-history.png){ .mw-400 }
   <figcaption>Schedule on call history page</figcaption>
 </figure>
 

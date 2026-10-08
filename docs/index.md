@@ -65,7 +65,7 @@ Logging to your CRM in real time
 
 <a href="plugins/lazy-contact-sync/" class="ac-v5-auto-banner__card">
 <span class="ac-v5-auto-banner__icon-wrap ac-v5-auto-banner__icon-wrap--plain">
-<img class="ac-v5-auto-banner__icon ac-v5-auto-banner__icon--img" src="img/captivo-plugin-icon.png" alt="Contact Sync Plugin">
+<img class="ac-v5-auto-banner__icon ac-v5-auto-banner__icon--img" src="img/vendor-captivo-plugin-icon.png" alt="Contact Sync Plugin">
 </span>
 <span class="ac-v5-auto-banner__copy">
 <span class="ac-v5-auto-banner__title">New: Contact Sync Plugin</span>
@@ -102,39 +102,39 @@ Logging to your CRM in real time
 <p class="ac-v5-ticker-label">19+ supported integrations and growing</p>
 <div class="ac-v5-ticker-overflow">
 <div class="ac-v5-ticker-track">
-<div class="ac-v5-ticker-pill"><a href="crm/agencyzoom/"><img src="img/crm-logo-agencyzoom.png" alt="AgencyZoom"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/bullhorn/"><img src="img/crm-logo-bullhorn.png" alt="Bullhorn"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/clio/"><img src="img/crm-logo-clio.png" alt="Clio"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/freshdesk/"><img src="img/crm-logo-freshdesk.png" alt="Freshdesk"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/gohighlevel/"><img src="img/crm-logo-highlevel.png" alt="GoHighLevel"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/google-sheets/"><img src="img/crm-logo-googlesheets.png" alt="Google Sheets"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/netsuite/"><img src="img/crm-logo-netsuite.png" alt="NetSuite"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/pipedrive/"><img src="img/crm-logo-pipedrive.png" alt="Pipedrive"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/servicenow/"><img src="img/crm-logo-servicenow.png" alt="ServiceNow"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/agencyzoom/"><img src="img/crm-logos-agencyzoom.png" alt="AgencyZoom"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/bullhorn/"><img src="img/crm-logos-bullhorn.png" alt="Bullhorn"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/clio/"><img src="img/crm-logos-clio.png" alt="Clio"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/freshdesk/"><img src="img/crm-logos-freshdesk.png" alt="Freshdesk"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/gohighlevel/"><img src="img/crm-logos-highlevel.png" alt="GoHighLevel"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/google-sheets/"><img src="img/crm-logos-googlesheets.png" alt="Google Sheets"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/netsuite/"><img src="img/crm-logos-netsuite.png" alt="NetSuite"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/pipedrive/"><img src="img/crm-logos-pipedrive.png" alt="Pipedrive"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/servicenow/"><img src="img/crm-logos-servicenow.png" alt="ServiceNow"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/zoho/"><img src="img/crm-logo-zoho.png" alt="Zoho CRM"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/insightly/"><img src="img/crm-logo-insightly.png" alt="Insightly"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/redtail/"><img src="img/crm-logo-redtail.png" alt="Redtail"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/smokeball/"><img src="img/crm-logo-smokeball.png" alt="Smokeball"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/odoo/"><img src="img/crm-logo-odoo.png" alt="Odoo"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/vinsolutions/"><img src="img/crm-logo-vinsolutions.png" alt="Vin Solutions"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/dominion/"><img src="img/crm-logo-dominion.png" alt="Dominion"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/insightly/"><img src="img/crm-logos-insightly.png" alt="Insightly"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/redtail/"><img src="img/crm-logos-redtail.png" alt="Redtail"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/smokeball/"><img src="img/crm-logos-smokeball.png" alt="Smokeball"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/odoo/"><img src="img/crm-logos-odoo.png" alt="Odoo"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/vinsolutions/"><img src="img/crm-logos-vinsolutions.png" alt="Vin Solutions"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/dominion/"><img src="img/crm-logos-dominion.png" alt="Dominion"></a></div>
 <!-- duplicate set for seamless loop -->
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/agencyzoom/" tabindex="-1"><img src="img/crm-logo-agencyzoom.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/bullhorn/" tabindex="-1"><img src="img/crm-logo-bullhorn.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/clio/" tabindex="-1"><img src="img/crm-logo-clio.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/freshdesk/" tabindex="-1"><img src="img/crm-logo-freshdesk.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/gohighlevel/" tabindex="-1"><img src="img/crm-logo-highlevel.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/google-sheets/" tabindex="-1"><img src="img/crm-logo-googlesheets.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/netsuite/" tabindex="-1"><img src="img/crm-logo-netsuite.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/pipedrive/" tabindex="-1"><img src="img/crm-logo-pipedrive.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/servicenow/" tabindex="-1"><img src="img/crm-logo-servicenow.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/agencyzoom/" tabindex="-1"><img src="img/crm-logos-agencyzoom.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/bullhorn/" tabindex="-1"><img src="img/crm-logos-bullhorn.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/clio/" tabindex="-1"><img src="img/crm-logos-clio.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/freshdesk/" tabindex="-1"><img src="img/crm-logos-freshdesk.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/gohighlevel/" tabindex="-1"><img src="img/crm-logos-highlevel.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/google-sheets/" tabindex="-1"><img src="img/crm-logos-googlesheets.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/netsuite/" tabindex="-1"><img src="img/crm-logos-netsuite.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/pipedrive/" tabindex="-1"><img src="img/crm-logos-pipedrive.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/servicenow/" tabindex="-1"><img src="img/crm-logos-servicenow.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/zoho/" tabindex="-1"><img src="img/crm-logo-zoho.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/insightly/" tabindex="-1"><img src="img/crm-logo-insightly.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/redtail/" tabindex="-1"><img src="img/crm-logo-redtail.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/smokeball/" tabindex="-1"><img src="img/crm-logo-smokeball.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/odoo/" tabindex="-1"><img src="img/crm-logo-odoo.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/vinsolutions/" tabindex="-1"><img src="img/crm-logo-vinsolutions.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/dominion/" tabindex="-1"><img src="img/crm-logo-dominion.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/insightly/" tabindex="-1"><img src="img/crm-logos-insightly.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/redtail/" tabindex="-1"><img src="img/crm-logos-redtail.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/smokeball/" tabindex="-1"><img src="img/crm-logos-smokeball.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/odoo/" tabindex="-1"><img src="img/crm-logos-odoo.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/vinsolutions/" tabindex="-1"><img src="img/crm-logos-vinsolutions.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/dominion/" tabindex="-1"><img src="img/crm-logos-dominion.png" alt=""></a></div>
 </div>
 </div>
 <p class="ac-v5-ticker-cta">Don't see your CRM? Contact <a href="build/professional-services/">RingCentral Professional Services</a> or another <a href="build/">qualified partner</a> to help.</p>

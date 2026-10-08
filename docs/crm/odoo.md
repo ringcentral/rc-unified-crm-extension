@@ -40,7 +40,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Odoo."
 
-![Odoo Connect](../img/odoo/odoo-rc-connect.png)
+![Odoo Connect](../img/crm-odoo-rc-connect.png)
 
 4. Click the "Connect" button. 
 
@@ -50,7 +50,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 When you login successfully, the browser extension will automatically update to show you are connected to Odoo. If you are connected, the button next to Odoo will say, "logout".
 
-![Odoo Connected](../img/odoo/odoo-rc-connected.png)
+![Odoo Connected](../img/crm-odoo-rc-connected.png)
 
 And with that, you will be connected to Odoo and ready to begin using the integration.
 
@@ -58,7 +58,7 @@ And with that, you will be connected to Odoo and ready to begin using the integr
 
 Odoo comes with many apps so you have to let the integration know which app you want to log calls against. Go to App Connect > Settings > Odoo Settings and you'll see a dropdown of all the Odoo apps you have installed. Select a default app, e.g. "CRM" and save. Now all calls will be saved against records in your CRM.
 
-![Odoo Settings](../img/odoo/odoo-rc-settings.png)
+![Odoo Settings](../img/crm-odoo-rc-settings.png)
 
 ## Usage Instructions
 

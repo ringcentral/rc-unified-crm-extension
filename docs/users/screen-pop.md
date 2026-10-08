@@ -5,7 +5,7 @@ Screen-pop, also known as "call-pop," refers to the feature in which App Connect
 One will find call-pop settings under the "Call-pop" settings area that control under what circumstances App Connect will automatically open your CRM to the contact or person being called, or calling you. 
 
 <figure markdown>
-  ![Call pop](../img/call-pop.png){ .mw-450 }
+  ![Call pop](../img/calls-pop.png){ .mw-450 }
   <figcaption>Screen-pop options in App Connect Settings</figcaption>
 </figure>
 

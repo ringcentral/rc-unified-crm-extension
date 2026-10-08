@@ -33,13 +33,13 @@ Once the extension has been installed, follow these steps to setup and configure
 
 2. While visiting a Smokeball application page, click the quick access button to bring the dialer to the foreground.
 
-![Launch App Connect](../img/smokeball/smokeball-rc-button.png){ .mw-300 }
+![Launch App Connect](../img/crm-smokeball-rc-button.png){ .mw-300 }
 
 3. Login with your RingCentral account.
 
 4. Navigate to the Settings screen in App Connect, and find the option labeled "Smokeball."
 
-![Smokeball Connect](../img/smokeball/smokeball-rc-connect.png)
+![Smokeball Connect](../img/crm-smokeball-rc-connect.png)
 
 5. Click the "Connect" button. 
 
@@ -47,7 +47,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 When you login successfully, the browser extension will automatically update to show you are connected to Smokeball. If you are connected, the button next to Smokeball will say, "logout".
 
-![Smokeball Connected](../img/smokeball/smokeball-connected.png)
+![Smokeball Connected](../img/crm-smokeball-connected.png)
 
 And with that, you will be connected to Smokeball and ready to begin using the integration.
 

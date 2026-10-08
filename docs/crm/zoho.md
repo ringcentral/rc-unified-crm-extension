@@ -23,11 +23,11 @@ Once the extension has been installed, follow these steps to configure Zoho in t
 
 1. Sign in to your RingCentral account in the extension, and select the Zoho platform. Make sure to click the "Connect" button.
 
-    ![Sign in and select Zoho](../img/ringclone-zoho-signin-and-select.png){ .mw-400 }
+    ![Sign in and select Zoho](../img/crm-zoho-ringclone-signin-and-select.png){ .mw-400 }
 
 2. A window will be opened prompting you to login to your Zoho account. Authorize Zoho and click "Accept".
 
-    ![Authorize Zoho](../img/ringclone-zoho-accept.png){ .mw-400 }
+    ![Authorize Zoho](../img/crm-zoho-ringclone-accept.png){ .mw-400 }
 
 When you login successfully, the browser extension will automatically update to show you are connected to Zoho. If you are connected, the button next to Zoho will say "logout".
 

@@ -8,7 +8,7 @@ To help us diagnose issues quickly, we need three types of information: console 
 
 If you run into an issue, please record an error report directly from the app:
 
-![Error report button](./img/error-report-access.png)
+![Error report button](./img/misc-error-report-access.png)
 
 - Open `User Settings` → `Support` to find the built-in error report collector.
 - Follow the on-screen instructions in App Connect and it will record your actions and prepare the data to share with us.

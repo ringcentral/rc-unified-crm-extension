@@ -83,6 +83,6 @@ There is currently no native feature or plugin that performs bulk, two-way synch
 
 Updates to App Connect are installed automatically by Chrome and Edge when you restart your browser. To check which version is currently installed, navigate to **Manage extensions** in your browser, find App Connect in the list, and click **Show details**. The currently installed version is displayed there.
 
-![version number](img/version.png){ style="width:50%" }
+![version number](img/misc-version.png){ style="width:50%" }
 
 To ensure you are running the most recent version, restart your browser. In rare cases where a restart does not resolve an issue, uninstalling and reinstalling the extension is worth trying as a last resort.

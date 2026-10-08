@@ -9,7 +9,7 @@ In App Connect, RingCentral's [AI Assistant](https://www.ringcentral.com/ringex/
 App Connect's AI features are currently in beta. During this phase, you can enable these features by navigating to Settings > Advanced features and toggling "Smart Note (Beta)" on. 
 
 <figure markdown>
-  ![Quick Access badge](../img/ai-assistant-settings.png){ .mw-400 }
+  ![Quick Access badge](../img/settings-ai-assistant.png){ .mw-400 }
   <figcaption>Turning on AI Assistant and Smart Notes under Settings</figcaption>
 </figure>
 
@@ -25,7 +25,7 @@ Users can toggle the "Auto-start AI Assistant" feature to automatically generate
 AI Assistant, when enabled for your phone call, will show you a live transcript of your call.
 
 <figure markdown>
-  ![Quick Access badge](../img/ai-live-transcript.png)
+  ![Quick Access badge](../img/transcription-ai-live-transcript.png)
   <figcaption>RingCentral's AI Assistant in App Connect providing a live transcription of a call</figcaption>
 </figure>
 
@@ -40,7 +40,7 @@ When your phone call is complete, AI Assistant will process the phone call to ge
 * Decisions made
 
 <figure markdown>
-  ![Quick Access badge](../img/ai-notes.png)
+  ![Quick Access badge](../img/transcription-ai-notes.png)
   <figcaption>RingCentral's AI Assistant can generate key artifacts automatically for you when a call ends</figcaption>
 </figure>
 

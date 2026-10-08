@@ -10,8 +10,8 @@ hide:
 RingCentral's App Connect is a browser extension for Google Chrome and Microsoft Edge that is available in their respective stores. Installation is quick and easy if you are accustom to installing browser extensions. Click the web store button below to get started. 
 
 <figure markdown>
-  [![Google Chrome Web store](img/chrome-web-store.png)](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh){ .md-button .download-button }
-  [![Microsoft Edge store](img/edge-store.png)](https://microsoftedge.microsoft.com/addons/detail/ringcentral-app-connect/fkoakbdjghpdcjlhelgeiahggkghnkfl){ .md-button .download-button }
+  [![Google Chrome Web store](img/extensions-chrome-webstore.png)](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh){ .md-button .download-button }
+  [![Microsoft Edge store](img/extensions-edge-store.png)](https://microsoftedge.microsoft.com/addons/detail/ringcentral-app-connect/fkoakbdjghpdcjlhelgeiahggkghnkfl){ .md-button .download-button }
   <figcaption>Install the extension now</figcaption>
 </figure>
 
@@ -40,13 +40,13 @@ All of this same functionality is also available from the Admin tab inside the A
 
 App Connect is installed easily from the [Google Chrome web store](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh). Click the "Add to Chrome" button to install the extension instantly. Then, consult the instructions specific to your CRM.
 
-![Web Store Install](img/web-store-install.png)
+![Web Store Install](img/extensions-webstore-install.png)
 
 ### Microsoft Edge
 
 App Connect is installed easily from the [Microsoft Edge store](https://microsoftedge.microsoft.com/addons/detail/ringcentral-app-connect/fkoakbdjghpdcjlhelgeiahggkghnkfl) as well. Click the "Get" button to install the extension instantly. Then, consult the instructions specific to your CRM.
 
-![Web Store Install](img/edge-store-install.png)
+![Web Store Install](img/extensions-edge-store-install.png)
 
 ## Connecting to your CRM
 
@@ -55,7 +55,7 @@ The process of connecting App Connect to your CRM is more or less the same at a 
 1. First, navigate to and login to your CRM. 
 2. While viewing a page in your CRM, open up the extension by clicking the App Connect badge.
    
-     ![App Connect badge](img/badge.png){ .mw-100 }
+     ![App Connect badge](img/badges.png){ .mw-100 }
    
 3. Open the "More" tab and select "Settings."
 4. Scroll down to find your CRM, and click the "Connect" button. 
@@ -83,6 +83,6 @@ When logged into and viewing your CRM, an orange "R" badge will appear in the lo
 You can also open App Connect by clicking its icon in your browser's extension bar. Pin it for quicker access by opening the extensions menu and clicking the pin icon next to RingCentral App Connect.
 
 <figure markdown>
-  ![Chrome extensions menu](img/chrome-extension-menu.png)
+  ![Chrome extensions menu](img/extensions-chrome-extension-menu.png)
   <figcaption>Pin App Connect to your browser bar for quick access</figcaption>
 </figure>

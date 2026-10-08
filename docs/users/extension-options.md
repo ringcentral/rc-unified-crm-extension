@@ -10,14 +10,14 @@ Most users will not need to access these advanced configuration options. However
 To access advanced settings, in your browser, navigate to "Manage Extensions," or just "Extensions." From there locate "RingCentral App Connect" and click "Show Details."
 
 <figure markdown>
-  ![Setting your preferred phone device](../img/extension-details.png){ .mw-400 }
+  ![Setting your preferred phone device](../img/devices-hid-extensions-details.png){ .mw-400 }
   <figcaption>An excerpt from the extension details page for App Connect</figcaption>
 </figure>
 
 Then scroll down near to the bottom and click "Extension options" to open the dialog below.
 
 <figure markdown>
-  ![Setting your preferred phone device](../img/extension-options.png){ .mw-400 }
+  ![Setting your preferred phone device](../img/devices-hid-extensions-options.png){ .mw-400 }
   <figcaption>App Connect extension options. Users may see a slightly different set of options depending upon the version they are using.</figcaption>
 </figure>
 

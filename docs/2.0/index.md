@@ -23,7 +23,7 @@ App Connect 2.0 is a turning point for the product as not only does it make it e
 
 The App Connect 2.0 release candidate is being distributed as "App Connect 1.7" via an unlisted and private Chrome Store extension. 
 
-<a href="https://chrome.google.com/webstore/detail/ringcentral-crm-extension/bgpkbcidaabaeioilooghlffdcmlimgk"><img class="mw-350" src="../img/chrome-web-store.png"></a>
+<a href="https://chrome.google.com/webstore/detail/ringcentral-crm-extension/bgpkbcidaabaeioilooghlffdcmlimgk"><img class="mw-350" src="../img/extensions-chrome-webstore.png"></a>
 
 !!! info "Things you should know"
     * Version 2.0 is completely backwards compatible with App Connect 1.6.x. If you experience a problem and wish to revert, you can do so safely without loss of data. 
@@ -131,16 +131,16 @@ We have commitments from developers to build adapters to the following CRMs usin
 
 <div class="grid cards crm-list" markdown>
 
--    [![AgencyZoom Logo](../img/crm-logo-agencyzoom.png){.crm-logo}](../crm/agencyzoom/index.md)
+-    [![AgencyZoom Logo](../img/crm-logos-agencyzoom.png){.crm-logo}](../crm/agencyzoom/index.md)
      [AgencyZoom](../crm/agencyzoom/index.md)
 
--    [![ServiceTitan Logo](../img/crm-logo-servicetitan.png){.crm-logo}](../crm/servicetitan.md)
+-    [![ServiceTitan Logo](../img/crm-logos-servicetitan.png){.crm-logo}](../crm/servicetitan.md)
      [ServiceTitan by Gate6](../crm/servicetitan.md)
 
--    [![Smokeball Logo](../img/crm-logo-smokeball.png){.crm-logo}](../crm/smokeball.md)
+-    [![Smokeball Logo](../img/crm-logos-smokeball.png){.crm-logo}](../crm/smokeball.md)
      [Smokeball by Captivo Labs](../crm/smokeball.md)
 
--    [![monday.com Logo](../img/crm-logo-monday.png){.crm-logo}](../crm/monday.md)
+-    [![monday.com Logo](../img/crm-logos-monday.png){.crm-logo}](../crm/monday.md)
      [monday.com by Gate6](../crm/monday.md)
 
 -    [![Zoho Logo](../img/crm-logo-zoho.png){.crm-logo}](../crm/zoho.md)

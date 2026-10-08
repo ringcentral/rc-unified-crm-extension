@@ -22,7 +22,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Bullhorn."
 
-    ![Connect to Bullhorn](../img/bullhorn-connect.png){ .mw-300 }
+    ![Connect to Bullhorn](../img/crm-bullhorn-connect.png){ .mw-300 }
 
 4. Click the "Connect" button. 
 
@@ -36,20 +36,20 @@ And with that, you will be connected to Bullhorn and ready to begin using the in
 
 In Settings, there's a "Bullhorn options" entry button.
 
-![Bullhorn default Note Action](../img/bullhorn-default-note-action-entry.png)
+![Bullhorn default Note Action](../img/crm-bullhorn-default-note-action-entry.png)
 
 We provide four options to choose from, corresponding to the different communications that can be logged in Bullhorn via App Connect. The values you enter here will be used in two different ways:
 
 1. When logging calls automatically, these note actions will be used when creating the associated notes. 
 2. When logging calls manually, these note actions will determine which action is selected by default in the logging screen. 
 
-![Bullhorn default Note Action page](../img/bullhorn-default-note-action-page.png)
+![Bullhorn default Note Action page](../img/crm-bullhorn-default-note-action-page.png)
 
 ### Editing the enumerated list of possible note actions
 
 As an admin, navigate inside of Bullhorn to Admin > System Settings. Then filter the list of settings for "commentActionList." There you should fine a comma-delimited list of values that determine the possible/allowed note actions. 
 
-![Bullhorn default Note Action page](../img/bullhorn-comment-action-list.png)
+![Bullhorn default Note Action page](../img/crm-bullhorn-comment-action-list.png)
 
 ## Placeholder companies when creating contacts
 
@@ -82,7 +82,7 @@ The Bullhorn API user (service/partner user) associated with these credentials m
 
 Without these permissions, the server-side logging functionality may be incomplete or fail to capture critical event data. It is recommended to create a dedicated service/partner user in Bullhorn with only the necessary permissions to adhere to the principle of least privilege.
 
-![Enabling server-side call logging in Bullhorn](../img/bullhorn-sscl-creds.png){ .mw-300 }
+![Enabling server-side call logging in Bullhorn](../img/crm-bullhorn-sscl-creds.png){ .mw-300 }
 
 !!! warning "Important: Password Changes"
     Note that Bullhorn may require users to update their passwords periodically for security purposes. If you change the password for your Bullhorn API user, you must also update the password in the App Connect extension settings.

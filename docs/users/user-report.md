@@ -7,7 +7,7 @@ The User Report feature provides valuable insights into your calling and messagi
 Metrics for the current user's calling and communication history is located in the **Reports** within the App Connect interface. This dedicated tab gives you easy access to your personal communication statistics and activity data.
 
 <figure markdown>
-  ![User report](../img/user-report.png){ .mw-400 }
+  ![User report](../img/misc-user-report.png){ .mw-400 }
   <figcaption>Calling stats and metrics from the agent's perspective</figcaption>
 </figure>
 

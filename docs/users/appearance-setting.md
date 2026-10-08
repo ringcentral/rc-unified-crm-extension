@@ -14,7 +14,7 @@ The customize tabs feature allows you to personalize which tabs and sections are
     Start with all tabs enabled and gradually disable those you rarely use. You can always re-enable tabs later if your workflow changes.
 
 <figure markdown>
-  ![Customize tabs interface](../img/customize-tabs.png)
+  ![Customize tabs interface](../img/settings-customize-tabs.png)
   <figcaption>Customize tabs settings allow you to control which interface elements are visible</figcaption>
 </figure>
 
@@ -26,7 +26,7 @@ The customize tabs feature allows you to personalize which tabs and sections are
 Notification level settings help you control which types of notifications App Connect displays, allowing you to stay informed about important events while minimizing distractions from less critical alerts.
 
 <figure markdown>
-  ![Notification level settings](../img/notification-level.png)
+  ![Notification level settings](../img/misc-notification-level.png)
   <figcaption>Notification level controls help you manage which alerts and notifications you receive</figcaption>
 </figure>
 
@@ -41,7 +41,7 @@ Notification level settings help you control which types of notifications App Co
 Theme settings allow you to customize the visual appearance of App Connect, including color schemes and interface styling to match your preferences or work environment.
 
 <figure markdown>
-  ![Color theme options](../img/color-theme.png)
+  ![Color theme options](../img/settings-color-theme.png)
   <figcaption>Theme settings let you customize the visual appearance and color scheme</figcaption>
 </figure>
 

@@ -31,7 +31,7 @@ Once the App Connect extension has been installed, follow these steps to setup a
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Freshdesk."
 
-    ![Connect to HighLevel](../img/highlevel-connect.png){ .mw-300 }
+    ![Connect to HighLevel](../img/crm-highlevel-connect.png){ .mw-300 }
 
 4. Click the "Connect" button. 
 

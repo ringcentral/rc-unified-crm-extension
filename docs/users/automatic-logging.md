@@ -51,7 +51,7 @@ Automatic call logging allows for calls to be logged, even if you are not active
 You can disable retroactive call logging under "Call and SMS logging" settings area. 
 
 <figure markdown>
-  ![Disable retroactive call logging](../img/retroactive-logging.png){ .mw-400 }
+  ![Disable retroactive call logging](../img/logging-calls-retroactive.png){ .mw-400 }
 </figure>
 
 ### Automatically resolving logging conflicts

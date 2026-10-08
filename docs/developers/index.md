@@ -40,7 +40,7 @@ A connector has two parts:
 
 The shared runtime in `@app-connect/core` handles HTTP routes, user persistence, token refresh, managed auth, server-side logging orchestration, contact caching, plugins, logging composition, and optional MCP/appointment surfaces. Your connector code supplies CRM-specific behavior.
 
-![Connector architecture diagram](../img/architecture.png){ .mw-350 }
+![Connector architecture diagram](../img/flow-architecture.png){ .mw-350 }
 
 ## Connector Modes
 

@@ -6,7 +6,7 @@ title: AgencyZoom — App Connect Integration
 
 <div class="bld-hero">
   <div class="bld-hero__logo">
-    <img src="../../img/crm-logo-agencyzoom.png" alt="AgencyZoom">
+    <img src="../../img/crm-logos-agencyzoom.png" alt="AgencyZoom">
   </div>
   <div>
     <div class="bld-hero__category">Insurance Agency Management</div>

@@ -6,7 +6,7 @@ title: RingCentral Professional Services
 
 <div class="bld-hero">
   <div class="bld-hero__logo">
-    <img src="../../img/RingCentral_logo_color.png" alt="RingCentral">
+    <img src="../../img/branding-ringcentral-logo-color.png" alt="RingCentral">
   </div>
   <div>
     <div class="bld-hero__category">Professional Services</div>

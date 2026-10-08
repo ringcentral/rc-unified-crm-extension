@@ -60,7 +60,7 @@ hide:
   </a>
 
   <a href="loyally/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../../img/loyally-logo.png" alt="Loyally"></div>
+    <div class="crm-mkt__logo"><img src="../../img/vendor-loyally-logo.png" alt="Loyally"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Customer Service Technology</div>
       <div class="crm-mkt__name">Loyally</div>
@@ -73,7 +73,7 @@ hide:
   </a>
 
   <a href="professional-services/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/RingCentral_logo_color.png" alt="RingCentral"></div>
+    <div class="crm-mkt__logo"><img src="../../img/branding-ringcentral-logo-color.png" alt="RingCentral"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Professional Services</div>
       <div class="crm-mkt__name">RingCentral</div>

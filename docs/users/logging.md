@@ -41,7 +41,7 @@ Some companies have policies that restrict a user's ability to update notes once
 
 
 <figure markdown>
-  ![Logging calls](../img/logging-all-at-once.png)
+  ![Logging calls](../img/logging-log-all-at-once.png)
   <figcaption>The setting to manage whether calls are logged incrementally or all-at-once.</figcaption>
 </figure>
 
@@ -50,7 +50,7 @@ Some companies have policies that restrict a user's ability to update notes once
 While a call is active, click the "Notes" icon found in the lower right-hand corner of the dialer to open up a notes page into which you free type notes. When the call is complete, the notes will be saved locally, and when you log the call in the CRM the notes will transmitted to and saved in the CRM.
 
 <figure markdown>
-  ![Logging calls](../img/notes-during-call.png)
+  ![Logging calls](../img/transcription-notes-during-call.png)
   <figcaption>Users can take notes during a phone call that can later be logged into a CRM.</figcaption>
 </figure>
 
@@ -74,7 +74,7 @@ There is a lot of potential information about a call that can be logged. Dependi
 See [What does App Connect cost?](../troubleshooting/app-connect-cost.md) for details.
 
 <figure markdown>
-  ![Call log settings](../img/call-log-details.png){ .mw-400 }
+  ![Call log settings](../img/calls-log-details.png){ .mw-400 }
   <figcaption>Settings screen to control what information to log in your CRM</figcaption>
 </figure>
 

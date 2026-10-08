@@ -22,7 +22,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Google Sheets."
 
-    ![Connect to Google Sheets](../img/google-connect.png){ .mw-300 }
+    ![Connect to Google Sheets](../img/crm-google-sheets-connect.png){ .mw-300 }
 
 4. Click the "Connect" button. 
 
@@ -41,7 +41,7 @@ To begin logging, you need to create or select a Google sheet to log communicati
 You are then welcome to share the Google Sheet created by App Connect with your co-workers. Your co-workers then would link to an existing sheet rather than create their own. 
 
 <figure markdown>
-  ![Create Google Sheet](../img/google-create-sheet.png){ .mw-400 }
+  ![Create Google Sheet](../img/crm-google-sheets-create-sheet.png){ .mw-400 }
   <figcaption>How to create a Google Sheet to log to</figcaption>
 </figure>
 
@@ -50,6 +50,6 @@ You are then welcome to share the Google Sheet created by App Connect with your 
 You may also select a Google sheet to log communications to. This is especially helpful if you have multiple people within the company all logging calls to a shared sheet. To link to an existing sheet, users should click the button "Select existing sheet." Doing so will launch the Google sheet selector modal dialog. Select the sheet and click Continue. 
 
 <figure markdown>
-  ![Link to Google Sheet](../img/google-link-sheet.png)
+  ![Link to Google Sheet](../img/crm-google-sheets-link-sheet.png)
   <figcaption>Selecting the Google Sheet to log communications to</figcaption>
 </figure>

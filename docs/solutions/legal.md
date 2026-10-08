@@ -18,7 +18,7 @@ Legal billing runs on precision. A few unlogged minutes here and there doesn't j
 * **Firm-wide defaults:** Administrators set consistent billing defaults across the practice through [Managed Settings](../users/managed-settings.md), so time is tracked the same way no matter who's on the phone.
 
 <figure markdown>
-  ![Clio time tracking options in App Connect settings](../img/clio-options.png){ .mw-400 }
+  ![Clio time tracking options in App Connect settings](../img/crm-clio-options.png){ .mw-400 }
   <figcaption>Clio-specific options in App Connect, including billable status defaults for time entries.</figcaption>
 </figure>
 
@@ -47,7 +47,7 @@ App Connect doesn't bolt onto a generic CRM and hope it fits your practice — i
 <div class="crm-mkt__grid">
 
   <a href="../../crm/clio/" class="crm-mkt__card crm-mkt__card--partner">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-clio.png" alt="Clio"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-clio.png" alt="Clio"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Legal</div>
       <div class="crm-mkt__name">Clio</div>
@@ -60,7 +60,7 @@ App Connect doesn't bolt onto a generic CRM and hope it fits your practice — i
   </a>
 
   <a href="../../crm/smokeball/" class="crm-mkt__card">
-    <div class="crm-mkt__logo"><img src="../../img/crm-logo-smokeball.png" alt="Smokeball"></div>
+    <div class="crm-mkt__logo"><img src="../../img/crm-logos-smokeball.png" alt="Smokeball"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Legal Practice Management</div>
       <div class="crm-mkt__name">Smokeball</div>
@@ -84,7 +84,7 @@ Every connector logs calls and texts. App Connect's Clio integration goes furthe
 * **Global Clio coverage:** App Connect supports Clio across every region Clio operates in, so multi-region and international firms get the same experience everywhere they practice.
 
 <figure markdown>
-  ![Clio Manage](../img/crm-logo-clio-manage.png){ .mw-200 } ![Clio Grow](../img/crm-logo-clio-grow.png){ .mw-200 }
+  ![Clio Manage](../img/crm-logos-clio-manage.png){ .mw-200 } ![Clio Grow](../img/crm-logos-clio-grow.png){ .mw-200 }
   <figcaption>App Connect supports both Clio Manage and Clio Grow.</figcaption>
 </figure>
 
