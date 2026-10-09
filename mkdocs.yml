@@ -144,6 +144,7 @@ nav:
   - 'Plugins':
     - 'Overview': plugins/index.md
     - 'Lazy Contact Sync': plugins/lazy-contact-sync.md
+    - 'Sensitive Data Redaction': plugins/sensitive-data-redaction.md
 - 'Solutions':
   - 'Overview': solutions/index.md
   - 'Verticals': 

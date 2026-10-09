@@ -63,13 +63,13 @@ Logging to your CRM in real time
 <span class="ac-v5-auto-banner__arrow">→</span>
 </a>
 
-<a href="plugins/lazy-contact-sync/" class="ac-v5-auto-banner__card">
+<a href="plugins/sensitive-data-redaction/" class="ac-v5-auto-banner__card">
 <span class="ac-v5-auto-banner__icon-wrap ac-v5-auto-banner__icon-wrap--plain">
-<img class="ac-v5-auto-banner__icon ac-v5-auto-banner__icon--img" src="img/vendor-captivo-plugin-icon.png" alt="Contact Sync Plugin">
+<img class="ac-v5-auto-banner__icon ac-v5-auto-banner__icon--img" src="img/vendor-captivo-plugin-icon.png" alt="Sensitive Data Redaction Plugin">
 </span>
 <span class="ac-v5-auto-banner__copy">
-<span class="ac-v5-auto-banner__title">New: Contact Sync Plugin</span>
-<span class="ac-v5-auto-banner__sub">Identify callers by name on every RingCentral device — not just inside the App Connect client — with Captivo Labs' free plugin.</span>
+<span class="ac-v5-auto-banner__title">New: Sensitive Data Redaction</span>
+<span class="ac-v5-auto-banner__sub">Keep card numbers and personal data out of your CRM — masked in notes, AI summaries, and transcripts before they're saved, with Captivo Labs' free plugin.</span>
 </span>
 <span class="ac-v5-auto-banner__arrow">→</span>
 </a>
