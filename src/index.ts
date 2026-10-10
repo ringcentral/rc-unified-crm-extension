@@ -330,7 +330,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
                 const platformModule = /** @type {any} */ (require(`./connectors/pipedrive`));
                 await platformModule.unAuthorize({ user });
             }
-            res.status(200).send('User deleted');
+            res.status(200).send('User disconnected');
         } else {
             res.status(401).send('Unauthorized');
         }

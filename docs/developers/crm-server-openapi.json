@@ -4094,7 +4094,7 @@
                 "properties": {
                   "user_id": {
                     "type": "string",
-                    "description": "Pipedrive user identifier whose CRM authorization and App Connect user record will be removed."
+                    "description": "Pipedrive user identifier whose CRM authorization will be revoked. The App Connect user record and settings are retained for reconnection."
                   }
                 },
                 "additionalProperties": false,
@@ -4103,7 +4103,7 @@
             }
           }
         },
-        "description": "Handles Pipedrive's authenticated uninstall callback. After HTTP Basic authentication, it invokes connector revocation for the supplied Pipedrive user_id and deletes that Pipedrive user record. Repeating the callback for a missing user still returns success."
+        "description": "Handles Pipedrive's authenticated uninstall callback. After HTTP Basic authentication, it revokes CRM credentials for the supplied Pipedrive user_id while retaining the App Connect user record and settings for reconnection. Repeating the callback for a missing user still returns success."
       }
     },
     "/plugin/licenseStatus/{pluginId}": {

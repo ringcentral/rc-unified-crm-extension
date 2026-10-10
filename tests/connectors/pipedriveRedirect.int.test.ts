@@ -67,7 +67,7 @@ describe('Pipedrive Redirect Routes', () => {
             expect(userCheck).not.toBeNull();
         });
 
-        test('should delete user with valid basic auth', async () => {
+        test('should revoke credentials and preserve user settings with valid basic auth', async () => {
             // Create a temporary user for this test with unique ID
             const tempUserId = `tempDeleteUser_${Date.now()}`;
             await UserModel.create({
@@ -76,7 +76,8 @@ describe('Pipedrive Redirect Routes', () => {
                 platform: 'pipedrive',
                 rcUserNumber: '+19876543210',
                 accessToken: 'tempAccessToken',
-                refreshToken: 'tempRefreshToken'
+                refreshToken: 'tempRefreshToken',
+                userSettings: { pipedriveCallActivityType: { value: 'meeting' } }
             });
 
             // Verify user exists
@@ -102,10 +103,14 @@ describe('Pipedrive Redirect Routes', () => {
 
             // Verify response
             expect(res.status).toEqual(200);
+            expect(res.text).toEqual('User disconnected');
 
-            // Verify user is deleted
+            // Keep the user record so reconnecting can restore its settings.
             userCheck = await UserModel.findByPk(tempUserId);
-            expect(userCheck).toBeNull();
+            expect(userCheck).not.toBeNull();
+            expect(userCheck.accessToken).toEqual('');
+            expect(userCheck.refreshToken).toEqual('');
+            expect(userCheck.userSettings).toEqual({ pipedriveCallActivityType: { value: 'meeting' } });
 
             // Clean up nock
             tokenRevokeScope.done();
@@ -158,7 +163,7 @@ describe('Pipedrive Redirect Routes', () => {
             expect(res.text).toEqual('Missing user_id');
         });
 
-        test('should delete user when Pipedrive sends its numeric user id', async () => {
+        test('should disconnect the user when Pipedrive sends its numeric user id', async () => {
             // Pipedrive's uninstall webhook sends the numeric id; we store `${id}-pipedrive`.
             const numericId = Date.now();
             const storedUserId = `${numericId}-pipedrive`;
@@ -168,7 +173,8 @@ describe('Pipedrive Redirect Routes', () => {
                 platform: 'pipedrive',
                 rcUserNumber: '+19876543213',
                 accessToken: 'numericAccessToken',
-                refreshToken: 'numericRefreshToken'
+                refreshToken: 'numericRefreshToken',
+                userSettings: { pipedriveCallActivityType: { value: 'call' } }
             });
 
             nock('https://oauth.pipedrive.com')
@@ -187,7 +193,10 @@ describe('Pipedrive Redirect Routes', () => {
 
             expect(res.status).toEqual(200);
             const userCheck = await UserModel.findByPk(storedUserId);
-            expect(userCheck).toBeNull();
+            expect(userCheck).not.toBeNull();
+            expect(userCheck.accessToken).toEqual('');
+            expect(userCheck.refreshToken).toEqual('');
+            expect(userCheck.userSettings).toEqual({ pipedriveCallActivityType: { value: 'call' } });
         });
 
         test('should handle non-existent user_id gracefully', async () => {
@@ -200,7 +209,7 @@ describe('Pipedrive Redirect Routes', () => {
                 .set('Authorization', `Basic ${credentials}`)
                 .send({ user_id: 'nonExistentUserId12345' });
 
-            // Should return 200 even for non-existent user (idempotent delete)
+            // Should return 200 even for non-existent user (idempotent disconnect)
             expect(res.status).toEqual(200);
         });
 

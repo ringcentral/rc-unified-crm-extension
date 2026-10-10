@@ -100,7 +100,8 @@ class Logger {
 
         const formattedMessage = this._formatMessage(level, message, context);
 
-        if (level === 'ERROR' || level === 'WARN') {
+        // CloudWatch labels stderr records as ERROR, so warnings must use stdout.
+        if (level === 'ERROR') {
             console.error(formattedMessage);
         } else {
             console.log(formattedMessage);

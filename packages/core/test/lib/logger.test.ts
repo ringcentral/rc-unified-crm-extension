@@ -61,9 +61,9 @@ describe('Logger', () => {
       logger.warn('warn message');
       logger.error('error message');
 
-      // Only warn and error should be logged
-      expect(consoleSpy).not.toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      expect(consoleSpy.mock.calls[0][0]).toContain('[WARN]');
     });
 
     test('should log all messages when level is DEBUG', () => {
@@ -74,8 +74,8 @@ describe('Logger', () => {
       logger.warn('warn message');
       logger.error('error message');
 
-      expect(consoleSpy).toHaveBeenCalledTimes(2); // debug and info
-      expect(consoleErrorSpy).toHaveBeenCalledTimes(2); // warn and error
+      expect(consoleSpy).toHaveBeenCalledTimes(3); // debug, info, and warn
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1); // error
     });
   });
 
@@ -271,7 +271,8 @@ describe('Logger', () => {
         platform: 'clio',
       });
 
-      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -351,7 +352,7 @@ describe('Logger', () => {
 
       logger.warn({ message: 'dup', source: 'object' }, { source: 'context' });
 
-      const output = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
+      const output = JSON.parse(consoleSpy.mock.calls[0][0]);
       expect(output.source).toBe('context');
     });
   });
