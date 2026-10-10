@@ -36,6 +36,87 @@ function getLogFormatType() {
     return LOG_DETAILS_FORMAT_TYPE.HTML;
 }
 
+const BULLHORN_NOTE_UPDATE_ENTITLEMENTS = new Set(['UPDATE', 'UPDATE_OWN_RECORD','UPDATE_DEPARTMENT','UPDATE_CORPORATE']);
+const BULLHORN_NO_UPDATE_RIGHTS_ERROR_KEY = 'errors.entitlements.noUpdateRights';
+const ENABLE_ONE_TIME_LOG_ON_SAVE_KEY = 'enableOneTimeLogAfterBullhornLogin';
+const BULLHORN_PERSON_SUBTYPE_BY_CONTACT_TYPE = {
+    Contact: 'ClientContact',
+    ClientContact: 'ClientContact',
+    Candidate: 'Candidate',
+    Lead: 'Lead',
+    CorporateUser: 'CorporateUser'
+};
+
+function toBullhornPersonReference(id, type) {
+    const numericId = Number(id);
+    const reference: any = {
+        id: Number.isInteger(numericId) ? numericId : id,
+        personSubtype: type
+    };
+    const subtype = BULLHORN_PERSON_SUBTYPE_BY_CONTACT_TYPE[type];
+    if (subtype) {
+        reference._subtype = subtype;
+    }
+    return reference;
+}
+
+function getBullhornEntitlements(responseData) {
+    if (Array.isArray(responseData)) {
+        return responseData;
+    }
+    if (Array.isArray(responseData?.data)) {
+        return responseData.data;
+    }
+    return null;
+}
+
+function hasBullhornNoteUpdateEntitlement(entitlements) {
+    return entitlements.some(entitlement => BULLHORN_NOTE_UPDATE_ENTITLEMENTS.has(entitlement));
+}
+
+function isBullhornNoteUpdateRightsError(error) {
+    const responseData = error.response?.data;
+    return error.response?.status === 403
+        && responseData?.errorMessageKey === BULLHORN_NO_UPDATE_RIGHTS_ERROR_KEY
+        && !!(error.config?.url?.includes('/entity/Note/') || responseData.errorMessage?.includes('entity=com.bullhorn.entity.note.Note'));
+}
+
+function getOneTimeLogSettings(user) {
+    return {
+        ...(user.userSettings || {}),
+        oneTimeLog: {
+            ...(user.userSettings?.oneTimeLog || {}),
+            value: true
+        }
+    };
+}
+
+async function enableOneTimeCallLogging(user, { clearLoginFlag = false } = {}) {
+    const platformAdditionalInfo = { ...user.platformAdditionalInfo };
+    if (clearLoginFlag) {
+        delete platformAdditionalInfo[ENABLE_ONE_TIME_LOG_ON_SAVE_KEY];
+    }
+    const oneTimeLogAlreadyEnabled = user.userSettings?.oneTimeLog?.value === true;
+    if (oneTimeLogAlreadyEnabled && !clearLoginFlag) {
+        return false;
+    }
+    const updateData: any = {};
+    if (!oneTimeLogAlreadyEnabled) {
+        updateData.userSettings = getOneTimeLogSettings(user);
+    }
+    if (clearLoginFlag) {
+        updateData.platformAdditionalInfo = platformAdditionalInfo;
+    }
+    await user.update(updateData);
+    if (updateData.userSettings) {
+        user.userSettings = updateData.userSettings;
+    }
+    if (updateData.platformAdditionalInfo) {
+        user.platformAdditionalInfo = updateData.platformAdditionalInfo;
+    }
+    return !oneTimeLogAlreadyEnabled;
+}
+
 async function fetchWithBullhornSession(user, fetchFn) {
     try {
         return await fetchFn(user);
@@ -431,6 +512,30 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
             loginUrl: apiUrl,
             bhRestToken
         }
+        let enableOneTimeLogAfterLogin = false;
+        try {
+            const entitlementsResponse = await axios.get(`${restUrl}entitlements/Note`, {
+                headers: {
+                    BhRestToken: bhRestToken
+                }
+            });
+            const noteEntitlements = getBullhornEntitlements(entitlementsResponse.data);
+            if (noteEntitlements) {
+                enableOneTimeLogAfterLogin = !hasBullhornNoteUpdateEntitlement(noteEntitlements);
+                if (enableOneTimeLogAfterLogin) {
+                    platformAdditionalInfo[ENABLE_ONE_TIME_LOG_ON_SAVE_KEY] = true;
+                }
+            }
+            else {
+                logger.warn('Bullhorn Note entitlements response has an unexpected shape');
+            }
+        }
+        catch (error) {
+            logger.warn('Unable to read Bullhorn Note entitlements during login', {
+                status: error.response?.status,
+                stack: error.stack
+            });
+        }
         return {
             successful: true,
             platformUserInfo: {
@@ -442,8 +547,10 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Connected to Bullhorn.',
-                ttl: 1000
+                message: enableOneTimeLogAfterLogin
+                    ? 'Connected to Bullhorn. One-time call logging was enabled because this Bullhorn user cannot update Notes.'
+                    : 'Connected to Bullhorn.',
+                ttl: enableOneTimeLogAfterLogin ? 5000 : 1000
             }
         };
 
@@ -580,6 +687,9 @@ async function updateServerLoggingSettings({ user, additionalFieldValues, oauthA
 
 async function postSaveUserInfo({ userInfo, oauthApp }) {
     const user = await UserModel.findByPk(userInfo.id);
+    if (user.platformAdditionalInfo?.[ENABLE_ONE_TIME_LOG_ON_SAVE_KEY]) {
+        await enableOneTimeCallLogging(user, { clearLoginFlag: true });
+    }
     if (user.platformAdditionalInfo?.encodedApiUsername && user.platformAdditionalInfo?.encodedApiPassword) {
         try {
             const authData = await bullhornPasswordAuthorize(
@@ -1118,20 +1228,14 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     }
     const putBody: any = {
         comments: composedLogDetails,
-        personReference: {
-            id: contactInfo.id,
-            personSubtype: contactInfo.type
-        },
+        personReference: toBullhornPersonReference(contactInfo.id, contactInfo.type),
         action: noteActions,
         dateAdded: callLog.startTime,
         externalID: callLog.sessionId,
         minutesSpent: callLog.duration / 60
     }
     if (assigneeId) {
-        putBody.commentingPerson = {
-            id: assigneeId,
-            personSubtype: 'CorporateUser'
-        }
+        putBody.commentingPerson = toBullhornPersonReference(assigneeId, 'CorporateUser');
     }
     let addLogRes;
     const extraDataTracking: any = {};
@@ -1249,10 +1353,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         postBody.minutesSpent = duration / 60;
     }
     if (assigneeId) {
-        postBody.commentingPerson = {
-            id: assigneeId,
-            personSubtype: 'CorporateUser'
-        }
+        postBody.commentingPerson = toBullhornPersonReference(assigneeId, 'CorporateUser');
     }
     // If user has input agent notes, SSCL won't update it
     const ssclPendingNoteRegex = RegExp(`<br>From auto logging \\(Pending\\)<br>*`);
@@ -1332,6 +1433,21 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+        }
+        else if (isBullhornNoteUpdateRightsError(e)) {
+            const oneTimeLogEnabled = await enableOneTimeCallLogging(user);
+            extraDataTracking['statusCode'] = e.response?.status;
+            return {
+                updatedNote: getLogRes.data.data.comments,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: oneTimeLogEnabled
+                        ? 'This Bullhorn user cannot update existing Notes. One-time call logging was enabled automatically for future calls.'
+                        : 'This Bullhorn user cannot update existing Notes. One-time call logging is already enabled.',
+                    ttl: 5000
+                },
+                extraDataTracking
+            };
         }
         else {
             throw e;
@@ -1476,10 +1592,7 @@ async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLo
     const putBody = {
         comments: comments,
         action: noteActions,
-        personReference: {
-            id: contactInfo.id,
-            personSubtype: contactInfo.type
-        },
+        personReference: toBullhornPersonReference(contactInfo.id, contactInfo.type),
         dateAdded: sharedSMSLogContent ? sharedSMSLogContent.conversationCreatedDate : message.creationTime
     }
     const addLogRes = await axios.put(
