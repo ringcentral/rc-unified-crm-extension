@@ -223,7 +223,7 @@
 
 ## 1.7.0
 
-Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+Release notes: see the [App Connect 2.0 announcement](https://community.ringcentral.com/integrations-app-connect-33/app-connect-2-0-is-coming-october-8-12077)
 
 ## 1.6.39
 

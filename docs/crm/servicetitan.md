@@ -14,9 +14,6 @@ title: ServiceTitan by Gate6 — App Connect
   </div>
 </div>
 
-!!! info "Requires App Connect 2.0"
-    This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
-
 ServiceTitan is the operating system for the trades — used by plumbing, HVAC, electrical, and other home service businesses to manage dispatch, jobs, customers, and revenue. Gate6's App Connect connector brings RingEX communications into ServiceTitan, logging every call and SMS against the right customer and job record so your team has a complete communication history alongside their service work.
 
 Gate6 built this connector for the communication-heavy workflows that define the home services industry, where every missed call or unlogged interaction is a potential lost job.
@@ -38,7 +35,6 @@ Gate6 built this connector for the communication-heavy workflows that define the
 
 - An active RingEX account
 - ServiceTitan subscription
-- App Connect 2.0 or later
 - Gate6 connector license
 
 ## Setup and configuration

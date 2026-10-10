@@ -20,11 +20,25 @@ Captivo Labs builds middleware that bridges phone systems and the business softw
 
 Their platform is purpose-built for industries where every call matters: legal, automotive, hospitality, and health clinics. For legal teams in particular, Captivo Labs automates the entire post-call workflow — logging the call, capturing duration and direction, creating a draft time entry, and linking everything to the right matter — without anyone touching a keyboard.
 
-Captivo Labs is also the first partner to build and publish a plugin for App Connect, extending their track record as a connector-building partner into the App Connect plugin ecosystem. Their [Lazy Contact Sync](../plugins/lazy-contact-sync.md) plugin is available now, free to install, alongside any CRM connector already deployed in your account.
+Captivo Labs is also the first partner to build and publish a plugin for App Connect, extending their track record as a connector-building partner into the App Connect plugin ecosystem. Two plugins are available now, both free to install and both working alongside any CRM connector already deployed in your account: [Sensitive Data Redaction](../plugins/sensitive-data-redaction.md), which masks card details and other personal data before it reaches your CRM, and [Lazy Contact Sync](../plugins/lazy-contact-sync.md), which keeps your RingCentral address book current from the calls you are already logging.
 
 ## Plugins
 
 <div class="crm-mkt__grid">
+
+  <a href="../../plugins/sensitive-data-redaction/" class="crm-mkt__card crm-mkt__card--partner">
+    <div class="crm-mkt__badge">Free</div>
+    <div class="crm-mkt__logo"><img src="../../img/vendor-captivolabs.svg" alt="Captivo Labs"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Privacy &amp; Compliance</div>
+      <div class="crm-mkt__name">Sensitive Data Redaction</div>
+      <p class="crm-mkt__desc">Masks card numbers, expiry dates, security codes, and other personal data in call notes, AI summaries, and transcripts — before any of it is written to your CRM.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--partner">By Captivo Labs</span>
+      <span class="crm-mkt__cta">View docs →</span>
+    </div>
+  </a>
 
   <a href="../../plugins/lazy-contact-sync/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__badge">Free</div>

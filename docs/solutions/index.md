@@ -95,7 +95,7 @@ RingCentral App Connect isn't just a dialer; it is a high-performance integratio
 | Proprietary systems | App Connect provides a developer framework that makes it easy to integrate with proprietary systems that no one else supports. |
 
 ## Experience the Future of Integrated Communication
-[App Connect 2.0 is now in Beta](../2.0/index.md), bringing advanced AI and management tools to the world's most flexible browser extension.
+App Connect brings advanced AI and management tools to the world's most flexible browser extension.
 
 1. Discover: Identify the solution that matches your business goals.
 2. Connect: Integrate with your existing CRM or web app in seconds.

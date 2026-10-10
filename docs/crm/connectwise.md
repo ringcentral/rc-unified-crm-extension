@@ -1,8 +1,5 @@
 # ConnectWise by Captivo Labs
 
-!!! info "Requires App Connect 2.0"
-    This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
-
 [ConnectWise](https://www.connectwise.com) (ConnectWise PSA) is the leading professional services automation platform for IT solution providers and managed service providers, covering ticketing, service boards, time tracking, and billing in one system.
 
 [Captivo Labs](https://www.captivolabs.com) connects your RingCentral account to your ConnectWise account. When you receive a call, our system looks up the matching company or contact in ConnectWise and displays it to you before answering the actual call. When a call ends, it's logged as an activity against the right company, contact, and ticket, along with notes, AI transcription summaries, tasks, and call duration.
@@ -36,7 +33,7 @@ Also make a note of your **Company ID** and which environment you're on (North A
 
 ### Install the extension
 
-If you have not already done so, begin by [installing App Connect](https://appconnect.labs.ringcentral.com/2.0/) from the Chrome Web Store.
+If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome Web Store.
 
 ### Connect to ConnectWise
 

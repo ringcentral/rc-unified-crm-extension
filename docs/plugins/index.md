@@ -14,7 +14,7 @@ hide:
   </div>
   <div class="crm-mkt__hero-stats">
     <div class="crm-mkt__stat">
-      <span class="crm-mkt__stat-num">1</span>
+      <span class="crm-mkt__stat-num">2</span>
       <span class="crm-mkt__stat-label">Community plugins</span>
     </div>
     <div class="crm-mkt__stat">
@@ -32,6 +32,20 @@ hide:
      CARD GRID
      ═══════════════════════════════════════════════════════════ -->
 <div class="crm-mkt__grid">
+
+  <a href="sensitive-data-redaction/" class="crm-mkt__card crm-mkt__card--partner">
+    <div class="crm-mkt__badge">Free</div>
+    <div class="crm-mkt__logo"><img src="../img/vendor-captivolabs.svg" alt="Captivo Labs"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Privacy &amp; Compliance</div>
+      <div class="crm-mkt__name">Sensitive Data Redaction</div>
+      <p class="crm-mkt__desc">Masks card numbers, expiry dates, security codes, and other personal data in call notes, AI summaries, and transcripts — before any of it is written to your CRM.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--partner">By Captivo Labs</span>
+      <span class="crm-mkt__cta">View docs →</span>
+    </div>
+  </a>
 
   <a href="lazy-contact-sync/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__badge">Free</div>

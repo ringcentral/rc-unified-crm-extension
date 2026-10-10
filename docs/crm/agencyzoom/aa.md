@@ -29,7 +29,6 @@ Loyally's App Connect connector for AgencyZoom is designed from the ground up wi
 
 - An active RingEX account
 - AgencyZoom subscription
-- App Connect 2.0 or later
 - Loyally connector license
 
 ## Setup and configuration

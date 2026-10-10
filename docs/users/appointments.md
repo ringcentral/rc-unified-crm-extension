@@ -28,9 +28,6 @@ Appointments are currently available for the following CRM integrations:
 
 The Appointments tab is **hidden by default**. You must manually enable it from the tab customization settings. Once enabled, an **Event** tab appears in the App Connect navigation bar, giving you direct access to your appointments.
 
-!!! info "App Connect 2.0 required"
-    Appointments is a feature of App Connect 2.0. Make sure you are running the latest version of App Connect before expecting this feature to be available.
-
 ### Steps to show the Appointment tab
 
 1. Open App Connect and navigate to **Settings**

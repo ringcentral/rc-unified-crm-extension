@@ -4,7 +4,7 @@
 
 ### <span class="solution-header__lead">Real-Time Visibility. Proactive Coaching.</span> <span class="solution-header__punch">Scalable Excellence.</span>
 
-High-performing teams aren't built on guesswork; they are built on data and active leadership. **App Connect 2.0** provides managers with a powerful command center to monitor live activity, coach reps in the moment, and analyze team-wide trends—all without leaving the browser.
+High-performing teams aren't built on guesswork; they are built on data and active leadership. **App Connect** provides managers with a powerful command center to monitor live activity, coach reps in the moment, and analyze team-wide trends—all without leaving the browser.
 
 </div>
 
@@ -33,11 +33,11 @@ Stop waiting for end-of-week reports to find out how your team is performing. Ap
 
 ## Empower Your Leadership
 
-Supervision shouldn't feel like "Big Brother"—it should feel like a support system. App Connect 2.0 makes it easy to be the manager your team needs.
+Supervision shouldn't feel like "Big Brother"—it should feel like a support system. App Connect makes it easy to be the manager your team needs.
 
 1.  **Monitor:** Use the HUD to stay pulse-checked on team activity throughout the day.
 2.  **Intervene:** Grab calls languishing on a call queue, or call park location.
-3.  **Optimize:** Use the 2.0 Analytics dashboard to adjust your strategy based on hard data.
+3.  **Optimize:** Use the Analytics dashboard to adjust your strategy based on hard data.
 4.  **Scale:** Standardize excellence by identifying and replicating the workflows of your top 10%.
 
 --8<-- "docs/solutions/solutions-footer.md"
