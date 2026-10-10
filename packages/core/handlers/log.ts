@@ -523,8 +523,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 note = noteCache.note;
             }
         }
-        const aiNote = incomingData.aiNote;
-        const transcript = incomingData.transcript;
+        let aiNote = incomingData.aiNote;
+        let transcript = incomingData.transcript;
         let proxyConfig;
         const proxyId = user.platformAdditionalInfo?.proxyId;
         if (proxyId) {
@@ -580,6 +580,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         const { syncCallPlugins, asyncCallPlugins } = splitCallPluginsByExecutionMode(callPlugins);
         incomingData = await runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform });
         note = incomingData.note;
+        aiNote = incomingData.aiNote;
+        transcript = incomingData.transcript;
 
         // Compose call log details centrally
         const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;

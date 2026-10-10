@@ -509,6 +509,65 @@ describe('Log Handler', () => {
       );
     });
 
+    test('should use aiNote and transcript returned by sync plugin for new call log', async () => {
+      await UserModel.create(mockUser);
+      await AccountDataModel.create({
+        rcAccountId: mockUser.rcAccountId,
+        platformName: 'testPlugin',
+        dataKey: 'pluginData',
+        data: {
+          name: 'plugin.redaction',
+          supportedLogTypes: ['call'],
+          isAsync: false,
+          endpointUrl: 'https://plugins.example.com/plugin/testPlugin',
+          jwtToken: 'plugin-jwt-token'
+        }
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createCallLog: jest.fn().mockResolvedValue({
+          logId: 'new-log-123',
+          returnMessage: { message: 'Call logged', messageType: 'success', ttl: 2000 }
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Composed log details');
+
+      axios.post.mockResolvedValue({
+        data: {
+          ...mockIncomingData,
+          aiNote: 'summary with card XXXX XXXX XXXX 2736',
+          transcript: 'transcript with card XXXX XXXX XXXX 2736'
+        },
+        headers: {}
+      });
+
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          ...mockIncomingData,
+          aiNote: 'summary with card 4111 1111 1111 2736',
+          transcript: 'transcript with card 4111 1111 1111 2736'
+        },
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      expect(result.successful).toBe(true);
+      expect(composeCallLog).toHaveBeenCalledWith(expect.objectContaining({
+        aiNote: 'summary with card XXXX XXXX XXXX 2736',
+        transcript: 'transcript with card XXXX XXXX XXXX 2736'
+      }));
+      expect(mockConnector.createCallLog).toHaveBeenCalledWith(expect.objectContaining({
+        aiNote: 'summary with card XXXX XXXX XXXX 2736',
+        transcript: 'transcript with card XXXX XXXX XXXX 2736'
+      }));
+    });
+
     test('should create pending async task cache after async call plugin log creation', async () => {
       const { result, cache } = await runAsyncCallPluginLog();
 
