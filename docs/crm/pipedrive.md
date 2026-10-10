@@ -18,13 +18,11 @@ Once the extension has been installed, follow these steps to setup and configure
 
 1. Make sure you are [logged in to Pipedrive](https://app.pipedrive.com/auth/login).
 
-2. Navigate to the RingCentral App Connect in the [Pipedrive Marketplace](https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57).
+2. Open App Connect and select **Pipedrive** as your CRM.
 
-3. From the marketplace listing, initiate the authorization process by clicking the "Install Now" button.
+3. When prompted, copy the whole URL from your Pipedrive browser tab and paste it into the field, then continue.
 
-    ![Install Pipedrive ext](../img/crm-pipedrive-marketplace.png)
-
-3. On the authorization screen, scroll to the bottom and click "Allow and Install." App Connect should automatically come to the foreground and show that you are now connected to Pipedrive. 
+4. Click **Connect**. A Pipedrive authorization window opens. Scroll to the bottom and click "Allow and Install." The window closes on its own once authorization completes.
 
 When you login successfully, the Chrome extension will automatically update to show you are connected to Pipedrive. If you are connected, the button next to Pipedrive will say, "logout".
 
@@ -34,6 +32,12 @@ When you login successfully, the Chrome extension will automatically update to s
 </figure>
 
 And with that, you will be connected to Pipedrive and ready to begin using the integration. 
+
+## Reconnecting when your session expires
+
+Pipedrive may occasionally invalidate your connection, for example after the app is uninstalled from your Pipedrive account or when the stored authorization can no longer be refreshed. When App Connect detects this, it shows a notice and opens the Pipedrive authorization window for you. Click "Allow and Install" to reconnect. Your settings are kept.
+
+If you close the window without authorizing, App Connect will not prompt again for 5 minutes. You can reconnect at any time by clicking **Connect** next to Pipedrive in the settings.
 
 ## Activity type mismatch
 
