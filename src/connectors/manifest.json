@@ -140,7 +140,7 @@
         "oauth": {
           "redirectUri": "https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect",
           "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
-          "clientId": "df3e09bb3e2cfa7a"
+          "clientId": "5d4736e322561f57"
         },
         "type": "oauth",
         "apiKey": {
