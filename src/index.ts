@@ -329,12 +329,6 @@ app.delete('/pipedrive-redirect', async function (req, res) {
             if (user) {
                 const platformModule = /** @type {any} */ (require(`./connectors/pipedrive`));
                 await platformModule.unAuthorize({ user });
-                await UserModel.destroy({
-                    where: {
-                        id: user.id,
-                        platform: 'pipedrive'
-                    }
-                });
             }
             res.status(200).send('User deleted');
         } else {
@@ -527,7 +521,7 @@ app.get('/support/session', supportAuth.requireSupportUser, function (req, res) 
  */
 function sendSupportCrmError(res, error, message) {
     if (error instanceof supportCrm.SupportCrmError) {
-        return res.status(/** @type {any} */ (error).status).json({ error: /** @type {any} */ (error).message });
+        return res.status(/** @type {any} */(error).status).json({ error: /** @type {any} */ (error).message });
     }
     return sendInternalServerError(res, error, message);
 }
@@ -602,4 +596,4 @@ exports.getServer = function getServer() {
     return app;
 }
 
-export {};
+export { };
