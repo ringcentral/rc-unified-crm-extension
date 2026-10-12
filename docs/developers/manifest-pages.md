@@ -125,7 +125,8 @@ The values collected here are passed to the [`createContact`](interfaces/createC
 | `contactTypeDependent` | When true, options depend on the selected contact type. |
 | `required` | Prevents submission until a value is selected or entered. |
 | `description` | Help text shown beneath the field label to guide the user. |
-| `includeNoneOption` | For `selection` fields, controls whether the client prepends an empty "None" option. Default: false. |
+| `includeNoneOption` | For `selection` fields, controls whether the client appends a "None" option. Default: true. Set to `false` to require the user to pick one of the provided options. |
+| `searchable` | For `selection` fields. When true, the field renders as a type-to-filter autocomplete instead of a plain dropdown. Option values and the submitted value are handled as strings, so numeric option `const` values reach `additionalSubmission` (and saved dispositions) as strings. Default: false. |
 | `allowCustomValue` | For `selection` fields. When true, the user can type a custom value not in the predefined list. |
 | `options` | Static options for `selection` fields. Each option uses `{ "const": "...", "title": "..." }`. |
 | `defaultSettingId` | The `const` key of a connector setting whose value is used as this field's default. |
