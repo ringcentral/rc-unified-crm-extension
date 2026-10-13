@@ -1231,188 +1231,120 @@
       }
     },
     "bullhorn": {
-      "displayName": "Bullhorn",
-      "description": "",
-      "enableFallbackContactPageUrl": false,
-      "contactTypes": [
-        {
-          "display": "Candidate",
-          "value": "Candidate"
-        },
-        {
-          "value": "Contact",
-          "display": "Contact"
-        },
-        {
-          "display": "Lead",
-          "value": "Lead"
-        }
-      ],
-      "supportReportIssue": true,
+      "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/",
       "environment": {
+        "url": "https://app.bullhornstaffing.com",
         "instructions": [
           "To get started, please log in to your [Bullhorn](https://universal.bullhornstaffing.com/universal-login/login) account (if you already have Bullhorn page opened, please refresh it), then click Next above",
           "Once you click Next, we’ll prompt you login to Bullhorn via App Connect to complete the process"
         ],
-        "url": "https://app.bullhornstaffing.com",
         "type": "fixed"
       },
-      "name": "bullhorn",
-      "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
-      "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/",
-      "version": "2.0.0",
-      "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "logFormat": "text/html",
-      "fallbackContactPageUrl": "",
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/bullhorn/",
-          "videoLink": "https://youtu.be/afbdQD0y4Yo"
-        }
-      },
       "useLicense": false,
+      "logPageUrl": "",
+      "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
+      "supportReportIssue": true,
+      "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "settings": [
         {
           "items": [
             {
-              "value": "Note action value match ignores cases and spaces. Max 30 letters allowed for each note action.",
-              "type": "warning",
               "id": "noteActionMatchWarning",
-              "name": "Info: note action matching warning"
+              "name": "Info: note action matching warning",
+              "type": "warning",
+              "value": "Note action value match ignores cases and spaces. Max 30 letters allowed for each note action."
             },
             {
-              "type": "inputField",
               "placeholder": "Enter action value",
-              "id": "bullhornInboundCallNoteAction",
+              "name": "Default action for inbound calls",
+              "type": "inputField",
               "defaultValue": "",
-              "name": "Default action for inbound calls"
+              "id": "bullhornInboundCallNoteAction"
             },
             {
-              "placeholder": "Enter action value",
-              "type": "inputField",
               "id": "bullhornOutboundCallNoteAction",
               "name": "Default action for outbound calls",
-              "defaultValue": ""
-            },
-            {
-              "type": "inputField",
-              "placeholder": "Enter action value",
               "defaultValue": "",
-              "name": "Default action for SMS",
-              "id": "bullhornMessageNoteAction"
-            },
-            {
-              "id": "bullhornVoicemailNoteAction",
               "type": "inputField",
-              "defaultValue": "",
-              "name": "Default action for voicemails",
               "placeholder": "Enter action value"
             },
             {
+              "type": "inputField",
+              "name": "Default action for SMS",
+              "defaultValue": "",
+              "id": "bullhornMessageNoteAction",
+              "placeholder": "Enter action value"
+            },
+            {
+              "placeholder": "Enter action value",
+              "type": "inputField",
+              "id": "bullhornVoicemailNoteAction",
+              "defaultValue": "",
+              "name": "Default action for voicemails"
+            },
+            {
+              "defaultValue": "",
               "id": "bullhornFaxNoteAction",
               "name": "Default action for faxes",
-              "defaultValue": "",
               "placeholder": "Enter action value",
               "type": "inputField"
             },
             {
-              "id": "allowBullhornCustomNoteAction",
+              "defaultValue": false,
               "name": "Allow custom note action",
               "type": "boolean",
+              "id": "allowBullhornCustomNoteAction"
+            },
+            {
+              "type": "boolean",
+              "id": "bullhornInboundCallCopyToContactComments",
+              "name": "Copy to contact comments for inbound calls",
               "defaultValue": false
             },
             {
-              "id": "bullhornInboundCallCopyToContactComments",
               "type": "boolean",
-              "defaultValue": false,
-              "name": "Copy to contact comments for inbound calls"
-            },
-            {
-              "type": "boolean",
-              "defaultValue": false,
               "id": "bullhornOutboundCallCopyToContactComments",
-              "name": "Copy to contact comments for outbound calls"
+              "name": "Copy to contact comments for outbound calls",
+              "defaultValue": false
             }
           ],
-          "id": "bullhornDefaultNoteAction",
           "type": "section",
+          "id": "bullhornDefaultNoteAction",
           "name": "Bullhorn options"
         }
       ],
-      "auth": {
-        "type": "oauth",
-        "oauth": {
-          "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
-          "authUrl": "https://auth.bullhornstaffing.com/oauth/authorize",
-          "clientId": "5a1ff851-6b1c-454d-8501-826502e6fc76"
-        },
-        "apiKey": {
-          "page": {
-            "content": [
-              {
-                "title": "API key",
-                "required": true,
-                "type": "string",
-                "const": "apiKey"
-              }
-            ],
-            "title": "API key authentication"
-          }
-        }
-      },
-      "urlIdentifier": "app.bullhornstaffing.com123",
-      "canOpenLogPage": false,
       "contactPageUrl": "",
-      "developerInfo": {
-        "name": "RingCentral Labs",
-        "websiteUrl": "https://appconnect.labs.ringcentral.com/"
-      },
-      "logPageUrl": "",
       "page": {
-        "disableContactCache": false,
-        "useContactSearch": true,
-        "appointment": {
-          "supported": true,
-          "appointmentPageUrl": "https://{atsUrl}/BullhornStaffing/OpenWindow.cfm?Entity=Appointment&id={thirdPartyAppointmentId}",
-          "titleField": {
-            "isVisible": true,
-            "value": "Title"
-          },
-          "filterStatus": {
-            "value": [
-              "All",
-              "Scheduled"
-            ]
-          },
-          "showConfirm": false,
-          "canOpenAppointmentPage": true,
-          "status": {
-            "value": [
-              "Scheduled"
-            ],
-            "isVisible": true
-          },
-          "emailMandatoryInAttendee": false,
-          "title": "Appointment"
+        "newContact": {
+          "additionalFields": [
+            {
+              "const": "status",
+              "type": "selection",
+              "title": "Status",
+              "required": true,
+              "contactTypeDependent": true
+            }
+          ]
         },
         "feedback": {
           "url": "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.2052354973={crmName}&entry.844920872={feedback}&entry.1467064016={userName}&entry.1822789675={userEmail}&entry.800026675={version}",
           "elements": [
             {
-              "const": "pageDescription",
-              "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+              "bold": false,
               "type": "string",
-              "bold": false
+              "const": "pageDescription",
+              "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have."
             },
             {
-              "title": "How likely are you to recommend the App Connect to a friend or colleague?",
+              "type": "string",
               "bold": true,
-              "const": "scoreDescription",
-              "type": "string"
+              "title": "How likely are you to recommend the App Connect to a friend or colleague?",
+              "const": "scoreDescription"
             },
             {
-              "title": "Score from 1 to 10",
               "type": "selection",
+              "const": "score",
+              "required": true,
               "selections": [
                 {
                   "title": "1",
@@ -1423,20 +1355,20 @@
                   "title": "2"
                 },
                 {
-                  "const": "3",
-                  "title": "3"
+                  "title": "3",
+                  "const": "3"
                 },
                 {
-                  "title": "4",
-                  "const": "4"
+                  "const": "4",
+                  "title": "4"
                 },
                 {
                   "const": "5",
                   "title": "5"
                 },
                 {
-                  "const": "6",
-                  "title": "6"
+                  "title": "6",
+                  "const": "6"
                 },
                 {
                   "title": "7",
@@ -1451,62 +1383,54 @@
                   "title": "9"
                 },
                 {
-                  "const": "10",
-                  "title": "10"
+                  "title": "10",
+                  "const": "10"
                 }
               ],
-              "required": true,
-              "const": "score"
+              "title": "Score from 1 to 10"
             },
             {
-              "const": "feedback",
+              "required": true,
               "placeholder": "Please share your feedback...",
-              "title": "Feedback",
               "type": "inputField",
-              "required": true
+              "const": "feedback",
+              "title": "Feedback"
             }
           ]
         },
         "messageLog": {
           "additionalFields": [
             {
+              "type": "selection",
               "defaultSettingId": "bullhornDefaultNoteAction",
+              "const": "noteActions",
+              "allowCustomValue": true,
               "defaultSettingValues": {
-                "message": {
-                  "settingId": "bullhornMessageNoteAction"
-                },
                 "fax": {
                   "settingId": "bullhornFaxNoteAction"
                 },
                 "voicemail": {
                   "settingId": "bullhornVoicemailNoteAction"
+                },
+                "message": {
+                  "settingId": "bullhornMessageNoteAction"
                 }
               },
+              "contactDependent": false,
+              "title": "Note action"
+            }
+          ]
+        },
+        "disableContactCache": false,
+        "callLog": {
+          "canOpenLogPage": false,
+          "logPageUrl": "",
+          "additionalFields": [
+            {
               "const": "noteActions",
               "allowCustomValue": true,
-              "contactDependent": false,
-              "title": "Note action",
-              "type": "selection"
-            }
-          ]
-        },
-        "newContact": {
-          "additionalFields": [
-            {
-              "const": "status",
-              "required": true,
-              "type": "selection",
-              "contactTypeDependent": true,
-              "title": "Status"
-            }
-          ]
-        },
-        "callLog": {
-          "additionalFields": [
-            {
               "defaultSettingId": "bullhornDefaultNoteAction",
-              "allowCustomValue": true,
-              "title": "Note action",
+              "type": "selection",
               "defaultSettingValues": {
                 "inboundCall": {
                   "settingId": "bullhornInboundCallNoteAction"
@@ -1515,17 +1439,10 @@
                   "settingId": "bullhornOutboundCallNoteAction"
                 }
               },
-              "const": "noteActions",
-              "contactDependent": false,
-              "type": "selection"
+              "title": "Note action",
+              "contactDependent": false
             },
             {
-              "type": "checkbox",
-              "allowCustomValue": true,
-              "const": "copyToContactComments",
-              "defaultValue": false,
-              "defaultSettingId": "bullhornDefaultNoteAction",
-              "title": "Copy to contact comments",
               "defaultSettingValues": {
                 "inboundCall": {
                   "settingId": "bullhornInboundCallCopyToContactComments"
@@ -1533,14 +1450,76 @@
                 "outboundCall": {
                   "settingId": "bullhornOutboundCallCopyToContactComments"
                 }
-              }
+              },
+              "const": "copyToContactComments",
+              "title": "Copy to contact comments",
+              "defaultValue": false,
+              "defaultSettingId": "bullhornDefaultNoteAction",
+              "type": "checkbox",
+              "allowCustomValue": true
             }
-          ],
-          "logPageUrl": "",
-          "canOpenLogPage": false
+          ]
+        },
+        "useContactSearch": true,
+        "appointment": {
+          "status": {
+            "isVisible": true,
+            "value": [
+              "Scheduled"
+            ]
+          },
+          "showConfirm": false,
+          "emailMandatoryInAttendee": false,
+          "titleField": {
+            "isVisible": true,
+            "value": "Title"
+          },
+          "supported": true,
+          "filterStatus": {
+            "value": [
+              "All",
+              "Scheduled"
+            ]
+          },
+          "title": "Appointment",
+          "appointmentPageUrl": "https://{atsUrl}/BullhornStaffing/OpenWindow.cfm?Entity=Appointment&id={thirdPartyAppointmentId}",
+          "canOpenAppointmentPage": true
         }
       },
+      "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+      "embedUrls": [
+        "https://*.bullhornstaffing.com*"
+      ],
+      "displayName": "Bullhorn",
+      "fallbackContactPageUrl": "",
+      "developerInfo": {
+        "name": "RingCentral Labs",
+        "websiteUrl": "https://appconnect.labs.ringcentral.com/"
+      },
+      "enableFallbackContactPageUrl": false,
+      "embeddedOnCrmPage": {
+        "welcomePage": {
+          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/bullhorn/",
+          "videoLink": "https://youtu.be/afbdQD0y4Yo"
+        }
+      },
+      "canOpenLogPage": false,
+      "contactTypes": [
+        {
+          "display": "Candidate",
+          "value": "Candidate"
+        },
+        {
+          "value": "Contact",
+          "display": "Contact"
+        },
+        {
+          "value": "Lead",
+          "display": "Lead"
+        }
+      ],
       "serverSideLogging": {
+        "useAdminAssignedUserToken": true,
         "additionalFields": [
           {
             "const": "apiUsername",
@@ -1548,36 +1527,58 @@
             "title": "Bullhorn API Username"
           },
           {
-            "type": "string",
-            "const": "apiPassword",
             "uiSchema": {
               "ui:widget": "password"
             },
-            "title": "Bullhorn API Password"
+            "title": "Bullhorn API Password",
+            "const": "apiPassword",
+            "type": "string"
           },
           {
-            "description": "To enable server-side logging, enter the **Bullhorn API username and password** for the account used to log calls. [Learn more](https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/#bullhorn-and-server-side-call-logging).",
-            "type": "string",
-            "const": "apiPasswordHelpText",
             "title": "Help",
+            "type": "string",
             "uiSchema": {
-              "ui:field": "admonition",
-              "ui:severity": "warning"
-            }
+              "ui:severity": "warning",
+              "ui:field": "admonition"
+            },
+            "const": "apiPasswordHelpText",
+            "description": "To enable server-side logging, enter the **Bullhorn API username and password** for the account used to log calls. [Learn more](https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/#bullhorn-and-server-side-call-logging)."
           }
         ],
         "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-        "useAdminAssignedUserToken": true,
+        "enableUserMapping": true,
         "url": "https://crm-logging.labs.ringcentral.com"
       },
-      "embedUrls": [
-        "https://*.bullhornstaffing.com*"
-      ],
-      "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
-      "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
-      "enableExtensionNumberLoggingSetting": false,
+      "urlIdentifier": "app.bullhornstaffing.com123",
+      "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+      "logFormat": "text/html",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Bullhorn_Logo.png",
-      "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/"
+      "enableExtensionNumberLoggingSetting": false,
+      "version": "2.0.0",
+      "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+      "auth": {
+        "oauth": {
+          "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+          "authUrl": "https://auth.bullhornstaffing.com/oauth/authorize",
+          "clientId": "5a1ff851-6b1c-454d-8501-826502e6fc76"
+        },
+        "type": "oauth",
+        "apiKey": {
+          "page": {
+            "content": [
+              {
+                "type": "string",
+                "const": "apiKey",
+                "required": true,
+                "title": "API key"
+              }
+            ],
+            "title": "API key authentication"
+          }
+        }
+      },
+      "name": "bullhorn",
+      "description": ""
     },
     "netsuite": {
       "canOpenLogPage": true,
