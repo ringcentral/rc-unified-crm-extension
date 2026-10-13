@@ -688,7 +688,12 @@ async function updateServerLoggingSettings({ user, additionalFieldValues, oauthA
 async function postSaveUserInfo({ userInfo, oauthApp }) {
     const user = await UserModel.findByPk(userInfo.id);
     if (user.platformAdditionalInfo?.[ENABLE_ONE_TIME_LOG_ON_SAVE_KEY]) {
-        await enableOneTimeCallLogging(user, { clearLoginFlag: true });
+        try {
+            await enableOneTimeCallLogging(user, { clearLoginFlag: true });
+        } catch(e){
+            logger.error('Failed to enable Bullhorn one-time call logging after login');
+        }
+        
     }
     if (user.platformAdditionalInfo?.encodedApiUsername && user.platformAdditionalInfo?.encodedApiPassword) {
         try {
@@ -1435,7 +1440,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 });
         }
         else if (isBullhornNoteUpdateRightsError(e)) {
-            const oneTimeLogEnabled = await enableOneTimeCallLogging(user);
+            let oneTimeLogEnabled = false;
+            try {
+                oneTimeLogEnabled= await enableOneTimeCallLogging(user);
+            } catch(e){
+                logger.error('Failed to enable Bullhorn one-time call logging after login');
+            }
             extraDataTracking['statusCode'] = e.response?.status;
             return {
                 updatedNote: getLogRes.data.data.comments,
