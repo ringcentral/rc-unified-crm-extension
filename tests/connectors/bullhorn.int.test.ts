@@ -177,6 +177,22 @@ describe('Bullhorn Connector', () => {
             expect(mockUser.save).toHaveBeenCalled();
         });
 
+        it('keeps the original auth error when the refreshed session cannot be saved', async () => {
+            mockUser.save.mockRejectedValue(new Error('DB unavailable'));
+            nock(restUrl.slice(0, -1)).get('/settings/commentActionList').reply(401, { error: 'Unauthorized' });
+            nock(restUrl.slice(0, -1)).get('/meta/Lead').query(true).reply(401, { error: 'Unauthorized' });
+            nock(restUrl.slice(0, -1)).get('/meta/Candidate').query(true).reply(401, { error: 'Unauthorized' });
+            nock(restUrl.slice(0, -1)).get('/meta/ClientContact').query(true).reply(401, { error: 'Unauthorized' });
+            nock(loginUrl)
+                .post('/login')
+                .query(true)
+                .times(4)
+                .reply(200, { BhRestToken: 'new-bh-rest-token', restUrl });
+
+            await expect(bullhorn.accountData.bullhornData.fetch({ user: mockUser }))
+                .rejects.toMatchObject({ response: { status: 401 } });
+        });
+
         it('returns the successful account data fields when one request is forbidden', async () => {
             nock(restUrl.slice(0, -1))
                 .get('/settings/commentActionList')
@@ -248,6 +264,11 @@ describe('Bullhorn Connector', () => {
                     }]
                 }, mockBullhornRateLimitHeaders);
 
+            nock(restUrl.slice(0, -1))
+                .get('/entitlements/Note')
+                .matchHeader('BhRestToken', bhRestToken)
+                .reply(200, ['READ', 'UPDATE_OWN_RECORD']);
+
             const result = await bullhorn.getUserInfo({
                 authHeader,
                 tokenUrl,
@@ -259,6 +280,113 @@ describe('Bullhorn Connector', () => {
             expect(result.platformUserInfo.id).toBe('456-bullhorn');
             expect(result.platformUserInfo.name).toBe('Test User');
             expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('marks one-time call logging for enablement when Note update entitlements are missing', async () => {
+            nock(apiUrl)
+                .post('/login')
+                .query(true)
+                .reply(200, {
+                    BhRestToken: bhRestToken,
+                    restUrl
+                });
+
+            nock(restUrl.slice(0, -1))
+                .get(/query\/CorporateUser/)
+                .query(true)
+                .reply(200, {
+                    data: [{
+                        id: 123,
+                        name: 'Test User',
+                        masterUserID: 456,
+                        timeZoneOffsetEST: -300
+                    }]
+                });
+
+            nock(restUrl.slice(0, -1))
+                .get('/entitlements/Note')
+                .matchHeader('BhRestToken', bhRestToken)
+                .reply(200, ['CREATE', 'READ', 'READ_OWN_RECORD']);
+
+            const result = await bullhorn.getUserInfo({
+                authHeader,
+                tokenUrl,
+                apiUrl,
+                username: 'testuser'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.platformUserInfo.platformAdditionalInfo.enableOneTimeLogAfterBullhornLogin).toBe(true);
+            expect(result.returnMessage).toMatchObject({
+                messageType: 'success',
+                message: expect.stringContaining('One-time call logging was enabled')
+            });
+        });
+
+        describe('Note entitlements response handling', () => {
+            function mockLoginAndCorporateUser() {
+                nock(apiUrl)
+                    .post('/login')
+                    .query(true)
+                    .reply(200, {
+                        BhRestToken: bhRestToken,
+                        restUrl
+                    });
+                nock(restUrl.slice(0, -1))
+                    .get(/query\/CorporateUser/)
+                    .query(true)
+                    .reply(200, {
+                        data: [{
+                            id: 123,
+                            name: 'Test User',
+                            masterUserID: 456,
+                            timeZoneOffsetEST: -300
+                        }]
+                    });
+            }
+
+            it('reads entitlements wrapped in a data property', async () => {
+                mockLoginAndCorporateUser();
+                nock(restUrl.slice(0, -1))
+                    .get('/entitlements/Note')
+                    .reply(200, { data: ['READ', 'UPDATE'] });
+
+                const result = await bullhorn.getUserInfo({ authHeader, tokenUrl, apiUrl, username: 'testuser' });
+
+                expect(result.successful).toBe(true);
+                expect(result.platformUserInfo.platformAdditionalInfo.enableOneTimeLogAfterBullhornLogin).toBeUndefined();
+                expect(result.returnMessage).toEqual({
+                    messageType: 'success',
+                    message: 'Connected to Bullhorn.',
+                    ttl: 1000
+                });
+            });
+
+            it('does not enable one-time call logging when the entitlements response has an unexpected shape', async () => {
+                mockLoginAndCorporateUser();
+                nock(restUrl.slice(0, -1))
+                    .get('/entitlements/Note')
+                    .reply(200, { entitlements: 'UPDATE' });
+
+                const result = await bullhorn.getUserInfo({ authHeader, tokenUrl, apiUrl, username: 'testuser' });
+
+                expect(result.successful).toBe(true);
+                expect(result.platformUserInfo.platformAdditionalInfo.enableOneTimeLogAfterBullhornLogin).toBeUndefined();
+                expect(result.returnMessage.message).toBe('Connected to Bullhorn.');
+            });
+
+            it('still connects when the entitlements request fails', async () => {
+                mockLoginAndCorporateUser();
+                nock(restUrl.slice(0, -1))
+                    .get('/entitlements/Note')
+                    .reply(500, { errorMessage: 'Internal error' });
+
+                const result = await bullhorn.getUserInfo({ authHeader, tokenUrl, apiUrl, username: 'testuser' });
+
+                expect(result.successful).toBe(true);
+                expect(result.platformUserInfo.platformAdditionalInfo.enableOneTimeLogAfterBullhornLogin).toBeUndefined();
+                expect(result.returnMessage.message).toBe('Connected to Bullhorn.');
+            });
         });
 
         it('should return error on login failure', async () => {
@@ -1096,8 +1224,12 @@ describe('Bullhorn Connector', () => {
         const mockCallLogData = createMockCallLog();
 
         it('should create a Note for call log', async () => {
+            let capturedBody;
             nock(restUrl.slice(0, -1))
-                .put('/entity/Note')
+                .put('/entity/Note', body => {
+                    capturedBody = body;
+                    return true;
+                })
                 .reply(200, {
                     changedEntityId: 501
                 }, mockBullhornRateLimitHeaders);
@@ -1118,6 +1250,41 @@ describe('Bullhorn Connector', () => {
             expect(result.logId).toBe(501);
             expect(result.returnMessage.messageType).toBe('success');
             expect(result.returnMessage.message).toBe('Call logged');
+            expect(capturedBody.personReference).toEqual({
+                id: 101,
+                personSubtype: 'Contact',
+                _subtype: 'ClientContact'
+            });
+        });
+
+        it('keeps non-numeric ids and omits _subtype for unmapped contact types', async () => {
+            let capturedBody;
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Note', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(200, {
+                    changedEntityId: 503
+                }, mockBullhornRateLimitHeaders);
+
+            await bullhorn.createCallLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 'ext-abc', name: 'Jane Doe', type: 'Placement' }),
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: { noteActions: 'Call' },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: '<b>Call details</b>',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(capturedBody.personReference).toEqual({
+                id: 'ext-abc',
+                personSubtype: 'Placement'
+            });
         });
 
         it('should use default noteActions when not provided', async () => {
@@ -1356,6 +1523,153 @@ describe('Bullhorn Connector', () => {
 
             expect(result.returnMessage.messageType).toBe('success');
         });
+
+        it('enables one-time call logging when Bullhorn denies updating an existing Note', async () => {
+            const existingCallLogDetails = {
+                comments: 'Existing comments',
+                commentingPerson: { id: 123 }
+            };
+
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Note/501')
+                .reply(403, {
+                    errorMessage: 'No update rights. entity=com.bullhorn.entity.note.Note@2c196a4, PK=46241444',
+                    errorMessageKey: 'errors.entitlements.noUpdateRights',
+                    errorCode: 403
+                });
+
+            const result = await bullhorn.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: null,
+                note: null,
+                startTime: Date.now(),
+                duration: 300,
+                result: null,
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: null,
+                composedLogDetails: 'Updated details',
+                existingCallLogDetails,
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(mockUser.update).toHaveBeenCalledWith({
+                userSettings: {
+                    oneTimeLog: { value: true }
+                }
+            });
+            expect(result.returnMessage).toMatchObject({
+                messageType: 'warning',
+                message: expect.stringContaining('enabled automatically')
+            });
+            expect(result.extraDataTracking.statusCode).toBe(403);
+        });
+
+        describe('when Bullhorn denies updating an existing Note', () => {
+            const existingCallLogDetails = {
+                comments: 'Existing comments',
+                commentingPerson: { id: 123 }
+            };
+
+            function mockNoteUpdate403(errorMessageKey = 'errors.entitlements.noUpdateRights') {
+                nock(restUrl.slice(0, -1))
+                    .post('/entity/Note/501')
+                    .reply(403, {
+                        errorMessage: 'No update rights. entity=com.bullhorn.entity.note.Note@2c196a4, PK=46241444',
+                        errorMessageKey,
+                        errorCode: 403
+                    });
+            }
+
+            function callUpdateCallLog() {
+                return bullhorn.updateCallLog({
+                    user: mockUser,
+                    existingCallLog,
+                    authHeader,
+                    recordingLink: null,
+                    subject: null,
+                    note: null,
+                    startTime: Date.now(),
+                    duration: 300,
+                    result: null,
+                    aiNote: null,
+                    transcript: null,
+                    additionalSubmission: null,
+                    composedLogDetails: 'Updated details',
+                    existingCallLogDetails,
+                    hashedAccountId: 'hash-123'
+                });
+            }
+
+            it('does not update the user when one-time call logging is already enabled', async () => {
+                mockUser.userSettings = { oneTimeLog: { value: true } };
+                mockNoteUpdate403();
+
+                const result = await callUpdateCallLog();
+
+                expect(mockUser.update).not.toHaveBeenCalled();
+                expect(result.updatedNote).toBe('Existing comments');
+                expect(result.returnMessage).toMatchObject({
+                    messageType: 'warning',
+                    message: expect.stringContaining('already enabled')
+                });
+            });
+
+            it('enables one-time call logging for users without saved settings', async () => {
+                mockUser.userSettings = undefined;
+                mockNoteUpdate403();
+
+                await callUpdateCallLog();
+
+                expect(mockUser.update).toHaveBeenCalledWith({
+                    userSettings: {
+                        oneTimeLog: { value: true }
+                    }
+                });
+                expect(mockUser.userSettings).toEqual({ oneTimeLog: { value: true } });
+            });
+
+            it('rethrows 403 errors that are not Note update-rights errors', async () => {
+                mockNoteUpdate403('errors.entitlements.noReadRights');
+
+                await expect(callUpdateCallLog()).rejects.toMatchObject({ response: { status: 403 } });
+                expect(mockUser.update).not.toHaveBeenCalled();
+            });
+
+            it('rethrows update-rights errors from copying notes to the contact record', async () => {
+                nock(restUrl.slice(0, -1))
+                    .post('/entity/Note/501')
+                    .reply(200, { changedEntityId: 501 }, mockBullhornRateLimitHeaders);
+                nock(restUrl.slice(0, -1))
+                    .post(`/entity/Lead/${existingCallLog.contactId}`)
+                    .reply(403, {
+                        errorMessageKey: 'errors.entitlements.noUpdateRights',
+                        errorCode: 403
+                    });
+
+                await expect(bullhorn.updateCallLog({
+                    user: mockUser,
+                    existingCallLog,
+                    authHeader,
+                    recordingLink: null,
+                    subject: null,
+                    note: 'Agent note',
+                    startTime: Date.now(),
+                    duration: 300,
+                    result: null,
+                    aiNote: null,
+                    transcript: null,
+                    additionalSubmission: { copyToContactComments: true },
+                    composedLogDetails: 'Updated details',
+                    existingCallLogDetails,
+                    hashedAccountId: 'hash-123'
+                })).rejects.toMatchObject({ response: { status: 403 } });
+                expect(mockUser.update).not.toHaveBeenCalled();
+            });
+        });
     });
 
     // ==================== upsertCallDisposition ====================
@@ -1535,6 +1849,39 @@ describe('Bullhorn Connector', () => {
 
             expect(result.logId).toBe(601);
             expect(result.returnMessage.message).toBe('Message logged');
+        });
+
+        it('should create a shared SMS log with the shared conversation body and date', async () => {
+            let capturedBody;
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Note', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(200, {
+                    changedEntityId: 604
+                }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 202, name: 'Jane Candidate', type: 'Candidate' }),
+                sharedSMSLogContent: {
+                    body: 'Shared conversation body',
+                    conversationCreatedDate: '2026-10-01T10:00:00.000Z'
+                },
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: { noteActions: 'SMS' },
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            expect(result.logId).toBe(604);
+            expect(capturedBody).toMatchObject({
+                comments: 'Shared conversation body',
+                dateAdded: '2026-10-01T10:00:00.000Z',
+                personReference: { id: 202, personSubtype: 'Candidate', _subtype: 'Candidate' }
+            });
         });
 
         it('should create a voicemail message log', async () => {
@@ -2079,6 +2426,49 @@ describe('Bullhorn Connector', () => {
             expect(result.returnMessage.messageType).toBe('success');
         });
 
+        it('should read the pending note pattern from the fetched Note when details are not passed', async () => {
+            let capturedBody;
+            nock(restUrl.slice(0, -1))
+                .get('/entity/Note/501')
+                .query(true)
+                .reply(200, {
+                    data: {
+                        comments: '<br>From auto logging (Pending)<br>Old content',
+                        commentingPerson: { id: 123 }
+                    }
+                }, mockBullhornRateLimitHeaders);
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Note/501', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(200, {
+                    changedEntityId: 501
+                }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: null,
+                note: null,
+                startTime: Date.now(),
+                duration: 300,
+                result: 'Connected',
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: null,
+                composedLogDetails: 'Updated details',
+                existingCallLogDetails: null,
+                hashedAccountId: 'hash-123',
+                isFromSSCL: true
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+            expect(capturedBody.comments).toBe('Updated details');
+        });
+
         it('should update upsert fields when isFromSSCL without pending note', async () => {
             const existingCallLogDetails = {
                 comments: 'User entered notes without pending marker',
@@ -2476,6 +2866,64 @@ describe('Bullhorn Connector', () => {
             });
 
             expect(result).toEqual(userInfo);
+        });
+
+        it('enables one-time call logging and clears the login flag after user persistence', async () => {
+            const userInfo = { id: '456-bullhorn' };
+            const persistedUser = createMockUser({
+                id: '456-bullhorn',
+                userSettings: {
+                    language: { value: 'en-US' }
+                },
+                platformAdditionalInfo: {
+                    enableOneTimeLogAfterBullhornLogin: true,
+                    restUrl
+                }
+            });
+            UserModel.findByPk.mockResolvedValue(persistedUser);
+
+            const result = await bullhorn.postSaveUserInfo({
+                userInfo,
+                oauthApp: {}
+            });
+
+            expect(persistedUser.update).toHaveBeenCalledWith({
+                userSettings: {
+                    language: { value: 'en-US' },
+                    oneTimeLog: { value: true }
+                },
+                platformAdditionalInfo: {
+                    restUrl
+                }
+            });
+            expect(result).toEqual(userInfo);
+        });
+
+        it('only clears the login flag when one-time call logging is already enabled', async () => {
+            const userInfo = { id: '456-bullhorn' };
+            const persistedUser = createMockUser({
+                id: '456-bullhorn',
+                userSettings: {
+                    oneTimeLog: { value: true }
+                },
+                platformAdditionalInfo: {
+                    enableOneTimeLogAfterBullhornLogin: true,
+                    restUrl
+                }
+            });
+            UserModel.findByPk.mockResolvedValue(persistedUser);
+
+            await bullhorn.postSaveUserInfo({
+                userInfo,
+                oauthApp: {}
+            });
+
+            expect(persistedUser.update).toHaveBeenCalledWith({
+                platformAdditionalInfo: {
+                    restUrl
+                }
+            });
+            expect(persistedUser.platformAdditionalInfo).toEqual({ restUrl });
         });
     });
 

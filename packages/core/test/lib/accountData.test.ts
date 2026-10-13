@@ -28,20 +28,17 @@ describe('accountData lib', () => {
 
   // A zero TTL only expires once the clock moves past updatedAt, so back-date the row
   // instead of relying on a millisecond elapsing between create and read.
+  // A bulk update({ updatedAt }, { silent: true }) is a no-op in Sequelize, so set the timestamps at create time.
   async function createExpiredRecord(dataKey: string, data: any) {
+    const past = new Date(Date.now() - 60000);
     await AccountDataModel.create({
       rcAccountId: user.rcAccountId,
       platformName: platform,
       dataKey,
-      data
-    });
-    await AccountDataModel.update(
-      { updatedAt: new Date(Date.now() - 60000) },
-      {
-        where: { rcAccountId: user.rcAccountId, platformName: platform, dataKey },
-        silent: true
-      }
-    );
+      data,
+      createdAt: past,
+      updatedAt: past
+    }, { silent: true });
   }
 
   beforeEach(() => {
