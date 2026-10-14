@@ -79,7 +79,7 @@ function composeSubject({
     contactName,
     conversationCreatedDate,
     customSubject,
-    includeTime = false
+    includeTime
 }: {
     logFormat: SharedSMSLogFormat;
     contactName: string;
