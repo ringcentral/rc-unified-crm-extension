@@ -1252,10 +1252,11 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         }
         let existingMessages = null;
         try {
+            // `id` is the table's only primary key, so a message id logged by any
+            // user or CRM must be skipped here or the insert below would conflict
+            // after the CRM entry has already been written.
             existingMessages = await MessageLogModel.findAll({
                 where: {
-                    userId,
-                    platform,
                     [Op.or]: messageIds
                 }
             });
@@ -1275,6 +1276,16 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
                     conversationLogId: incomingData.logInfo.conversationLogId
                 }
             });
+            if (existingMessageLog?.platform && existingMessageLog.platform !== platform) {
+                return {
+                    successful: false,
+                    returnMessage: {
+                        message: 'This conversation is already logged to another CRM.',
+                        messageType: 'warning',
+                        ttl: 3000
+                    }
+                };
+            }
             const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset, customSubject: incomingData.logInfo?.customSubject });
             if (existingMessageLog) {
                 const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog: existingMessageLog, authHeader, additionalSubmission, proxyConfig });
@@ -1471,11 +1482,10 @@ async function logSelectedMessagesAsSingleEntry({
 
     let existingMessageLogs = [];
     try {
+        // Not scoped by user/platform: `id` is the only primary key, so any
+        // existing row for a selected id blocks inserting it again.
         existingMessageLogs = await MessageLogModel.findAll({
             where: {
-                userId,
-                platform,
-                conversationId,
                 id: { [Op.in]: [...selectedIdSet] }
             }
         });
@@ -1484,8 +1494,18 @@ async function logSelectedMessagesAsSingleEntry({
         return handleDatabaseError(error, 'Error finding existing message logs');
     }
     const messageLogs = {};
+    const loggedElsewhereIds = [];
     for (const log of existingMessageLogs) {
-        messageLogs[log.id] = log.thirdPartyLogId;
+        // Never expose another user's or CRM's record id to this user.
+        if (log.userId === userId && log.platform === platform) {
+            messageLogs[log.id] = log.thirdPartyLogId;
+        }
+        else {
+            loggedElsewhereIds.push(log.id);
+        }
+    }
+    if (loggedElsewhereIds.length > 0) {
+        pluginWarnings.push(`${loggedElsewhereIds.length} selected message(s) were already logged by another user or CRM and were skipped.`);
     }
     const alreadyLoggedIds = new Set(existingMessageLogs.map(log => log.id));
 
@@ -1499,11 +1519,14 @@ async function logSelectedMessagesAsSingleEntry({
             successful: true,
             logIds: Object.values(messageLogs),
             messageLogs,
-            returnMessage: {
-                message: 'Selected messages already logged.',
-                messageType: 'success',
-                ttl: 2000
-            }
+            returnMessage: mergePluginWarnings({
+                returnMessage: {
+                    message: 'Selected messages already logged.',
+                    messageType: 'success',
+                    ttl: 2000
+                },
+                warningMessages: pluginWarnings
+            })
         };
     }
 
