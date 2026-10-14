@@ -427,7 +427,6 @@
           }
         }
       },
-      "isSelectedMessageLogSupported":true,
       "serverSideLogging": {
         "useAdminAssignedUserToken": true,
         "url": "https://crm-logging.labs.ringcentral.com",
@@ -508,6 +507,7 @@
         "useAdminAssignedUserToken": true,
         "enableUserMapping": true
       },
+      "isSelectedMessageLogSupported":true,
       "contactTypes": [
         {
           "display": "Person",
