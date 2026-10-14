@@ -44,7 +44,7 @@ describe('migrateMessageLogsSchema', () => {
     })).resolves.toBeUndefined();
   });
 
-  test('replaces an id-only primary key with the composite key on postgres', async () => {
+  test('never rewrites the primary key or existing rows', async () => {
     const queryInterface = {
       describeTable: jest.fn().mockResolvedValue({
         id: { primaryKey: true },
@@ -57,63 +57,14 @@ describe('migrateMessageLogsSchema', () => {
     const sequelize = {
       getQueryInterface: () => queryInterface,
       getDialect: () => 'postgres',
-      query: jest.fn().mockResolvedValue(undefined),
-      transaction: jest.fn(async (callback) => callback('transaction-1')),
-    };
-
-    await migrateMessageLogsSchema(sequelize);
-
-    expect(queryInterface.addColumn).not.toHaveBeenCalled();
-    expect(sequelize.transaction).toHaveBeenCalledTimes(1);
-    expect(sequelize.query).toHaveBeenCalledWith(
-      'UPDATE "messageLogs" SET platform = COALESCE(platform, \'\'), "userId" = COALESCE("userId", \'\') WHERE platform IS NULL OR "userId" IS NULL',
-      { transaction: 'transaction-1' },
-    );
-    expect(sequelize.query).toHaveBeenCalledWith(
-      'ALTER TABLE "messageLogs" DROP CONSTRAINT IF EXISTS "messageLogs_pkey", ADD PRIMARY KEY (id, platform, "userId")',
-      { transaction: 'transaction-1' },
-    );
-  });
-
-  test('does not migrate the primary key on sqlite', async () => {
-    const queryInterface = {
-      describeTable: jest.fn().mockResolvedValue({
-        id: { primaryKey: true },
-        platform: { primaryKey: false },
-        userId: { primaryKey: false },
-        contactId: {},
-      }),
-    };
-    const sequelize = {
-      getQueryInterface: () => queryInterface,
-      getDialect: () => 'sqlite',
       query: jest.fn(),
       transaction: jest.fn(),
     };
 
     await migrateMessageLogsSchema(sequelize);
 
+    expect(queryInterface.addColumn).not.toHaveBeenCalled();
     expect(sequelize.transaction).not.toHaveBeenCalled();
-    expect(sequelize.query).not.toHaveBeenCalled();
-  });
-
-  test('leaves a composite primary key unchanged', async () => {
-    const queryInterface = {
-      describeTable: jest.fn().mockResolvedValue({
-        id: { primaryKey: true },
-        platform: { primaryKey: true },
-        userId: { primaryKey: true },
-        contactId: {},
-      }),
-    };
-    const sequelize = {
-      getQueryInterface: () => queryInterface,
-      getDialect: jest.fn(),
-      query: jest.fn(),
-    };
-
-    await migrateMessageLogsSchema(sequelize);
-
     expect(sequelize.query).not.toHaveBeenCalled();
   });
 

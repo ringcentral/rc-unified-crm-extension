@@ -1697,6 +1697,54 @@ describe('Log Handler', () => {
       expect(mockConnector.updateMessageLog).toHaveBeenCalledTimes(1);
     });
 
+    test('should skip messages already logged by another user instead of hitting a key conflict', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        platformAdditionalInfo: {}
+      });
+      await MessageLogModel.create({
+        id: 'msg-other-user',
+        platform: 'otherCRM',
+        conversationId: 'conv-other',
+        conversationLogId: 'conv-log-other',
+        thirdPartyLogId: 'other-user-log',
+        userId: 'other-user-id'
+      });
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'msg-log-new',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          logInfo: {
+            messages: [{ id: 'msg-other-user', subject: 'Hi', direction: 'Outbound', creationTime: new Date() }],
+            correspondents: [{ phoneNumber: '+1234567890' }],
+            conversationId: 'conv-mine',
+            conversationLogId: 'conv-log-mine'
+          },
+          contactId: 'contact-123',
+          contactType: 'Contact',
+          additionalSubmission: {}
+        }
+      });
+
+      expect(result.successful).toBe(true);
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+      const row = await MessageLogModel.findByPk('msg-other-user');
+      expect(row.userId).toBe('other-user-id');
+    });
+
     test('should return a schema-valid no-op result when every message is already logged', async () => {
       await UserModel.create({
         id: 'test-user-id',
@@ -2295,6 +2343,63 @@ describe('Log Handler', () => {
       expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
     });
 
+    test('does not update a shared SMS entry that belongs to another CRM', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        timezoneOffset: '+00:00',
+        platformAdditionalInfo: {}
+      });
+      await MessageLogModel.create({
+        id: 'shared-conversation-log',
+        platform: 'otherCRM',
+        conversationId: 'shared-conversation',
+        thirdPartyLogId: 'other-crm-log',
+        userId: 'other-user-id',
+        conversationLogId: 'shared-conversation-log'
+      });
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createMessageLog: jest.fn(),
+        updateMessageLog: jest.fn(),
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          logInfo: {
+            messages: [{ id: 'shared-message-1', type: 'SMS', lastModifiedTime: '2026-06-12T10:05:00.000Z' }],
+            entities: [],
+            correspondents: [{ phoneNumber: '+15550000001' }],
+            conversationId: 'shared-conversation',
+            conversationLogId: 'shared-conversation-log',
+            creationTime: '2026-06-12T10:00:00.000Z',
+            owner: { name: 'Owner Agent' }
+          },
+          contactId: 'contact-shared',
+          contactName: 'Shared Contact',
+          additionalSubmission: {}
+        }
+      });
+
+      expect(result).toEqual({
+        successful: false,
+        returnMessage: {
+          message: 'This conversation is already logged to another CRM.',
+          messageType: 'warning',
+          ttl: 3000
+        }
+      });
+      expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
     test('a second user updates the shared SMS entry instead of creating another one', async () => {
       await UserModel.bulkCreate([
         {
@@ -2698,6 +2803,64 @@ describe('Log Handler', () => {
       expect(result.successful).toBe(true);
       expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
       expect(result.messageLogs).toEqual({ 'msg-1': 'crm-existing' });
+    });
+
+    test('skips messages logged by another user without exposing their CRM log id', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      await MessageLogModel.create({
+        id: 'msg-1',
+        conversationId: 'conv-123',
+        conversationLogId: 'conv-log-123',
+        thirdPartyLogId: 'other-user-crm-log',
+        userId: 'other-user-id',
+        platform: 'otherCRM',
+      });
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1', 'msg-3']),
+      });
+
+      expect(result.successful).toBe(true);
+      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        messages: [expect.objectContaining({ id: 'msg-3' })],
+      }));
+      expect(result.messageLogs).toEqual({ 'msg-3': 'crm-entry-1' });
+      expect(result.returnMessage).toEqual(expect.objectContaining({
+        messageType: 'warning',
+        message: expect.stringContaining('already logged by another user or CRM'),
+      }));
+      const otherUserRow = await MessageLogModel.findByPk('msg-1');
+      expect(otherUserRow.userId).toBe('other-user-id');
+      expect(otherUserRow.thirdPartyLogId).toBe('other-user-crm-log');
+    });
+
+    test('reports a warning no-op when every selected message was logged by another user', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      await MessageLogModel.create({
+        id: 'msg-1',
+        conversationId: 'conv-123',
+        thirdPartyLogId: 'other-user-crm-log',
+        userId: 'other-user-id',
+        platform: 'testCRM',
+      });
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result.successful).toBe(true);
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+      expect(result.messageLogs).toEqual({});
+      expect(result.returnMessage.messageType).toBe('warning');
     });
 
     test('returns a database warning when existing selected-message logs cannot be read', async () => {

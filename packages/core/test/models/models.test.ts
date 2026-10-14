@@ -488,15 +488,14 @@ describe('Core Models', () => {
       expect(log.id).toBe('msg-find');
     });
 
-    test('should store the same message ID for different CRM users', async () => {
-      await MessageLogModel.bulkCreate([
-        { id: 'msg-shared', platform: 'redtail', userId: 'redtail-user' },
-        { id: 'msg-shared', platform: 'clio', userId: 'clio-user' }
-      ]);
+    test('should keep id as the only primary key', async () => {
+      expect(MessageLogModel.primaryKeyAttributes).toEqual(['id']);
 
-      const logs = await MessageLogModel.findAll({ where: { id: 'msg-shared' } });
+      await MessageLogModel.create({ id: 'msg-shared', platform: 'redtail', userId: 'redtail-user' });
 
-      expect(logs).toHaveLength(2);
+      await expect(
+        MessageLogModel.create({ id: 'msg-shared', platform: 'clio', userId: 'clio-user' })
+      ).rejects.toThrow();
     });
 
     test('should find message logs by conversationLogId', async () => {

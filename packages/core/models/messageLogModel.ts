@@ -11,7 +11,6 @@ const MessageLogModel = sequelize.define('messageLogs', {
     },
     platform: {
         type: Sequelize.STRING,
-        primaryKey: true,
     },
     conversationId: {
         type: Sequelize.STRING,
@@ -27,7 +26,6 @@ const MessageLogModel = sequelize.define('messageLogs', {
     },
     userId: {
         type: Sequelize.STRING,
-        primaryKey: true,
     }
 }, {
     indexes: [
