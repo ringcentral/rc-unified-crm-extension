@@ -114,6 +114,17 @@ describe('sharedSMSComposer', () => {
       expect(result.body).toContain('END');
     });
 
+    test('should omit the date suffix when the conversation creation time is invalid', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: { ...baseConversation, creationTime: 'not-a-date' },
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00'
+      });
+
+      expect(result.subject).toBe('SMS conversation with John Customer');
+    });
+
     test('should use customSubject when provided', () => {
       const result = composeSharedSMSLog({
         logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
@@ -832,6 +843,46 @@ describe('sharedSMSComposer', () => {
         expect.stringContaining('Third numeric message'),
         expect.stringContaining('Second numeric message'),
         expect.stringContaining('First numeric message'),
+      ]);
+    });
+
+    test('should sort oldest first and treat unparseable creation times as the earliest', () => {
+      const entities = [
+        {
+          recordType: 'AliveMessage',
+          creationTime: '2024-01-15T11:00:00Z',
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Later message'
+        },
+        {
+          recordType: 'AliveMessage',
+          creationTime: 'not-a-date',
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Undated message'
+        },
+        {
+          recordType: 'AliveMessage',
+          creationTime: '2024-01-15T10:00:00Z',
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Earlier message'
+        }
+      ];
+
+      const result = processEntities({
+        entities,
+        timezoneOffset: '+00:00',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        contactName: 'Customer',
+        entryOrder: 'oldestFirst'
+      });
+
+      expect(result.map(r => r.content)).toEqual([
+        expect.stringContaining('Undated message'),
+        expect.stringContaining('Earlier message'),
+        expect.stringContaining('Later message'),
       ]);
     });
 

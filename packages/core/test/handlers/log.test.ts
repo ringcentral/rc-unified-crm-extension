@@ -2648,6 +2648,57 @@ describe('Log Handler', () => {
       expect(mockConnector.createMessageLog.mock.calls[0][0].messages).toBeUndefined();
     });
 
+    test.each([
+      ['the registry has no getManifest', () => {
+        const original = connectorRegistry.getManifest;
+        connectorRegistry.getManifest = undefined;
+        return () => { connectorRegistry.getManifest = original; };
+      }],
+      ['getManifest throws', () => {
+        connectorRegistry.getManifest.mockImplementation(() => { throw new Error('manifest unavailable'); });
+        return () => {};
+      }],
+    ])('falls back to the per-message path when %s', async (_label, arrange) => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      const restore = arrange();
+
+      try {
+        const result = await logHandler.createMessageLog({
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          incomingData: buildIncomingData(['msg-1']),
+        });
+
+        expect(result.successful).toBe(true);
+        expect(result.messageLogs).toBeUndefined();
+        expect(mockConnector.createMessageLog.mock.calls[0][0].messages).toBeUndefined();
+      }
+      finally {
+        restore();
+      }
+    });
+
+    test('stores a null conversationLogId when the selected request omits it', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      const incomingData = buildIncomingData(['msg-1']);
+      delete incomingData.logInfo.conversationLogId;
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData,
+      });
+
+      expect(result.successful).toBe(true);
+      const row = await MessageLogModel.findByPk('msg-1');
+      expect(row.conversationLogId).toBeNull();
+      expect(row.thirdPartyLogId).toBe('crm-entry-1');
+    });
+
     test('does not throw when a selected log has no correspondents', async () => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
