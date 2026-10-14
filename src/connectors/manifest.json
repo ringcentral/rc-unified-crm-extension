@@ -1067,6 +1067,23 @@
                   "id": "14"
                 }
               ]
+            },
+            {
+              "defaultValue": "autoWhenAllDataAvailable",
+              "helper": "Dictates how and when an activity logged by App Connect is marked as \"Completed.\"",
+              "id": "redtailActivityCompletionMode",
+              "name": "Activity completion",
+              "options": [
+                {
+                  "id": "manual",
+                  "name": "Manually, via Redtail"
+                },
+                {
+                  "id": "autoWhenAllDataAvailable",
+                  "name": "Automatically, when all data is available"
+                }
+              ],
+              "type": "option"
             }
           ],
           "name": "Redtail options",
