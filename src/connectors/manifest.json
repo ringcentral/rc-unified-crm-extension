@@ -880,6 +880,7 @@
       },
       "name": "redtail",
       "canOpenLogPage": true,
+      "supportActivityCompletion": true,
       "embedUrls": [
         "https://*.redtailtechnology.com/*"
       ],
