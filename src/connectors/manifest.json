@@ -507,6 +507,7 @@
         "useAdminAssignedUserToken": true,
         "enableUserMapping": true
       },
+      "isSelectedMessageLogSupported":true,
       "contactTypes": [
         {
           "display": "Person",

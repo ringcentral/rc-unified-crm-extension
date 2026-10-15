@@ -358,6 +358,44 @@ describe('Core Models', () => {
       expect(migratedLog.thirdPartyLogId).toBe('third-party-ts-legacy');
     });
 
+    test('should add message log lookup indexes for selective message matching', async () => {
+      const indexes = await sequelize.getQueryInterface().showIndex('messageLogs');
+      expect(indexes).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          name: 'message_logs_user_platform_conversation_message',
+        }),
+      ]));
+
+      await MessageLogModel.bulkCreate([
+        {
+          id: 'msg-1',
+          conversationId: 'conv-1',
+          conversationLogId: 'conv-log-1',
+          thirdPartyLogId: 'crm-log-1',
+          userId: 'user-1',
+          platform: 'testCRM',
+        },
+        {
+          id: 'msg-2',
+          conversationId: 'conv-1',
+          conversationLogId: 'conv-log-1',
+          thirdPartyLogId: 'crm-log-1',
+          userId: 'user-1',
+          platform: 'testCRM',
+        },
+      ]);
+
+      const messageLog = await MessageLogModel.findOne({
+        where: {
+          id: 'msg-1',
+          userId: 'user-1',
+          platform: 'testCRM',
+        },
+      });
+      expect(messageLog.thirdPartyLogId).toBe('crm-log-1');
+      expect(messageLog.conversationLogId).toBe('conv-log-1');
+    });
+
     test('should find call logs by session ID', async () => {
       // Arrange
       await CallLogModel.create({
@@ -448,6 +486,16 @@ describe('Core Models', () => {
       // Assert
       expect(log).not.toBeNull();
       expect(log.id).toBe('msg-find');
+    });
+
+    test('should keep id as the only primary key', async () => {
+      expect(MessageLogModel.primaryKeyAttributes).toEqual(['id']);
+
+      await MessageLogModel.create({ id: 'msg-shared', platform: 'redtail', userId: 'redtail-user' });
+
+      await expect(
+        MessageLogModel.create({ id: 'msg-shared', platform: 'clio', userId: 'clio-user' })
+      ).rejects.toThrow();
     });
 
     test('should find message logs by conversationLogId', async () => {
