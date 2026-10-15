@@ -44,3 +44,5 @@ describe('initializeCore database setup', () => {
     expect(runCallLogsSchemaMigration).not.toHaveBeenCalled();
   });
 });
+
+export {};
