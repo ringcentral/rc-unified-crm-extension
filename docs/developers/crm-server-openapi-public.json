@@ -4392,7 +4392,7 @@
       "MessageLogMatch": {
         "x-app-connect-generated-contract": true,
         "required": true,
-        "description": "Conversation and message ids to check for existing CRM log associations.",
+        "description": "Conversation and message ids to check for existing CRM message-log records.",
         "content": {
           "application/json": {
             "schema": {
@@ -7914,6 +7914,17 @@
                     }
                   ],
                   "description": "CRM log record identifier for matched messages."
+                },
+                "contactId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "description": "CRM contact associated with the logged message."
                 }
               },
               "required": [

@@ -68,6 +68,29 @@ describe('migrateMessageLogsSchema', () => {
     expect(sequelize.query).not.toHaveBeenCalled();
   });
 
+  test('uses the shared sequelize instance when none is passed', async () => {
+    const queryInterface = {
+      describeTable: jest.fn().mockResolvedValue({ id: {} }),
+      addColumn: jest.fn().mockResolvedValue(undefined),
+    };
+
+    await jest.isolateModulesAsync(async () => {
+      jest.doMock('../../models/sequelize', () => ({
+        sequelize: { getQueryInterface: () => queryInterface },
+      }));
+      const { migrateMessageLogsSchema: isolatedMigrate } = require('../../lib/migrateMessageLogsSchema');
+
+      await isolatedMigrate();
+    });
+
+    expect(queryInterface.describeTable).toHaveBeenCalledWith('messageLogs');
+    expect(queryInterface.addColumn).toHaveBeenCalledWith(
+      'messageLogs',
+      'contactId',
+      expect.objectContaining({ allowNull: true }),
+    );
+  });
+
   test('rethrows an add-column failure when contactId is still missing', async () => {
     const migrationError = new Error('database unavailable');
     const queryInterface = {
