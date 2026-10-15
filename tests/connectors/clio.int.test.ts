@@ -1065,6 +1065,38 @@ describe('Clio Connector', () => {
             expect(result.logId).toBe(405);
         });
 
+        it('should not create a time entry for shared SMS content without messages', async () => {
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+            nock(apiUrl)
+                .post('/api/v4/communications.json', body => body.data.subject === 'Shared conversation')
+                .reply(201, { data: { id: 408 } }, mockRateLimitHeaders);
+            const timeEntryScope = nock(apiUrl)
+                .post('/api/v4/activities.json')
+                .reply(201, { data: { id: 508 } }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: {
+                    ...mockUser,
+                    userSettings: { smsTimeTrackingEnabled: { value: true } }
+                },
+                contactInfo: mockContact,
+                authHeader,
+                sharedSMSLogContent: {
+                    subject: 'Shared conversation',
+                    body: 'Conversation summary',
+                    conversationCreatedDate: '2026-09-23T10:00:00Z'
+                },
+                additionalSubmission: {}
+            });
+
+            expect(result.logId).toBe(408);
+            expect(timeEntryScope.isDone()).toBe(false);
+            nock.cleanAll();
+        });
+
         it('should create one cumulative time entry for selected outbound messages', async () => {
             nock(apiUrl)
                 .get('/api/v4/users/who_am_i.json')
@@ -1397,6 +1429,49 @@ describe('Clio Connector', () => {
             });
 
             // No return value to check, but no error means success
+        });
+
+        it('should add an SMS time entry to the existing communication for an outbound message', async () => {
+            nock(apiUrl)
+                .get('/api/v4/communications/401.json')
+                .query({ fields: 'body' })
+                .reply(200, {
+                    data: {
+                        id: 401,
+                        body: '\nConversation(1 messages)\nBEGIN\n------------\nFirst message\n------------\nEND\n'
+                    }
+                }, mockRateLimitHeaders);
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+            nock(apiUrl)
+                .patch('/api/v4/communications/401.json')
+                .reply(200, { data: { id: 401 } }, mockRateLimitHeaders);
+            const timeEntryScope = nock(apiUrl)
+                .post('/api/v4/activities.json', body => body.data.type === 'TimeEntry'
+                    && body.data.communication.id === '401'
+                    && body.data.matter.id === 201
+                    && body.data.note.startsWith('SMS message with John Doe'))
+                .reply(201, { data: { id: 601 } }, mockRateLimitHeaders);
+
+            const outboundMessage = { ...mockMessageData, direction: 'Outbound', subject: 'Reply' };
+            delete outboundMessage.typingDurationMs;
+
+            const result = await clio.updateMessageLog({
+                user: {
+                    ...mockUser,
+                    userSettings: { smsTimeTrackingEnabled: { value: true } }
+                },
+                contactInfo: mockContact,
+                existingMessageLog,
+                message: outboundMessage,
+                authHeader,
+                additionalSubmission: { matters: 201 }
+            });
+
+            expect(timeEntryScope.isDone()).toBe(true);
+            expect(result.extraDataTracking).toBeDefined();
         });
     });
 

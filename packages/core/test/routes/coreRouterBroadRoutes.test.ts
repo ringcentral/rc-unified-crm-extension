@@ -944,6 +944,47 @@ describe('Core router broad route coverage', () => {
     });
   });
 
+  test('matches message logs by conversation only and handles edge-case match requests', async () => {
+    logCore.getMessageLog.mockResolvedValueOnce({
+      successful: true,
+      logs: [],
+      messageLogs: {},
+    });
+    const conversationOnly = await request(app)
+      .post('/messageLog/match')
+      .query(authQuery())
+      .set('is-debug', 'true')
+      .send({ conversationId: 'conv-1' });
+    expect(conversationOnly.status).toBe(200);
+    expect(conversationOnly.body._debug.traces).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        methodName: 'matchMessageLog:start',
+        data: expect.objectContaining({ conversationId: 'conv-1' }),
+      }),
+    ]));
+
+    // Without a body parser `req.body` stays undefined.
+    const appWithoutBodyParser = express();
+    appWithoutBodyParser.use('/', createCoreRouter());
+    const emptyBody = await request(appWithoutBodyParser).post('/messageLog/match').query(authQuery());
+    expect(emptyBody.status).toBe(400);
+    expect(emptyBody.body.returnMessage).toEqual(expect.objectContaining({
+      message: 'Invalid message log match request',
+    }));
+
+    logCore.getMessageLog.mockRejectedValueOnce(new Error('lookup crashed'));
+    const unexpectedError = await request(app)
+      .post('/messageLog/match')
+      .query(authQuery())
+      .send({ conversationId: 'conv-1', messageIds: ['msg-1'] });
+    expect(unexpectedError.status).toBe(400);
+    expect(analytics.track).toHaveBeenLastCalledWith(expect.objectContaining({
+      interfaceName: 'matchMessageLog',
+      success: false,
+      extras: expect.objectContaining({ statusCode: 'unknown' }),
+    }));
+  });
+
   test('wraps representative route responses with debug trace data', async () => {
     async function expectDebugResponse(req) {
       const response = await req.set('is-debug', 'true');
