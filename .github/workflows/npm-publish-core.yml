@@ -3,7 +3,9 @@ name: Publish Core Package
 on:
   push:
     tags:
-      - '1.7.*'
+      - '2.0.*'
+      - '2.1.*'
+      - '!2.1.*-patch'
 
 jobs:
   verify:
@@ -63,17 +65,44 @@ jobs:
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/ --replace-registry-host=always
 
-      - name: Verify package version
+      - name: Verify package version and select dist-tag
+        id: release
         run: |
           TAG_VERSION="${GITHUB_REF_NAME}"
           PACKAGE_VERSION="$(node -p "require('./packages/core/package.json').version")"
 
-          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match @app-connect/core version ($PACKAGE_VERSION)."
-            exit 1
-          fi
+          case "$TAG_VERSION" in
+            2.0.*)
+              # Normal release: package.json must match the tag; published as "latest"
+              if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+                echo "Tag version ($TAG_VERSION) does not match @app-connect/core version ($PACKAGE_VERSION)."
+                exit 1
+              fi
+              if [[ "$TAG_VERSION" == *-* ]]; then
+                echo "2.0.* tags must be normal versions (no prerelease suffix): $TAG_VERSION"
+                exit 1
+              fi
+              echo "dist_tag=latest" >> "$GITHUB_OUTPUT"
+              ;;
+            2.1.*)
+              # Beta release: tag 2.1.N publishes 2.1.0-beta.N under the "beta" dist-tag.
+              # The version is stamped at publish time; package.json is not read or committed.
+              if [[ ! "$TAG_VERSION" =~ ^2\.1\.([0-9]+)$ ]]; then
+                echo "2.1.* tags must look like 2.1.<number>: $TAG_VERSION"
+                exit 1
+              fi
+              BETA_VERSION="2.1.0-beta.${BASH_REMATCH[1]}"
+              npm pkg set version="$BETA_VERSION" --workspace=@app-connect/core
+              echo "Publishing $BETA_VERSION (from tag $TAG_VERSION)"
+              echo "dist_tag=beta" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported tag: $TAG_VERSION"
+              exit 1
+              ;;
+          esac
 
       - name: Publish @app-connect/core
-        run: npm publish --workspace=@app-connect/core --access public --provenance
+        run: npm publish --workspace=@app-connect/core --access public --provenance --tag "${{ steps.release.outputs.dist_tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
