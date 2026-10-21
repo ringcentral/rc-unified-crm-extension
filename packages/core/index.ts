@@ -1495,15 +1495,10 @@ function createCoreRouter() {
             }
             let rcAccountId = null;
             let rcExtensionId = null;
-            let canPersistManagedAuth = false;
             if (rcAccessToken) {
                 const rcUserTokenResult = await adminCore.validateRcUserToken({ rcAccessToken });
                 rcAccountId = rcUserTokenResult.rcAccountId;
                 rcExtensionId = rcUserTokenResult.rcExtensionId;
-                if (additionalInfo && typeof additionalInfo === 'object' && Object.keys(additionalInfo).length > 0) {
-                    const adminValidation = await adminCore.validateAdminRole({ rcAccessToken });
-                    canPersistManagedAuth = !!adminValidation?.isValidated;
-                }
             }
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({
                 platform,
@@ -1515,7 +1510,6 @@ function createCoreRouter() {
                 devRcAccountId,
                 connectorId,
                 isPrivate,
-                canPersistManagedAuth,
                 hashedRcExtensionId: hashedExtensionId,
                 additionalInfo
             });

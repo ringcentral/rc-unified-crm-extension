@@ -449,7 +449,7 @@ describe('Managed Auth Routes', () => {
   });
   describe('POST /apiKeyLogin', () => {
 
-    test('should validate rcAccessToken and ignore spoofed rc ids in body', async () => {
+    test('should validate rcAccessToken, ignore spoofed rc ids in body, and never persist managed values on login', async () => {
       adminCore.validateRcUserToken.mockResolvedValue({
         rcAccountId: 'validated-account-id',
         rcExtensionId: 'validated-extension-id',
@@ -489,8 +489,9 @@ describe('Managed Auth Routes', () => {
         rcAccountId: 'validated-account-id',
         rcExtensionId: 'validated-extension-id',
         devRcAccountId: 'connector-owner-account',
-        canPersistManagedAuth: true,
       }));
+      expect(authCore.onApiKeyLogin.mock.calls[0][0]).not.toHaveProperty('canPersistManagedAuth');
+      expect(adminCore.validateAdminRole).not.toHaveBeenCalled();
     });
   });
 });
