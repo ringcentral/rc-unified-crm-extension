@@ -113,8 +113,6 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             if (user.rcAccountId) {
                 // Concurrent lookups for the same number can both miss the cache; a plain insert
                 // would then hit the composite primary key and fail an otherwise successful match.
-
-                console.log({m:"IN upsert AccountDataModel"});
                 await AccountDataModel.upsert({
                     rcAccountId: user.rcAccountId,
                     platformName: platform,
