@@ -369,10 +369,10 @@ describe('Managed Auth Routes', () => {
     });
   });
   describe('POST /admin/managedAuth/options', () => {
-    test('uses validated admin identity and transient account values without requiring a CRM jwt', async () => {
-      adminCore.validateAdminRole.mockResolvedValue({
-        isValidated: true,
+    test('uses validated RingCentral identity and transient account values without requiring a CRM jwt', async () => {
+      adminCore.validateRcUserToken.mockResolvedValue({
         rcAccountId: 'validated-account-id',
+        rcExtensionId: 'validated-extension-id',
       });
       managedAuthCore.getManagedAuthOptions.mockResolvedValue([
         { value: 'crm-101', label: 'Ada Lovelace' },
@@ -405,10 +405,28 @@ describe('Managed Auth Routes', () => {
       });
     });
 
-    test('rejects non-admin users and reports connector errors', async () => {
-      adminCore.validateAdminRole.mockResolvedValueOnce({
-        isValidated: false,
+    test('allows a signed-in non-admin to refresh the user list and reports connector errors', async () => {
+      adminCore.validateRcUserToken.mockResolvedValueOnce({
         rcAccountId: 'validated-account-id',
+        rcExtensionId: 'validated-extension-id',
+      });
+      managedAuthCore.getManagedAuthOptions.mockResolvedValueOnce([
+        { value: 'crm-101', label: 'Ada Lovelace' },
+      ]);
+      const userResponse = await request(app)
+        .post('/admin/managedAuth/options')
+        .query({ platform: 'salesforce', rcAccessToken: 'valid-rc-token' })
+        .send({ fieldConst: 'crmUserId' });
+      expect(userResponse.status).toBe(200);
+      expect(userResponse.body).toEqual([{ value: 'crm-101', label: 'Ada Lovelace' }]);
+      expect(managedAuthCore.getManagedAuthOptions).toHaveBeenCalledWith(expect.objectContaining({
+        rcAccountId: 'validated-account-id',
+        fieldConst: 'crmUserId',
+      }));
+
+      adminCore.validateRcUserToken.mockResolvedValueOnce({
+        rcAccountId: '',
+        rcExtensionId: '',
       });
       const forbiddenResponse = await request(app)
         .post('/admin/managedAuth/options')
@@ -416,9 +434,9 @@ describe('Managed Auth Routes', () => {
         .send({ fieldConst: 'crmUserId' });
       expect(forbiddenResponse.status).toBe(403);
 
-      adminCore.validateAdminRole.mockResolvedValueOnce({
-        isValidated: true,
+      adminCore.validateRcUserToken.mockResolvedValueOnce({
         rcAccountId: 'validated-account-id',
+        rcExtensionId: 'validated-extension-id',
       });
       managedAuthCore.getManagedAuthOptions.mockRejectedValueOnce(new Error('CRM user list unavailable'));
       const errorResponse = await request(app)

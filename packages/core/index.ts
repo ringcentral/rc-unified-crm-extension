@@ -750,11 +750,11 @@ function createCoreRouter() {
                 res.status(400).send(wrapDebugResponse(tracer, 'Missing managed auth field'));
                 return;
             }
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({
+            const { rcAccountId } = await adminCore.validateRcUserToken({
                 rcAccessToken: getRcAccessTokenFromRequest(req),
             });
-            if (!isValidated) {
-                res.status(403).send(wrapDebugResponse(tracer, 'Admin validation failed'));
+            if (!rcAccountId) {
+                res.status(403).send(wrapDebugResponse(tracer, 'RingCentral user validation failed'));
                 return;
             }
             const options: ManagedAuthOptionsResponse = await managedAuthCore.getManagedAuthOptions({
