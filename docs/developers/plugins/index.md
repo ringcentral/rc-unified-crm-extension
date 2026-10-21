@@ -1,7 +1,7 @@
 ---
 type: contract
 title: App Connect Plugins
-description: Lifecycle, manifest, execution, OAuth, licensing, and configuration guidance for App Connect plugins.
+description: Lifecycle, manifest, execution, OAuth, licensing, pricing display, and configuration guidance for App Connect plugins.
 owner: RingCentral
 status: proposed
 tags: [app-connect, plugins]
@@ -45,7 +45,9 @@ Current plugin runtime reads these fields from the plugin platform manifest:
 | --- | --- |
 | `endpointUrl` | Main plugin invocation endpoint. |
 | `userRegisterEndpointUrl` | Account registration endpoint. Must return `{ jwtToken }`. |
+| `requireLicense` | Optional. When `true`, App Connect calls `licenseStatusUrl` and warns administrators when the plugin is not licensed. It does not show any pricing. |
 | `licenseStatusUrl` | Optional license endpoint. Called with `Authorization: Bearer <pluginJwtToken>`. |
+| `licensing` | Optional. Display-only pricing information for a paid plugin. See [Pricing and paid listings](#pricing-and-paid-listings). It never triggers a license check. |
 | `supportedLogTypes` | Activity types that should invoke the plugin: `call`, `sms`, and/or `fax`. |
 | `isAsync` | Marks the plugin as asynchronous. For call logs, App Connect dispatches after create or update succeeds and expects a callback. |
 | `tokenSyncUrl` | Required for async plugins. App Connect calls this before invoking `endpointUrl` so the plugin can refresh its stored token. |
@@ -216,6 +218,72 @@ Authorization: Bearer <pluginJwtToken>
 ```
 
 Return a JSON object that the client can interpret as the plugin license state. The template handler is `packages/plugin-template/src/handlers/license.ts`.
+
+## Pricing and paid listings
+
+A paid plugin can publish its price and purchase links so administrators see them in the Admin Console before and after installing it. This is **display only**: it does not check, require, or enforce a license. A plugin that does not declare `licensing` is listed as free.
+
+In the Developer Console, open the plugin settings and turn on **Paid plugin listing**, or add a `licensing` block to the manifest:
+
+```json
+{
+  "licensing": {
+    "enabled": true,
+    "priceAmount": 4.00,
+    "priceUnit": "user",
+    "billingPeriod": "month",
+    "pricingInfoUrl": "https://example.com/plugins/my-plugin/pricing",
+    "purchaseUrl": "https://example.com/plugins/my-plugin/buy",
+    "manageSubscriptionUrl": "https://example.com/account/billing",
+    "marketplaceDescription": "Archive every call recording to a bucket you control."
+  }
+}
+```
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `enabled` | Yes | `false` or missing lists the plugin as free. Values you entered are kept but not published while this is `false`. |
+| `priceAmount` | When enabled | A positive number with at most two decimal places. USD only. |
+| `priceUnit` | When enabled | `user` or `account`. |
+| `billingPeriod` | When enabled | `month` or `year`. The price is shown as, for example, `$4 per user / month`. |
+| `pricingInfoUrl` | When enabled | Public pricing page. Opened by **Pricing** and **View pricing**. |
+| `purchaseUrl` | When enabled | Checkout page. Opened by **Purchase** once the plugin is installed. |
+| `manageSubscriptionUrl` | When enabled | Billing portal. Opened by **Manage subscription** once the plugin is installed. |
+| `marketplaceDescription` | No | Plain text, up to 500 characters. Falls back to the plugin description. |
+
+Every URL must be an absolute `https://` URL without embedded credentials, and opens in a new tab. The Developer Console rejects anything else when you save.
+
+If a plugin is marked as paid but a required value is missing or invalid, the Admin Console still labels it **Paid** but shows no price and no pricing links, so a broken manifest never produces a broken button.
+
+### What administrators see
+
+| Situation | Plugin card | Details dialog |
+| --- | --- | --- |
+| Free, not installed | **Free** badge, **Install for free** | "No license needed", **Close** and **Install for free** |
+| Paid, not installed | **Paid** badge, price, **Install** and **Pricing** | "Billed by *publisher*", **Pricing** and **Install** |
+| Installed | **Configure** and **Uninstall**, plus **Manage subscription** when the plugin is paid | **Uninstall**, **Close**, **Purchase** when the plugin is paid, and **Save configuration** when it has settings |
+
+The Price field in the dialog shows `Free`, or the price with **View pricing** before installation and **Manage subscription** afterwards.
+
+### Account parameter on purchase links
+
+When an administrator opens **Purchase** or **Manage subscription**, App Connect appends the RingCentral account ID as a query parameter, for example `https://example.com/buy?rcAccountId=1234567`. Existing query parameters and the hash are preserved, and an existing `rcAccountId` parameter is replaced. Use it to pre-fill your checkout form.
+
+!!! warning "Do not treat `rcAccountId` as proof of identity"
+    Anyone can edit a URL. The parameter is a convenience only. Decide who is licensed on your own server, from the account recorded in the plugin JWT you issue at registration.
+
+### Charging and refusing service is your responsibility
+
+App Connect does not block a plugin because it is unpaid, and the pricing information above is never used to check a license. If your plugin must refuse unlicensed accounts, do it on your plugin server:
+
+- **Synchronous plugins**: do not return a non-2xx status. App Connect runs synchronous plugins before the connector saves the activity, and a failed plugin request fails the whole call log. Return `200` with the `data` you received, **unchanged and complete**; the response body replaces the logging payload. Note that a plugin that normally redacts or transforms data will then let the original data through.
+- **Asynchronous plugins**: an `accepted: false` response is ignored and leaves the task pending until it expires. Return `200` and then call the `callbackUrl` with `successful: false` and a `message`.
+- **License endpoint**: if you also set `requireLicense` and `licenseStatusUrl`, report an unlicensed account with `200` and `licenseStatus: false`, plus a `licenseStatusDescription` administrators can act on. Keep `401` and `403` for an invalid or mismatched plugin bearer token, as described in the [Plugin server API reference](../plugin-server-api/index.md).
+- **Per-user pricing**: each call includes `hashedExtensionId`, a pseudonymous identifier for the RingCentral extension. Use it to count users. It is not an authentication credential and can be empty.
+
+### Review
+
+Changing `pricingInfoUrl`, `purchaseUrl`, or `manageSubscriptionUrl` on an approved plugin sends it back for review. Changing the price, unit, period, or description does not.
 
 ## Custom Configuration
 
