@@ -750,11 +750,11 @@ function createCoreRouter() {
                 res.status(400).send(wrapDebugResponse(tracer, 'Missing managed auth field'));
                 return;
             }
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({
+            const { rcAccountId } = await adminCore.validateRcUserToken({
                 rcAccessToken: getRcAccessTokenFromRequest(req),
             });
-            if (!isValidated) {
-                res.status(403).send(wrapDebugResponse(tracer, 'Admin validation failed'));
+            if (!rcAccountId) {
+                res.status(403).send(wrapDebugResponse(tracer, 'RingCentral user validation failed'));
                 return;
             }
             const options: ManagedAuthOptionsResponse = await managedAuthCore.getManagedAuthOptions({
@@ -1495,15 +1495,10 @@ function createCoreRouter() {
             }
             let rcAccountId = null;
             let rcExtensionId = null;
-            let canPersistManagedAuth = false;
             if (rcAccessToken) {
                 const rcUserTokenResult = await adminCore.validateRcUserToken({ rcAccessToken });
                 rcAccountId = rcUserTokenResult.rcAccountId;
                 rcExtensionId = rcUserTokenResult.rcExtensionId;
-                if (additionalInfo && typeof additionalInfo === 'object' && Object.keys(additionalInfo).length > 0) {
-                    const adminValidation = await adminCore.validateAdminRole({ rcAccessToken });
-                    canPersistManagedAuth = !!adminValidation?.isValidated;
-                }
             }
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({
                 platform,
@@ -1515,7 +1510,6 @@ function createCoreRouter() {
                 devRcAccountId,
                 connectorId,
                 isPrivate,
-                canPersistManagedAuth,
                 hashedRcExtensionId: hashedExtensionId,
                 additionalInfo
             });
