@@ -3383,6 +3383,73 @@ describe('Log Handler', () => {
       expect(result.successful).toBe(false);
       expect(await MessageLogModel.findByPk('msg-1')).toBeNull();
     });
+
+    test('still reports the CRM failure when releasing the claim fails', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      mockConnector.createMessageLog.mockResolvedValue({});
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      jest.spyOn(MessageLogModel, 'destroy').mockRejectedValueOnce(new Error('DB down'));
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result.successful).toBe(false);
+      expect((await MessageLogModel.findByPk('msg-1')).thirdPartyLogId).toBe('__pending__');
+    });
+
+    test('does not write to the CRM when an abandoned claim cannot be released', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      await MessageLogModel.create({
+        id: 'msg-1',
+        conversationId: 'conv-123',
+        thirdPartyLogId: '__pending__',
+        userId: 'test-user-id',
+        platform: 'testCRM',
+      });
+      await MessageLogModel.sequelize.query(
+        'UPDATE "messageLogs" SET "updatedAt" = :abandonedAt WHERE "id" = :id',
+        { replacements: { abandonedAt: new Date(Date.now() - 10 * 60 * 1000), id: 'msg-1' } },
+      );
+      jest.spyOn(MessageLogModel, 'destroy').mockRejectedValueOnce(new Error('DB down'));
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result.successful).toBe(false);
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
+    test('uses the claim creation time when its update time is missing', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      jest.spyOn(MessageLogModel, 'findAll').mockResolvedValueOnce([{
+        id: 'msg-1',
+        thirdPartyLogId: '__pending__',
+        userId: 'test-user-id',
+        platform: 'testCRM',
+        updatedAt: null,
+        createdAt: new Date(),
+      }]);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result).toEqual(inProgressWarning);
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
   });
 
   describe('getMessageLog', () => {
