@@ -468,6 +468,56 @@ async function handleAsyncPluginCallback({ taskId, body }) {
     }
 }
 
+function isUniqueConstraintError(error) {
+    return error?.name === 'SequelizeUniqueConstraintError';
+}
+
+// Two requests for the same call (e.g. server-side logging and the client) can
+// both pass the existing-log check and write to the CRM. The loser's insert hits
+// the primary key, so report the winner's record instead of a database error.
+async function resolveConcurrentCallLogCreate({ incomingData, extensionNumber, hashedExtensionId, platform, logId, error }) {
+    let existingCallLog = null;
+    try {
+        existingCallLog = await CallLogModel.findOne({
+            where: buildCallLogSessionWhere({
+                sessionId: incomingData.logInfo.sessionId,
+                extensionNumber,
+                hashedExtensionId,
+            })
+        });
+    }
+    catch (findError) {
+        return handleDatabaseError(findError, 'Error finding existing call log');
+    }
+    if (!existingCallLog) {
+        return handleDatabaseError(error, 'Error creating call log');
+    }
+    logger.warn('Call log was created concurrently; returning the existing record', {
+        platform,
+        sessionId: incomingData.logInfo.sessionId,
+        existingLogId: existingCallLog.thirdPartyLogId,
+        duplicateLogId: logId,
+    });
+    return {
+        successful: true,
+        logId: existingCallLog.thirdPartyLogId,
+        returnMessage: {
+            message: 'Call was already logged',
+            messageType: 'success',
+            ttl: 2000
+        }
+    };
+}
+
+// A concurrent request already recorded this message, so it counts as logged.
+function logConcurrentMessageLogCreate({ platform, messageId, duplicateLogId }) {
+    logger.warn('Message log was created concurrently; keeping the existing record', {
+        platform,
+        messageId,
+        duplicateLogId,
+    });
+}
+
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         const extensionNumber = getCallLogExtensionNumber(incomingData);
@@ -663,7 +713,17 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 }
             }
             catch (error) {
-                return handleDatabaseError(error, 'Error creating call log');
+                if (!isUniqueConstraintError(error)) {
+                    return handleDatabaseError(error, 'Error creating call log');
+                }
+                return await resolveConcurrentCallLogCreate({
+                    incomingData,
+                    extensionNumber,
+                    hashedExtensionId,
+                    platform,
+                    logId,
+                    error,
+                });
             }
             return {
                 successful: !!logId,
@@ -1173,16 +1233,24 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;
                 if (createMessageLogResult.logId) {
-                    const createdMessageLog =
-                        await MessageLogModel.create({
-                            id: incomingData.logInfo.conversationLogId,
-                            platform,
-                            conversationId: incomingData.logInfo.conversationId,
-                            thirdPartyLogId: createMessageLogResult.logId,
-                            userId,
-                            conversationLogId: incomingData.logInfo.conversationLogId
-                        });
-                    logIds.push(createdMessageLog.id);
+                    try {
+                        const createdMessageLog =
+                            await MessageLogModel.create({
+                                id: incomingData.logInfo.conversationLogId,
+                                platform,
+                                conversationId: incomingData.logInfo.conversationId,
+                                thirdPartyLogId: createMessageLogResult.logId,
+                                userId,
+                                conversationLogId: incomingData.logInfo.conversationLogId
+                            });
+                        logIds.push(createdMessageLog.id);
+                    } catch (error) {
+                        if (!isUniqueConstraintError(error)) {
+                            return handleDatabaseError(error, 'Error creating message log');
+                        }
+                        logConcurrentMessageLogCreate({ platform, messageId: incomingData.logInfo.conversationLogId, duplicateLogId: createMessageLogResult.logId });
+                        logIds.push(incomingData.logInfo.conversationLogId);
+                    }
                 }
             }
         }
@@ -1266,7 +1334,11 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
                             });
                         logIds.push(createdMessageLog.id);
                     } catch (error) {
-                        return handleDatabaseError(error, 'Error creating message log');
+                        if (!isUniqueConstraintError(error)) {
+                            return handleDatabaseError(error, 'Error creating message log');
+                        }
+                        logConcurrentMessageLogCreate({ platform, messageId: message.id.toString(), duplicateLogId: crmLogId });
+                        logIds.push(message.id.toString());
                     }
                 }
             }
