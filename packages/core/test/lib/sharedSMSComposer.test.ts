@@ -107,11 +107,23 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/24');
+      expect(result.subject).toBe('SMS conversation with John Customer');
       expect(result.body).toContain('Conversation summary');
       expect(result.body).toContain('John Customer (customer)');
       expect(result.body).toContain('BEGIN');
       expect(result.body).toContain('END');
+    });
+
+    test('should append the conversation date and time when includeTime is set', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        includeTime: true
+      });
+
+      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
     });
 
     test('should omit the date suffix when the conversation creation time is invalid', () => {
@@ -119,7 +131,8 @@ describe('sharedSMSComposer', () => {
         logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
         conversation: { ...baseConversation, creationTime: 'not-a-date' },
         contactName: 'John Customer',
-        timezoneOffset: '+00:00'
+        timezoneOffset: '+00:00',
+        includeTime: true
       });
 
       expect(result.subject).toBe('SMS conversation with John Customer');
@@ -146,7 +159,7 @@ describe('sharedSMSComposer', () => {
         customSubject: '   '
       });
 
-      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/24');
+      expect(result.subject).toBe('SMS conversation with John Customer');
     });
 
     test('should compose SMS log in HTML format', () => {
@@ -157,10 +170,30 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('<b>SMS conversation with John Customer - 01/15/24</b>');
+      expect(result.subject).toBe('SMS conversation with John Customer');
       expect(result.body).toContain('<b>Conversation summary</b>');
       expect(result.body).toContain('<b>Participants</b>');
       expect(result.body).toContain('<li>');
+    });
+
+    test('should keep HTML-format subjects free of markup for custom and dated titles', () => {
+      const dated = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        includeTime: true
+      });
+      const custom = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        customSubject: 'Follow-up with John'
+      });
+
+      expect(dated.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
+      expect(custom.subject).toBe('Follow-up with John');
     });
 
     test('should compose SMS log in Markdown format', () => {
@@ -171,7 +204,7 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('**SMS conversation with John Customer - 01/15/24**');
+      expect(result.subject).toBe('**SMS conversation with John Customer**');
       expect(result.body).toContain('## Conversation summary');
       expect(result.body).toContain('### Participants');
       expect(result.body).toContain('---');
@@ -1236,7 +1269,7 @@ describe('sharedSMSComposer', () => {
         contactName: 'Customer'
       });
 
-      expect(result.subject).toMatch(/^SMS conversation with Customer - \d{2}\/\d{2}\/\d{2}$/);
+      expect(result.subject).toBe('SMS conversation with Customer');
       expect(result.body).toContain('Conversation summary');
     });
 
@@ -1252,7 +1285,7 @@ describe('sharedSMSComposer', () => {
         contactName: 'Customer'
       });
 
-      expect(result.subject).toMatch(/^SMS conversation with Customer - \d{2}\/\d{2}\/\d{2}$/);
+      expect(result.subject).toBe('SMS conversation with Customer');
       expect(result.body).not.toContain('<b>');
       expect(result.body).not.toContain('##');
     });

@@ -363,7 +363,7 @@ describe('Clio expanded App-level E2E', () => {
       },
     });
     expect(createdBody.data).toMatchObject({
-      subject: `SMS conversation with ${message.contact.name} - 07/14/2026 03:00 PM`,
+      subject: `SMS conversation with ${message.contact.name} - 07/14/2026`,
       type: 'PhoneCommunication',
       received_at: message.inbound.creationTime,
       senders: [{ id: message.contact.id, type: 'Contact' }],

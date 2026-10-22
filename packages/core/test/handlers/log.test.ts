@@ -2434,7 +2434,7 @@ describe('Log Handler', () => {
           thirdPartyLogId: 'existing-crm-log'
         }),
         sharedSMSLogContent: expect.objectContaining({
-          subject: 'SMS conversation with Shared Contact - 06/12/26',
+          subject: 'SMS conversation with Shared Contact',
           body: expect.stringContaining('Conversation summary')
         })
       }));
@@ -2727,6 +2727,13 @@ describe('Log Handler', () => {
       };
     }
 
+    async function waitForCondition(condition: () => boolean) {
+      for (let attempt = 0; attempt < 100 && !condition(); attempt++) {
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+      expect(condition()).toBe(true);
+    }
+
     function buildIncomingData(selectedMessageIds) {
       return {
         selectedMessageIds,
@@ -2779,10 +2786,13 @@ describe('Log Handler', () => {
       // Per-message mapping points every selected message at the same CRM record.
       expect(result.logId).toBe('crm-entry-1');
       expect(result.messageLogs).toEqual({ 'msg-1': 'crm-entry-1', 'msg-3': 'crm-entry-1' });
+      // Rows are claimed before the CRM write, then pointed at the CRM record.
       expect(bulkCreateSpy).toHaveBeenCalledWith(expect.arrayContaining([
-        expect.objectContaining({ id: 'msg-1', thirdPartyLogId: 'crm-entry-1', contactId: 'contact-123' }),
-        expect.objectContaining({ id: 'msg-3', thirdPartyLogId: 'crm-entry-1', contactId: 'contact-123' }),
+        expect.objectContaining({ id: 'msg-1', thirdPartyLogId: '__pending__', contactId: 'contact-123' }),
+        expect.objectContaining({ id: 'msg-3', thirdPartyLogId: '__pending__', contactId: 'contact-123' }),
       ]));
+      expect(bulkCreateSpy.mock.invocationCallOrder[0])
+        .toBeLessThan(mockConnector.createMessageLog.mock.invocationCallOrder[0]);
 
       // Selected-message mappings are persisted in the same table as the
       // existing message-log duplicate detection.
@@ -2792,7 +2802,16 @@ describe('Log Handler', () => {
       expect(messageRows.every((a) => a.contactId === 'contact-123')).toBe(true);
     });
 
-    test('ignores selectedMessageIds when the connector does not opt in', async () => {
+    const unsupportedSelectionResponse = {
+      successful: false,
+      returnMessage: {
+        message: 'Logging selected messages is not supported for this CRM.',
+        messageType: 'warning',
+        ttl: 3000,
+      },
+    };
+
+    test('rejects selectedMessageIds when the connector does not opt in', async () => {
       await seedUser();
       connectorRegistry.getManifest.mockReturnValue({
         platforms: { testCRM: {} },
@@ -2800,13 +2819,68 @@ describe('Log Handler', () => {
       const mockConnector = buildSelectiveConnector();
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
-      const incomingData = buildIncomingData(['msg-gate-1']);
-      incomingData.logInfo.messages = [
-        { id: 'msg-gate-1', subject: 'A', direction: 'Outbound', creationTime: '2024-01-01T10:00:00Z' },
-        { id: 'msg-gate-2', subject: 'B', direction: 'Inbound', creationTime: '2024-01-01T11:00:00Z' },
-      ];
-      incomingData.logInfo.conversationId = 'conv-gate';
-      incomingData.logInfo.conversationLogId = 'conv-log-gate';
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      // Falling back would log the whole conversation, not the user's selection.
+      expect(result).toEqual(unsupportedSelectionResponse);
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+      expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
+      expect(await MessageLogModel.count()).toBe(0);
+    });
+
+    test('uses the whole-conversation path when selectedMessageIds is empty', async () => {
+      await seedUser();
+      connectorRegistry.getManifest.mockReturnValue({
+        platforms: { testCRM: {} },
+      });
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData([]),
+      });
+
+      expect(result.successful).toBe(true);
+      expect(result.messageLogs).toBeUndefined();
+      expect(mockConnector.createMessageLog.mock.calls[0][0].messages).toBeUndefined();
+    });
+
+    test.each([
+      ['a non-array value', 'msg-1'],
+      ['a blank id', ['msg-1', '  ']],
+      ['an object id', [{ id: 'msg-1' }]],
+      ['too many ids', Array.from({ length: 1001 }, (_v, i) => `msg-${i}`)],
+    ])('rejects selectedMessageIds with %s', async (_label, selectedMessageIds) => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(selectedMessageIds),
+      });
+
+      expect(result).toEqual({
+        successful: false,
+        returnMessage: {
+          message: 'Invalid message selection.',
+          messageType: 'warning',
+          ttl: 3000,
+        },
+      });
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
+    test('returns a warning instead of throwing when logInfo.messages is missing', async () => {
+      const incomingData: any = buildIncomingData(['msg-1']);
+      delete incomingData.logInfo.messages;
 
       const result = await logHandler.createMessageLog({
         platform: 'testCRM',
@@ -2814,12 +2888,10 @@ describe('Log Handler', () => {
         incomingData,
       });
 
-      expect(result.successful).toBe(true);
-      // Daily-digest path: the first message creates the CRM entry and the
-      // second appends to it. Neither call is the selected-message payload.
-      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
-      expect(mockConnector.updateMessageLog).toHaveBeenCalledTimes(1);
-      expect(mockConnector.createMessageLog.mock.calls[0][0].messages).toBeUndefined();
+      expect(result).toEqual({
+        successful: false,
+        returnMessage: { message: 'No message to log.', messageType: 'warning', ttl: 3000 },
+      });
     });
 
     test.each([
@@ -2832,7 +2904,7 @@ describe('Log Handler', () => {
         connectorRegistry.getManifest.mockImplementation(() => { throw new Error('manifest unavailable'); });
         return () => {};
       }],
-    ])('falls back to the per-message path when %s', async (_label, arrange) => {
+    ])('rejects the selection when %s', async (_label, arrange) => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
@@ -2845,9 +2917,8 @@ describe('Log Handler', () => {
           incomingData: buildIncomingData(['msg-1']),
         });
 
-        expect(result.successful).toBe(true);
-        expect(result.messageLogs).toBeUndefined();
-        expect(mockConnector.createMessageLog.mock.calls[0][0].messages).toBeUndefined();
+        expect(result).toEqual(unsupportedSelectionResponse);
+        expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
       }
       finally {
         restore();
@@ -3163,7 +3234,24 @@ describe('Log Handler', () => {
       expect(messageRows.length).toBe(0);
     });
 
-    test('returns a database warning when selected-message logs cannot be saved', async () => {
+    const databaseWarning = {
+      successful: false,
+      returnMessage: {
+        message: 'Database operation failed',
+        messageType: 'warning',
+        ttl: 5000,
+      },
+    };
+    const inProgressWarning = {
+      successful: false,
+      returnMessage: {
+        message: 'These messages are already being logged. Please try again shortly.',
+        messageType: 'warning',
+        ttl: 3000,
+      },
+    };
+
+    test('does not write to the CRM when selected messages cannot be claimed', async () => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
@@ -3175,15 +3263,122 @@ describe('Log Handler', () => {
         incomingData: buildIncomingData(['msg-1']),
       });
 
-      expect(result).toEqual({
-        successful: false,
-        returnMessage: {
-          message: 'Database operation failed',
-          messageType: 'warning',
-          ttl: 5000,
-        },
+      expect(result).toEqual(databaseWarning);
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
+    test('returns a database warning when the claimed rows cannot be pointed at the CRM entry', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      jest.spyOn(MessageLogModel, 'update').mockRejectedValueOnce(new Error('message log update failed'));
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result).toEqual(databaseWarning);
+      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
+    });
+
+    test('creates only one CRM entry for concurrent submissions of the same selection', async () => {
+      await seedUser();
+      let releaseCrm: (value: unknown) => void = () => {};
+      const mockConnector = {
+        ...buildSelectiveConnector(),
+        createMessageLog: jest.fn().mockImplementation(() => new Promise((resolve) => {
+          releaseCrm = resolve;
+        })),
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const first = logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1', 'msg-3']),
+      });
+      await waitForCondition(() => mockConnector.createMessageLog.mock.calls.length === 1);
+
+      const second = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1', 'msg-3']),
+      });
+      expect(second).toEqual(inProgressWarning);
+
+      releaseCrm({ logId: 'crm-entry-1', returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 } });
+      await expect(first).resolves.toMatchObject({
+        successful: true,
+        messageLogs: { 'msg-1': 'crm-entry-1', 'msg-3': 'crm-entry-1' },
       });
       expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
+    });
+
+    test('reports in-progress when another request claims the rows between lookup and insert', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      const conflict = new Error('Validation error');
+      conflict.name = 'SequelizeUniqueConstraintError';
+      jest.spyOn(MessageLogModel, 'bulkCreate').mockRejectedValueOnce(conflict);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result).toEqual(inProgressWarning);
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
+    test('takes over a claim that is older than the pending timeout', async () => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      await MessageLogModel.create({
+        id: 'msg-1',
+        conversationId: 'conv-123',
+        thirdPartyLogId: '__pending__',
+        userId: 'test-user-id',
+        platform: 'testCRM',
+      });
+      const abandonedAt = new Date(Date.now() - 10 * 60 * 1000);
+      await MessageLogModel.sequelize.query(
+        'UPDATE "messageLogs" SET "updatedAt" = :abandonedAt WHERE "id" = :id',
+        { replacements: { abandonedAt, id: 'msg-1' } },
+      );
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result).toMatchObject({ successful: true, messageLogs: { 'msg-1': 'crm-entry-1' } });
+      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
+      expect((await MessageLogModel.findByPk('msg-1')).thirdPartyLogId).toBe('crm-entry-1');
+    });
+
+    test.each([
+      ['returns no log id', (connector) => connector.createMessageLog.mockResolvedValue({})],
+      ['throws', (connector) => connector.createMessageLog.mockRejectedValue(new Error('CRM down'))],
+    ])('releases the claim when the CRM write %s so the user can retry', async (_label, arrange) => {
+      await seedUser();
+      const mockConnector = buildSelectiveConnector();
+      arrange(mockConnector);
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+
+      expect(result.successful).toBe(false);
+      expect(await MessageLogModel.findByPk('msg-1')).toBeNull();
     });
   });
 
@@ -3232,6 +3427,32 @@ describe('Log Handler', () => {
 
       expect(result.successful).toBe(true);
       expect(result.logs.map((l) => l.messageId).sort()).toEqual(['msg-1', 'msg-2']);
+    });
+
+    test('does not report messages whose CRM entry is still being written as logged', async () => {
+      await seedUserAndMessageLogs();
+      await MessageLogModel.create({
+        id: 'msg-pending',
+        conversationId: 'conv-123',
+        thirdPartyLogId: '__pending__',
+        userId: 'test-user-id',
+        platform: 'testCRM',
+      });
+
+      const byId = await logHandler.getMessageLog({
+        userId: 'test-user-id',
+        platform: 'testCRM',
+        conversationId: 'conv-123',
+        messageIds: ['msg-pending'],
+      });
+      const byConversation = await logHandler.getMessageLog({
+        userId: 'test-user-id',
+        platform: 'testCRM',
+        conversationId: 'conv-123',
+      });
+
+      expect(byId.logs).toEqual([{ messageId: 'msg-pending', matched: false }]);
+      expect(byConversation.logs.map((l) => l.messageId).sort()).toEqual(['msg-1', 'msg-2']);
     });
 
     test('can look up selected message ids without a conversation id', async () => {
@@ -3522,7 +3743,7 @@ describe('Log Handler', () => {
         if (isShared) {
           expect(connector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
             sharedSMSLogContent: expect.objectContaining({
-              subject: 'SMS conversation with Message Contact - 07/14/26',
+              subject: 'SMS conversation with Message Contact',
             }),
           }));
         }

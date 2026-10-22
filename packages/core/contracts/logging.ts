@@ -53,6 +53,13 @@ export const MessageLogResponseSchema = z.looseObject({
   ).optional(),
 }).describe('Result of logging an SMS, MMS, fax, voicemail, or message conversation.');
 
+export const SELECTED_MESSAGE_LOG_MAX_MESSAGE_IDS = 1000;
+export const SelectedMessageIdsSchema = z.array(
+  z.union([z.string().trim().min(1), z.number()]),
+).max(SELECTED_MESSAGE_LOG_MAX_MESSAGE_IDS).describe(
+  'RingCentral message identifiers the user selected to log as a single CRM entry.',
+);
+
 export const MESSAGE_LOG_MATCH_MAX_MESSAGE_IDS = 100;
 const MessageLogMatchConversationIdSchema = z.union([
   z.string().min(1),

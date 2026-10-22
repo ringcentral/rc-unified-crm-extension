@@ -42,6 +42,14 @@ const getCallLogExtensionNumber = /** @type {any} */ (rawGetCallLogExtensionNumb
 const getCallLogHashedExtensionId = /** @type {any} */ (rawGetCallLogHashedExtensionId);
 const buildCallLogSessionWhere = /** @type {any} */ (rawBuildCallLogSessionWhere);
 const findMatchingCallLog = /** @type {any} */ (rawFindMatchingCallLog);
+const { SelectedMessageIdsSchema } = require('../contracts/logging');
+
+// Placeholder `thirdPartyLogId` that claims selected messages while their CRM
+// entry is being written, so a concurrent submit cannot create a second entry.
+const SELECTED_MESSAGE_LOG_PENDING_ID = '__pending__';
+// A claim older than this is treated as abandoned (e.g. the process died
+// mid-request) and may be taken over.
+const SELECTED_MESSAGE_LOG_PENDING_TTL_MS = 5 * 60 * 1000;
 
 const ASYNC_PLUGIN_CACHE_KEY = 'asyncPluginTask';
 const ASYNC_PLUGIN_CALLBACK_PATH = '/plugin/async-callback';
@@ -1032,7 +1040,7 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
     try {
         let returnMessage = null;
         let extraDataTracking = {};
-        if (incomingData.logInfo.messages.length === 0) {
+        if (!Array.isArray(incomingData?.logInfo?.messages) || incomingData.logInfo.messages.length === 0) {
             return {
                 successful: false,
                 returnMessage:
@@ -1196,22 +1204,47 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         // as a single CRM entry. Store each selected message in `messageLogs`,
         // the same message-to-CRM mapping table used by the normal path, so
         // duplicate detection and logged-state matching have one source of truth.
-        const selectedMessageIds = incomingData.selectedMessageIds ?? incomingData.logInfo?.selectedMessageIds;
-        // The manifest flag is the server-side gate. A connector that does not
-        // opt in keeps the existing per-message / daily-digest path.
-        let selectedMessageLogSupported = false;
-        if (typeof connectorRegistry.getManifest === 'function') {
-            try {
-                // The bundled server manifest is registered as the registry's
-                // default manifest, not once per connector.
-                const manifest = connectorRegistry.getManifest(platform, true);
-                selectedMessageLogSupported = manifest?.platforms?.[platform]?.isSelectedMessageLogSupported === true;
-            }
-            catch (error) {
-                selectedMessageLogSupported = false;
-            }
+        const rawSelectedMessageIds = incomingData.selectedMessageIds ?? incomingData.logInfo?.selectedMessageIds;
+        const parsedSelectedMessageIds = rawSelectedMessageIds == null
+            ? null
+            : SelectedMessageIdsSchema.safeParse(rawSelectedMessageIds);
+        if (parsedSelectedMessageIds && !parsedSelectedMessageIds.success) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: 'Invalid message selection.',
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
         }
-        if (selectedMessageLogSupported && Array.isArray(selectedMessageIds) && selectedMessageIds.length > 0) {
+        const selectedMessageIds = parsedSelectedMessageIds?.data ?? [];
+        if (selectedMessageIds.length > 0) {
+            // The manifest flag is the server-side gate. A selection must never
+            // fall back to the whole-conversation path, which would log
+            // messages the user did not pick.
+            let selectedMessageLogSupported = false;
+            if (typeof connectorRegistry.getManifest === 'function') {
+                try {
+                    // The bundled server manifest is registered as the registry's
+                    // default manifest, not once per connector.
+                    const manifest = connectorRegistry.getManifest(platform, true);
+                    selectedMessageLogSupported = manifest?.platforms?.[platform]?.isSelectedMessageLogSupported === true;
+                }
+                catch (error) {
+                    selectedMessageLogSupported = false;
+                }
+            }
+            if (!selectedMessageLogSupported) {
+                return {
+                    successful: false,
+                    returnMessage: {
+                        message: 'Logging selected messages is not supported for this CRM.',
+                        messageType: 'warning',
+                        ttl: 3000
+                    }
+                };
+            }
             return await logSelectedMessagesAsSingleEntry({
                 platform,
                 userId,
@@ -1273,7 +1306,8 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
             // creates a duplicate entry instead of updating the shared one.
             const existingMessageLog = await MessageLogModel.findOne({
                 where: {
-                    conversationLogId: incomingData.logInfo.conversationLogId
+                    conversationLogId: incomingData.logInfo.conversationLogId,
+                    thirdPartyLogId: { [Op.ne]: SELECTED_MESSAGE_LOG_PENDING_ID }
                 }
             });
             if (existingMessageLog?.platform && existingMessageLog.platform !== platform) {
@@ -1371,7 +1405,8 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
                     where: {
                         conversationLogId: incomingData.logInfo.conversationLogId,
                         userId,
-                        platform
+                        platform,
+                        thirdPartyLogId: { [Op.ne]: SELECTED_MESSAGE_LOG_PENDING_ID }
                     }
                 });
                 let crmLogId = ''
@@ -1419,6 +1454,32 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
     }
     catch (e) {
         return handleApiError(e, platform, 'createMessageLog', { userId });
+    }
+}
+
+function selectedMessagesInProgressResponse() {
+    return {
+        successful: false,
+        returnMessage: {
+            message: 'These messages are already being logged. Please try again shortly.',
+            messageType: 'warning',
+            ttl: 3000
+        }
+    };
+}
+
+async function releaseSelectedMessageClaims(claimedIds) {
+    try {
+        await MessageLogModel.destroy({
+            where: {
+                id: { [Op.in]: claimedIds },
+                thirdPartyLogId: SELECTED_MESSAGE_LOG_PENDING_ID
+            }
+        });
+    }
+    catch (error) {
+        // An unreleased claim expires after SELECTED_MESSAGE_LOG_PENDING_TTL_MS.
+        logger.error('Error releasing selected message log claims', { stack: error?.stack });
     }
 }
 
@@ -1495,7 +1556,19 @@ async function logSelectedMessagesAsSingleEntry({
     }
     const messageLogs = {};
     const loggedElsewhereIds = [];
+    const abandonedClaimIds = [];
+    let hasActiveClaim = false;
     for (const log of existingMessageLogs) {
+        if (log.thirdPartyLogId === SELECTED_MESSAGE_LOG_PENDING_ID) {
+            const claimedAt = new Date(log.updatedAt ?? log.createdAt).getTime();
+            if (!Number.isFinite(claimedAt) || Date.now() - claimedAt > SELECTED_MESSAGE_LOG_PENDING_TTL_MS) {
+                abandonedClaimIds.push(log.id);
+            }
+            else {
+                hasActiveClaim = true;
+            }
+            continue;
+        }
         // Never expose another user's or CRM's record id to this user.
         if (log.userId === userId && log.platform === platform) {
             messageLogs[log.id] = log.thirdPartyLogId;
@@ -1504,10 +1577,29 @@ async function logSelectedMessagesAsSingleEntry({
             loggedElsewhereIds.push(log.id);
         }
     }
+    if (hasActiveClaim) {
+        return selectedMessagesInProgressResponse();
+    }
+    if (abandonedClaimIds.length > 0) {
+        try {
+            await MessageLogModel.destroy({
+                where: {
+                    id: { [Op.in]: abandonedClaimIds },
+                    thirdPartyLogId: SELECTED_MESSAGE_LOG_PENDING_ID
+                }
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error releasing abandoned message logs');
+        }
+    }
     if (loggedElsewhereIds.length > 0) {
         pluginWarnings.push(`${loggedElsewhereIds.length} selected message(s) were already logged by another user or CRM and were skipped.`);
     }
-    const alreadyLoggedIds = new Set(existingMessageLogs.map(log => log.id));
+    const abandonedClaimIdSet = new Set(abandonedClaimIds);
+    const alreadyLoggedIds = new Set(
+        existingMessageLogs.map(log => log.id).filter(id => !abandonedClaimIdSet.has(id))
+    );
 
     const messagesToLog = selectedMessages
         .filter(m => !alreadyLoggedIds.has(m.id.toString()))
@@ -1565,24 +1657,54 @@ async function logSelectedMessagesAsSingleEntry({
     // Connectors that key the CRM record date off the conversation read this.
     sharedSMSLogContent.conversationCreatedDate = conversationCreatedDate;
 
-    const createResult = await platformModule.createMessageLog({
-        user,
-        contactInfo,
-        correspondents,
-        assigneeName,
-        ownerName,
-        messages: messagesToLog,
-        sharedSMSLogContent,
-        authHeader,
-        additionalSubmission,
-        proxyConfig
-    });
+    // Claim the rows before writing to the CRM. `id` is the primary key, so a
+    // concurrent request for the same messages fails here instead of creating
+    // a second CRM entry.
+    const claimedIds = messagesToLog.map(message => message.id.toString());
+    try {
+        await MessageLogModel.bulkCreate(claimedIds.map(id => ({
+            id,
+            conversationId,
+            conversationLogId,
+            thirdPartyLogId: SELECTED_MESSAGE_LOG_PENDING_ID,
+            userId,
+            platform,
+            contactId: incomingData.contactId
+        })));
+    }
+    catch (error) {
+        if (error?.name === 'SequelizeUniqueConstraintError') {
+            return selectedMessagesInProgressResponse();
+        }
+        return handleDatabaseError(error, 'Error creating message logs');
+    }
+
+    let createResult;
+    try {
+        createResult = await platformModule.createMessageLog({
+            user,
+            contactInfo,
+            correspondents,
+            assigneeName,
+            ownerName,
+            messages: messagesToLog,
+            sharedSMSLogContent,
+            authHeader,
+            additionalSubmission,
+            proxyConfig
+        });
+    }
+    catch (error) {
+        await releaseSelectedMessageClaims(claimedIds);
+        throw error;
+    }
     // Normalize to a string; connectors may return a numeric logId (e.g. clio).
     const crmLogId = createResult?.logId != null ? String(createResult.logId) : null;
     returnMessage = createResult?.returnMessage;
     extraDataTracking = createResult?.extraDataTracking;
 
     if (!crmLogId) {
+        await releaseSelectedMessageClaims(claimedIds);
         return {
             successful: false,
             returnMessage: returnMessage ?? {
@@ -1594,20 +1716,19 @@ async function logSelectedMessagesAsSingleEntry({
         };
     }
 
-    // Point every logged message at the single CRM record.
-    const messageLogRows = messagesToLog.map(message => ({
-        id: message.id.toString(),
-        conversationId,
-        conversationLogId,
-        thirdPartyLogId: crmLogId,
-        userId,
-        platform,
-        contactId: incomingData.contactId
-    }));
+    // Point every claimed message at the single CRM record.
     try {
-        await MessageLogModel.bulkCreate(messageLogRows);
-        for (const row of messageLogRows) {
-            messageLogs[row.id] = crmLogId;
+        await MessageLogModel.update(
+            { thirdPartyLogId: crmLogId },
+            {
+                where: {
+                    id: { [Op.in]: claimedIds },
+                    thirdPartyLogId: SELECTED_MESSAGE_LOG_PENDING_ID
+                }
+            }
+        );
+        for (const id of claimedIds) {
+            messageLogs[id] = crmLogId;
         }
     }
     catch (error) {
@@ -1650,7 +1771,11 @@ async function getMessageLog({ userId, platform, conversationId, messageIds }) {
                 }
             };
         }
-        const where: any = { userId, platform };
+        const where: any = {
+            userId,
+            platform,
+            thirdPartyLogId: { [Op.ne]: SELECTED_MESSAGE_LOG_PENDING_ID }
+        };
         if (conversationId) {
             where.conversationId = conversationId;
         }

@@ -88,14 +88,16 @@ function composeSubject({
     includeTime?: boolean;
 }): string {
     const trimmedCustomSubject = typeof customSubject === 'string' ? customSubject.trim() : '';
-    const dateSuffix = conversationCreatedDate?.isValid?.()
-        ? ` - ${conversationCreatedDate.format(includeTime ? 'MM/DD/YYYY hh:mm A' : 'MM/DD/YY')}`
+    const dateSuffix = includeTime && conversationCreatedDate?.isValid?.()
+        ? ` - ${conversationCreatedDate.format('MM/DD/YYYY hh:mm A')}`
         : '';
     const title = trimmedCustomSubject || `SMS conversation with ${contactName}${dateSuffix}`;
 
     switch (logFormat) {
+        // Connectors copy the subject into plain-text CRM title fields, so it
+        // must not carry HTML markup.
         case LOG_DETAILS_FORMAT_TYPE.HTML:
-            return `<b>${title}</b>`;
+            return title;
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
             return `**${title}**`;
         case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
