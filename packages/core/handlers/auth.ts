@@ -104,7 +104,12 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
             ...(state ? { state } : {})
         });
     }
-    const oauthApp = oauth.getOAuthApp(oauthInfo);
+    let oauthApp = oauth.getOAuthApp(oauthInfo);
+    // Bullhorn's token endpoint can answer the code exchange POST with a 307/308 redirect, which the default
+    // client-oauth2 transport cannot follow ("Body is destroyed"), so use a redirect-following request for it.
+    if (platform === 'bullhorn') {
+        oauthApp = oauth.useRedirectFollowingRequest(oauthApp);
+    }
     const { accessToken, refreshToken, expires, data } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl: resolvedTokenUrl, apiUrl, hostname: resolvedHostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail, data });
