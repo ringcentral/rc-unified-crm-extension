@@ -2727,9 +2727,12 @@ describe('Log Handler', () => {
       };
     }
 
-    async function waitForCondition(condition: () => boolean) {
-      for (let attempt = 0; attempt < 100 && !condition(); attempt++) {
-        await new Promise((resolve) => setImmediate(resolve));
+    // Real SQLite queries run on the libuv thread pool, so under full-suite load
+    // they can outlast a fixed number of event-loop ticks. Poll by elapsed time.
+    async function waitForCondition(condition: () => boolean, timeoutMs = 3000) {
+      const deadline = Date.now() + timeoutMs;
+      while (!condition() && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
       }
       expect(condition()).toBe(true);
     }
