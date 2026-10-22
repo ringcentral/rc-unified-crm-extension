@@ -223,7 +223,7 @@ Return a JSON object that the client can interpret as the plugin license state. 
 
 A paid plugin can publish its price and purchase links so administrators see them in the Admin Console before and after installing it. This is **display only**: it does not check, require, or enforce a license. A plugin that does not declare `licensing` is listed as free.
 
-In the Developer Console, open the plugin settings and turn on **Paid plugin listing**, or add a `licensing` block to the manifest:
+In the Developer Console, open the plugin settings and turn on **List as a paid plugin** in the **Licensing** section, or add a `licensing` block to the manifest:
 
 ```json
 {
@@ -249,9 +249,9 @@ In the Developer Console, open the plugin settings and turn on **Paid plugin lis
 | `pricingInfoUrl` | When enabled | Public pricing page. Opened by **Pricing** and **View pricing**. |
 | `purchaseUrl` | When enabled | Checkout page. Opened by **Purchase** once the plugin is installed. |
 | `manageSubscriptionUrl` | When enabled | Billing portal. Opened by **Manage subscription** once the plugin is installed. |
-| `marketplaceDescription` | No | Plain text, up to 500 characters. Falls back to the plugin description. |
+| `marketplaceDescription` | No | Plain text, up to 500 characters. Shown under the plugin details in the Details dialog, in addition to the plugin description. |
 
-Every URL must be an absolute `https://` URL without embedded credentials, and opens in a new tab. The Developer Console rejects anything else when you save.
+Every URL must be an absolute `http://` or `https://` URL without embedded credentials, and opens in a new tab. Use `https://` for a published plugin; `http://` is accepted so you can point the links at a local server while testing. The Developer Console rejects any other scheme, relative URLs, and URLs with credentials when you save.
 
 If a plugin is marked as paid but a required value is missing or invalid, the Admin Console still labels it **Paid** but shows no price and no pricing links, so a broken manifest never produces a broken button.
 
