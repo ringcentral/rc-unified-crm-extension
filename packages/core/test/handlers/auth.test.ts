@@ -776,6 +776,36 @@ describe('Auth Handler', () => {
       expect(mockOAuthApp.code.getToken).toHaveBeenCalled();
     });
 
+    test.each([
+      ['bullhorn', true],
+      ['testCRM', false]
+    ])('should use redirect-following token request only for bullhorn (%s)', async (platform, expected) => {
+      const mockConnector = global.testUtils.createMockConnector({
+        getOauthInfo: jest.fn().mockResolvedValue({
+          clientId: 'client-id',
+          clientSecret: 'client-secret',
+          accessTokenUri: 'https://api.example.com/oauth/token'
+        }),
+        getUserInfo: jest.fn().mockResolvedValue({ successful: false, returnMessage: { messageType: 'danger', message: 'stop' } })
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      oauth.useRedirectFollowingRequest.mockImplementation((app) => app);
+      mockOAuthApp.code.getToken.mockResolvedValue({ accessToken: 'token', refreshToken: 'refresh', expires: new Date() });
+
+      await authHandler.onOAuthCallback({
+        platform,
+        hostname: 'api.example.com',
+        tokenUrl: 'https://api.example.com/oauth/token',
+        query: { callbackUri: 'https://app.example.com/callback?code=auth-code-123', rcAccountId: 'rc-account-123' }
+      });
+
+      if (expected) {
+        expect(oauth.useRedirectFollowingRequest).toHaveBeenCalledWith(mockOAuthApp);
+      } else {
+        expect(oauth.useRedirectFollowingRequest).not.toHaveBeenCalled();
+      }
+    });
+
     test('should return fail message when oauthInfo has error', async () => {
       // Arrange
       const mockConnector = global.testUtils.createMockConnector({

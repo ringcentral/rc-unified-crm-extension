@@ -6,6 +6,7 @@ import type {
 } from '../types';
 
 const ClientOAuth2 = require('client-oauth2');
+const axios = require('axios');
 const moment = require('moment');
 const { UserModel: UserModelImport } = require('../models/userModel');
 const UserModel = UserModelImport as any;
@@ -67,6 +68,50 @@ async function recoverConcurrentlyRefreshedUser(
         return latestUser;
     }
     return null;
+}
+
+function lastTwoLabels(hostname: string): string {
+    return hostname.split('.').slice(-2).join('.');
+}
+
+// client-oauth2 sends token requests through popsicle, which does not follow 307/308 redirects
+// for POST: it destroys the redirect response body and returns it anyway, so reading it throws
+// "Body is destroyed". Platforms known to redirect their token endpoint (e.g. Bullhorn clusters)
+// opt in to this axios-based request, which follows 307/308 and keeps the POST.
+async function requestFollowingRedirect(
+    method: string,
+    url: string,
+    body: string,
+    headers: Record<string, string | undefined>
+): Promise<{ status: number; body: string }> {
+    const originalHost = new URL(url).hostname;
+    const cleanHeaders = Object.fromEntries(
+        Object.entries(headers ?? {}).filter(([, value]) => value !== undefined)
+    ) as Record<string, string>;
+    const response = await axios.request({
+        method,
+        url,
+        data: body,
+        headers: cleanHeaders,
+        maxRedirects: 5,
+        responseType: 'text',
+        transformResponse: (data: unknown) => data,
+        validateStatus: () => true,
+        // axios drops Authorization when redirected to another host; keep it for the same
+        // parent domain (e.g. another Bullhorn cluster) so client credentials still reach the token endpoint.
+        beforeRedirect: (options: { hostname?: string; headers: Record<string, string> }) => {
+            if (cleanHeaders.Authorization && options.hostname
+                && lastTwoLabels(options.hostname) === lastTwoLabels(originalHost)) {
+                options.headers.Authorization = cleanHeaders.Authorization;
+            }
+        }
+    });
+    return { status: response.status, body: response.data };
+}
+
+function useRedirectFollowingRequest(app: OAuthAppLike): OAuthAppLike {
+    app.request = requestFollowingRedirect;
+    return app;
 }
 
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
@@ -247,5 +292,6 @@ async function checkAndRefreshAccessToken(
 
 export {
     checkAndRefreshAccessToken,
-    getOAuthApp
+    getOAuthApp,
+    useRedirectFollowingRequest
 };
