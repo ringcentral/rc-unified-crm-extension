@@ -339,6 +339,44 @@ describe('sharedSMSComposer', () => {
       expect(result.body).toContain('Started:');
     });
 
+    test.each([
+      ['an hours string', '-4', '01/15/2024 06:30 AM', '2024-01-15 06:30 AM'],
+      ['a fractional hours string', '5.5', '01/15/2024 04:00 PM', '2024-01-15 04:00 PM'],
+      ['a numeric hours value', -4, '01/15/2024 06:30 AM', '2024-01-15 06:30 AM'],
+      ['a minutes string', '-240', '01/15/2024 06:30 AM', '2024-01-15 06:30 AM'],
+      ['an +HH:MM string', '+05:30', '01/15/2024 04:00 PM', '2024-01-15 04:00 PM'],
+      ['zero', '0', '01/15/2024 10:30 AM', '2024-01-15 10:30 AM'],
+    ])('applies the user timezone offset given as %s to the subject and entries', (_label, timezoneOffset, subjectTime, entryTime) => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset,
+        includeTime: true
+      });
+
+      expect(result.subject).toBe(`SMS conversation with John Customer - ${subjectTime}`);
+      expect(result.body).toContain(entryTime);
+    });
+
+    test('ignores an unparseable timezone offset', () => {
+      const withInvalidOffset = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: 'not-an-offset',
+        includeTime: true
+      });
+      const withoutOffset = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        includeTime: true
+      });
+
+      expect(withInvalidOffset).toEqual(withoutOffset);
+    });
+
     test('should handle empty entities array', () => {
       const emptyConversation = {
         creationTime: '2024-01-15T10:30:00Z',

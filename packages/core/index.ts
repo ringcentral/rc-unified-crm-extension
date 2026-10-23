@@ -1932,7 +1932,6 @@ function createCoreRouter() {
         req: Request<Record<string, never>, unknown, unknown> & { jwtToken?: string },
         res: Response,
     ) {
-        console.log({req});
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('createAppointment:start', { query: req.query });
@@ -1951,9 +1950,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                console.log({Body:req.body});
                 const parsedRequest = AppointmentCreateRequestSchema.safeParse(req.body);
-                console.log(parsedRequest);
                 if (!parsedRequest.success) {
                     res.status(400).send(wrapDebugResponse(tracer, {
                         error: 'Invalid appointment create request',

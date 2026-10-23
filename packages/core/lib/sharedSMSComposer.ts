@@ -18,6 +18,19 @@ import type {
 const moment = require('moment-timezone');
 const { LOG_DETAILS_FORMAT_TYPE } = require('./constants');
 
+// `user.timezoneOffset` is stored as a string such as "-4" or "5.5" (hours).
+// moment ignores offset strings without a colon, so those must be numbers.
+function applyTimezoneOffset(momentTime, timezoneOffset) {
+    if (timezoneOffset === undefined || timezoneOffset === null || timezoneOffset === '') {
+        return momentTime;
+    }
+    if (typeof timezoneOffset === 'string' && timezoneOffset.includes(':')) {
+        return momentTime.utcOffset(timezoneOffset);
+    }
+    const numericOffset = Number(timezoneOffset);
+    return Number.isFinite(numericOffset) ? momentTime.utcOffset(numericOffset) : momentTime;
+}
+
 function composeSharedSMSLog({
     logFormat = LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
     conversation,
@@ -27,12 +40,8 @@ function composeSharedSMSLog({
     includeTime = false,
     entryOrder = 'newestFirst'
 }: ComposeSharedSMSLogParams): SharedSMSLogContent {
-    const conversationCreatedDate = moment(conversation?.creationTime);
-    const conversationUpdatedDate = moment(findLatestModifiedTime(conversation.messages));
-    if (timezoneOffset) {
-        conversationCreatedDate.utcOffset(timezoneOffset);
-        conversationUpdatedDate.utcOffset(timezoneOffset);
-    }
+    const conversationCreatedDate = applyTimezoneOffset(moment(conversation?.creationTime), timezoneOffset);
+    const conversationUpdatedDate = applyTimezoneOffset(moment(findLatestModifiedTime(conversation.messages)), timezoneOffset);
 
     const subject = composeSubject({
         logFormat,
@@ -259,10 +268,7 @@ function processEntity({
     contactName
 }: ProcessSharedSMSEntityParams): SharedSMSProcessedEntry | null {
     const creationTime = entity.creationTime;
-    let momentTime = moment(creationTime);
-    if (timezoneOffset) {
-        momentTime = momentTime.utcOffset(timezoneOffset);
-    }
+    const momentTime = applyTimezoneOffset(moment(creationTime), timezoneOffset);
     const formattedTime = momentTime.format('YYYY-MM-DD hh:mm A');
 
     switch (entity.recordType) {

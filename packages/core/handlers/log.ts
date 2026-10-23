@@ -1507,7 +1507,6 @@ async function logSelectedMessagesAsSingleEntry({
     let extraDataTracking = {};
 
     const conversationId = incomingData.logInfo.conversationId;
-    const conversationLogId = incomingData.logInfo.conversationLogId ?? null;
     const selectedIdSet = new Set(selectedMessageIds.map(id => id.toString()));
     const selectedMessages = incomingData.logInfo.messages.filter(m => selectedIdSet.has(m.id.toString()));
     if (selectedMessages.length === 0) {
@@ -1665,7 +1664,9 @@ async function logSelectedMessagesAsSingleEntry({
         await MessageLogModel.bulkCreate(claimedIds.map(id => ({
             id,
             conversationId,
-            conversationLogId,
+            // Left empty so the daily-entry lookups by conversationLogId never
+            // append unrelated messages to this standalone selected entry.
+            conversationLogId: null,
             thirdPartyLogId: SELECTED_MESSAGE_LOG_PENDING_ID,
             userId,
             platform,

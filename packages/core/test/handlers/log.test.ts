@@ -2928,23 +2928,68 @@ describe('Log Handler', () => {
       }
     });
 
-    test('stores a null conversationLogId when the selected request omits it', async () => {
+    test('a later normal log for the same day does not append to the selected entry', async () => {
       await seedUser();
       const mockConnector = buildSelectiveConnector();
+      mockConnector.createMessageLog
+        .mockResolvedValueOnce({ logId: 'crm-entry-1', returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 } })
+        .mockResolvedValueOnce({ logId: 'daily-entry-1', returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 } });
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
-      const incomingData = buildIncomingData(['msg-1']);
-      delete incomingData.logInfo.conversationLogId;
+
+      const selectedResult = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: buildIncomingData(['msg-1']),
+      });
+      expect(selectedResult.successful).toBe(true);
+      const selectedRow = await MessageLogModel.findByPk('msg-1');
+      expect(selectedRow.conversationLogId).toBeNull();
+      expect(selectedRow.thirdPartyLogId).toBe('crm-entry-1');
+
+      const normalIncomingData: any = buildIncomingData(undefined);
+      delete normalIncomingData.selectedMessageIds;
+      normalIncomingData.logInfo.messages = normalIncomingData.logInfo.messages.slice(0, 2);
+      const normalResult = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: normalIncomingData,
+      });
+
+      expect(normalResult.successful).toBe(true);
+      expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
+      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(2);
+      expect(mockConnector.createMessageLog).toHaveBeenLastCalledWith(expect.objectContaining({
+        message: expect.objectContaining({ id: 'msg-2' }),
+      }));
+      const dailyRow = await MessageLogModel.findByPk('msg-2');
+      expect(dailyRow.thirdPartyLogId).toBe('daily-entry-1');
+      expect(dailyRow.conversationLogId).toBe('conv-log-123');
+    });
+
+    test('formats the selected entry subject in the user timezone when the offset is stored as hours', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        rcAccountId: 'rc-account-1',
+        accessToken: 'test-token',
+        timezoneOffset: '-4',
+        platformAdditionalInfo: {},
+      });
+      const mockConnector = buildSelectiveConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       const result = await logHandler.createMessageLog({
         platform: 'testCRM',
         userId: 'test-user-id',
-        incomingData,
+        incomingData: buildIncomingData(['msg-1']),
       });
 
       expect(result.successful).toBe(true);
-      const row = await MessageLogModel.findByPk('msg-1');
-      expect(row.conversationLogId).toBeNull();
-      expect(row.thirdPartyLogId).toBe('crm-entry-1');
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        sharedSMSLogContent: expect.objectContaining({
+          subject: 'SMS conversation with Test Contact - 01/01/2024 06:00 AM',
+        }),
+      }));
     });
 
     test('does not throw when a selected log has no correspondents', async () => {
