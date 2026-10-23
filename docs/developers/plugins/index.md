@@ -47,7 +47,7 @@ Current plugin runtime reads these fields from the plugin platform manifest:
 | `userRegisterEndpointUrl` | Account registration endpoint. Must return `{ jwtToken }`. |
 | `requireLicense` | Optional. When `true`, App Connect calls `licenseStatusUrl` and warns administrators when the plugin is not licensed. It does not show any pricing. |
 | `licenseStatusUrl` | Optional license endpoint. Called with `Authorization: Bearer <pluginJwtToken>`. |
-| `licensing` | Optional. Display-only pricing information for a paid plugin. See [Pricing and paid listings](#pricing-and-paid-listings). It never triggers a license check. |
+| `licensing` | Optional. Pricing information for a paid plugin. See [Pricing and paid listings](#pricing-and-paid-listings). A paid plugin must also set `requireLicense` and `licenseStatusUrl`. |
 | `supportedLogTypes` | Activity types that should invoke the plugin: `call`, `sms`, and/or `fax`. |
 | `isAsync` | Marks the plugin as asynchronous. For call logs, App Connect dispatches after create or update succeeds and expects a callback. |
 | `tokenSyncUrl` | Required for async plugins. App Connect calls this before invoking `endpointUrl` so the plugin can refresh its stored token. |
@@ -221,12 +221,14 @@ Return a JSON object that the client can interpret as the plugin license state. 
 
 ## Pricing and paid listings
 
-A paid plugin can publish its price and purchase links so administrators see them in the Admin Console before and after installing it. This is **display only**: it does not check, require, or enforce a license. A plugin that does not declare `licensing` is listed as free.
+A paid plugin can publish its price and purchase links so administrators see them in the Admin Console before and after installing it. The listing itself only displays information; it does not check or enforce a license. Because a paid plugin needs a way to tell administrators when an account is not licensed, **a paid plugin must also turn on the license status check**: set `requireLicense` to `true` and give a `licenseStatusUrl` (see [License Checks](#license-checks)). The Developer Console enforces this when you save. A plugin that does not declare `licensing` is listed as free, and a free plugin may still use the license check.
 
-In the Developer Console, open the plugin settings and turn on **List as a paid plugin** in the **Licensing** section, or add a `licensing` block to the manifest:
+In the Developer Console, open the plugin settings and turn on **List as a paid plugin** in the **Licensing** section (a required **License status url** field appears below it; there is no separate switch for the check), or add a `licensing` block to the manifest together with `requireLicense` and `licenseStatusUrl`:
 
 ```json
 {
+  "requireLicense": true,
+  "licenseStatusUrl": "https://example.com/plugins/my-plugin/license",
   "licensing": {
     "enabled": true,
     "priceAmount": 4.00,
@@ -249,7 +251,7 @@ In the Developer Console, open the plugin settings and turn on **List as a paid 
 | `pricingInfoUrl` | When enabled | Public pricing page. Opened by **Pricing** and **View pricing**. |
 | `purchaseUrl` | When enabled | Checkout page. Opened by **Purchase** once the plugin is installed. |
 | `manageSubscriptionUrl` | When enabled | Billing portal. Opened by **Manage subscription** once the plugin is installed. |
-| `marketplaceDescription` | No | Plain text, up to 500 characters. Shown under the plugin details in the Details dialog, in addition to the plugin description. |
+| `marketplaceDescription` | No | Plain text, up to 500 characters, entered in a multi-line text area. Shown under the plugin details in the Details dialog, in addition to the plugin description. |
 
 Every URL must be an absolute `http://` or `https://` URL without embedded credentials, and opens in a new tab. Use `https://` for a published plugin; `http://` is accepted so you can point the links at a local server while testing. The Developer Console rejects any other scheme, relative URLs, and URLs with credentials when you save.
 
@@ -274,11 +276,11 @@ When an administrator opens **Purchase** or **Manage subscription**, App Connect
 
 ### Charging and refusing service is your responsibility
 
-App Connect does not block a plugin because it is unpaid, and the pricing information above is never used to check a license. If your plugin must refuse unlicensed accounts, do it on your plugin server:
+App Connect does not block a plugin because the account is unlicensed. The license result only drives the warning administrators see, and the pricing information above is never used to check a license. If your plugin must refuse unlicensed accounts, do it on your plugin server:
 
 - **Synchronous plugins**: do not return a non-2xx status. App Connect runs synchronous plugins before the connector saves the activity, and a failed plugin request fails the whole call log. Return `200` with the `data` you received, **unchanged and complete**; the response body replaces the logging payload. Note that a plugin that normally redacts or transforms data will then let the original data through.
 - **Asynchronous plugins**: an `accepted: false` response is ignored and leaves the task pending until it expires. Return `200` and then call the `callbackUrl` with `successful: false` and a `message`.
-- **License endpoint**: if you also set `requireLicense` and `licenseStatusUrl`, report an unlicensed account with `200` and `licenseStatus: false`, plus a `licenseStatusDescription` administrators can act on. Keep `401` and `403` for an invalid or mismatched plugin bearer token, as described in the [Plugin server API reference](../plugin-server-api/index.md).
+- **License endpoint**: report an unlicensed account with `200` and `licenseStatus: false`, plus a `licenseStatusDescription` administrators can act on. Keep `401` and `403` for an invalid or mismatched plugin bearer token, as described in the [Plugin server API reference](../plugin-server-api/index.md).
 - **Per-user pricing**: each call includes `hashedExtensionId`, a pseudonymous identifier for the RingCentral extension. Use it to count users. It is not an authentication credential and can be empty.
 
 ### Review
