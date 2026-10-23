@@ -452,6 +452,104 @@ describe('Log Handler', () => {
       expect(savedLog.thirdPartyLogId).toBe('new-log-123');
     });
 
+    function buildUniqueConstraintError() {
+      const error = new Error('Validation error');
+      error.name = 'SequelizeUniqueConstraintError';
+      return error;
+    }
+
+    test('should return the existing call log when a concurrent request saved it first', async () => {
+      await UserModel.create(mockUser);
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createCallLog: jest.fn().mockResolvedValue({
+          logId: 'duplicate-log',
+          returnMessage: { message: 'Call logged', messageType: 'success', ttl: 2000 }
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Composed log details');
+      jest.spyOn(CallLogModel, 'create').mockImplementationOnce(async () => {
+        await CallLogModel.bulkCreate([{
+          id: 'tel-session-123',
+          sessionId: 'session-123',
+          platform: 'testCRM',
+          thirdPartyLogId: 'winner-log',
+          userId: 'test-user-id',
+          contactId: 'contact-123'
+        }]);
+        throw buildUniqueConstraintError();
+      });
+
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: mockIncomingData,
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      expect(result).toEqual({
+        successful: true,
+        logId: 'winner-log',
+        returnMessage: { message: 'Call was already logged', messageType: 'success', ttl: 2000 }
+      });
+    });
+
+    test('should report a database error when the conflicting call log cannot be found', async () => {
+      await UserModel.create(mockUser);
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createCallLog: jest.fn().mockResolvedValue({ logId: 'duplicate-log' })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Composed log details');
+      jest.spyOn(CallLogModel, 'create').mockRejectedValueOnce(buildUniqueConstraintError());
+
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: mockIncomingData,
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      expect(result.successful).toBe(false);
+      expect(result.returnMessage).toEqual(expect.objectContaining({ messageType: 'warning' }));
+    });
+
+    test('should report a database error when the lookup after a conflict fails', async () => {
+      await UserModel.create(mockUser);
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createCallLog: jest.fn().mockResolvedValue({ logId: 'duplicate-log' })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Composed log details');
+      jest.spyOn(CallLogModel, 'create').mockRejectedValueOnce(buildUniqueConstraintError());
+      const findOne = CallLogModel.findOne.bind(CallLogModel);
+      jest.spyOn(CallLogModel, 'findOne')
+        .mockImplementationOnce(findOne)
+        .mockRejectedValueOnce(new Error('Lookup failed'));
+
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: mockIncomingData,
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      expect(result.successful).toBe(false);
+      expect(result.returnMessage).toEqual(expect.objectContaining({ messageType: 'warning' }));
+    });
+
     test('should call plugin with Bearer auth and without query jwt token', async () => {
       await UserModel.create(mockUser);
       await AccountDataModel.create({
@@ -2293,6 +2391,82 @@ describe('Log Handler', () => {
         })
       }));
       expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
+    describe('when a concurrent request saved the message log first', () => {
+      function buildUniqueConstraintError() {
+        const error = new Error('Validation error');
+        error.name = 'SequelizeUniqueConstraintError';
+        return error;
+      }
+
+      async function logConversation({ ownerName }: { ownerName?: string } = {}) {
+        await UserModel.create({
+          id: 'test-user-id',
+          platform: 'testCRM',
+          accessToken: 'test-token',
+          rcAccountId: 'rc-account-123',
+          timezoneOffset: '+00:00',
+          platformAdditionalInfo: {}
+        });
+        const mockConnector = {
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+          getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+          createMessageLog: jest.fn().mockResolvedValue({
+            logId: 'duplicate-crm-log',
+            returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 },
+            extraDataTracking: {}
+          }),
+          updateMessageLog: jest.fn()
+        };
+        connectorRegistry.getConnector.mockReturnValue(mockConnector);
+        return logHandler.createMessageLog({
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          incomingData: {
+            logInfo: {
+              messages: [{ id: 'race-message-1', type: 'SMS', direction: 'Inbound', creationTime: '2026-06-12T10:00:00.000Z', lastModifiedTime: '2026-06-12T10:05:00.000Z' }],
+              entities: [],
+              correspondents: [{ phoneNumber: '+15550000001' }],
+              conversationId: 'race-conversation',
+              conversationLogId: 'race-conversation-log',
+              creationTime: '2026-06-12T10:00:00.000Z',
+              ...(ownerName ? { owner: { name: ownerName } } : {})
+            },
+            contactId: 'contact-race',
+            contactName: 'Race Contact',
+            additionalSubmission: {}
+          }
+        });
+      }
+
+      test('counts the message as logged instead of failing', async () => {
+        jest.spyOn(MessageLogModel, 'create').mockRejectedValueOnce(buildUniqueConstraintError());
+
+        const result = await logConversation();
+
+        expect(result.successful).toBe(true);
+        expect(result.logIds).toEqual(['race-message-1']);
+      });
+
+      test('counts a shared SMS conversation as logged instead of failing', async () => {
+        jest.spyOn(MessageLogModel, 'create').mockRejectedValueOnce(buildUniqueConstraintError());
+
+        const result = await logConversation({ ownerName: 'Owner Agent' });
+
+        expect(result.successful).toBe(true);
+        expect(result.logIds).toEqual(['race-conversation-log']);
+      });
+
+      test('still reports other shared SMS persistence errors', async () => {
+        jest.spyOn(MessageLogModel, 'create').mockRejectedValueOnce(new Error('Connection lost'));
+
+        const result = await logConversation({ ownerName: 'Owner Agent' });
+
+        expect(result.successful).toBe(false);
+        expect(result.returnMessage).toEqual(expect.objectContaining({ messageType: 'warning' }));
+      });
     });
 
     test.each<[any]>(rcMessageMediaCases as [any][])(
