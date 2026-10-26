@@ -663,6 +663,35 @@ describe('Insightly Connector', () => {
             expect(result.logId).toBe(204);
         });
 
+        it('should retry without owner when Insightly rejects OWNER_USER_ID', async () => {
+            UserModel.findByPk.mockResolvedValue({ id: '2031990-insightly', platformAdditionalInfo: { apiUrl } });
+
+            nock(apiUrl)
+                .post('/v3.1/events', body => body.OWNER_USER_ID === 2031990)
+                .reply(400, "Field 'ownerUserId' must contain a valid id");
+            nock(apiUrl)
+                .post('/v3.1/events', body => body.OWNER_USER_ID === undefined)
+                .reply(201, { EVENT_ID: 209 });
+            nock(apiUrl)
+                .post('/v3.1/events/209/links')
+                .reply(201, {});
+
+            const result = await insightly.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: { isAssignedToUser: true, adminAssignedUserToken: 'valid-jwt-token' },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(209);
+        });
+
         it('should derive owner id from the assigned agent user model id', async () => {
             UserModel.findByPk.mockResolvedValue({
                 id: '2031990-insightly',

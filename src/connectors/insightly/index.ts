@@ -578,12 +578,22 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
     if (assigneeId) {
         postBody.OWNER_USER_ID = assigneeId;
     }
-    const addLogRes = await axios.post(
-        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
-        postBody,
-        {
-            headers: { 'Authorization': authHeader }
-        });
+    const eventsUrl = `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`;
+    let addLogRes;
+    try {
+        addLogRes = await axios.post(eventsUrl, postBody, { headers: { 'Authorization': authHeader } });
+    }
+    catch (e) {
+        // Insightly rejects owners it does not recognise; still log the call under the API key's user
+        if (assigneeId && e.response?.status === 400 && /ownerUserId/i.test(JSON.stringify(e.response?.data ?? ''))) {
+            logger.warn('Insightly rejected OWNER_USER_ID, retrying without owner', { assigneeId, userId: user.id });
+            delete postBody.OWNER_USER_ID;
+            addLogRes = await axios.post(eventsUrl, postBody, { headers: { 'Authorization': authHeader } });
+        }
+        else {
+            throw e;
+        }
+    }
     // add linked contact to log
     if (contactInfo.type === 'contactPhone' || contactInfo.type === 'contactMobile' || contactInfo.type === 'Contact') {
         await axios.post(
