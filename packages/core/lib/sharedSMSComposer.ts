@@ -18,22 +18,37 @@ import type {
 const moment = require('moment-timezone');
 const { LOG_DETAILS_FORMAT_TYPE } = require('./constants');
 
+// `user.timezoneOffset` is stored as a string such as "-4" or "5.5" (hours).
+// moment ignores offset strings without a colon, so those must be numbers.
+function applyTimezoneOffset(momentTime, timezoneOffset) {
+    if (timezoneOffset === undefined || timezoneOffset === null || timezoneOffset === '') {
+        return momentTime;
+    }
+    if (typeof timezoneOffset === 'string' && timezoneOffset.includes(':')) {
+        return momentTime.utcOffset(timezoneOffset);
+    }
+    const numericOffset = Number(timezoneOffset);
+    return Number.isFinite(numericOffset) ? momentTime.utcOffset(numericOffset) : momentTime;
+}
+
 function composeSharedSMSLog({
     logFormat = LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
     conversation,
     contactName,
-    timezoneOffset
+    timezoneOffset,
+    customSubject,
+    includeTime = false,
+    entryOrder = 'newestFirst'
 }: ComposeSharedSMSLogParams): SharedSMSLogContent {
-    const conversationCreatedDate = moment(conversation?.creationTime);
-    const conversationUpdatedDate = moment(findLatestModifiedTime(conversation.messages));
-    if (timezoneOffset) {
-        conversationCreatedDate.utcOffset(timezoneOffset);
-        conversationUpdatedDate.utcOffset(timezoneOffset);
-    }
+    const conversationCreatedDate = applyTimezoneOffset(moment(conversation?.creationTime), timezoneOffset);
+    const conversationUpdatedDate = applyTimezoneOffset(moment(findLatestModifiedTime(conversation.messages)), timezoneOffset);
 
     const subject = composeSubject({
         logFormat,
-        contactName
+        contactName,
+        conversationCreatedDate,
+        customSubject,
+        includeTime
     });
 
     const body = composeBody({
@@ -42,7 +57,8 @@ function composeSharedSMSLog({
         contactName,
         conversationCreatedDate,
         conversationUpdatedDate,
-        timezoneOffset
+        timezoneOffset,
+        entryOrder
     });
 
     return { subject, body };
@@ -59,16 +75,36 @@ function findLatestModifiedTime(messages: SharedSMSMessage[]): any {
     return result;
 }
 
+function getSortableTime(time: any): number {
+    if (typeof time === 'number') {
+        return time;
+    }
+    const parsed = new Date(time).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function composeSubject({
     logFormat,
-    contactName
+    contactName,
+    conversationCreatedDate,
+    customSubject,
+    includeTime
 }: {
     logFormat: SharedSMSLogFormat;
     contactName: string;
+    conversationCreatedDate?: any;
+    customSubject?: string | null;
+    includeTime?: boolean;
 }): string {
-    const title = `SMS conversation with ${contactName}`;
+    const trimmedCustomSubject = typeof customSubject === 'string' ? customSubject.trim() : '';
+    const dateSuffix = includeTime && conversationCreatedDate?.isValid?.()
+        ? ` - ${conversationCreatedDate.format('MM/DD/YYYY hh:mm A')}`
+        : '';
+    const title = trimmedCustomSubject || `SMS conversation with ${contactName}${dateSuffix}`;
 
     switch (logFormat) {
+        // Connectors copy the subject into plain-text CRM title fields, so it
+        // must not carry HTML markup.
         case LOG_DETAILS_FORMAT_TYPE.HTML:
             return title;
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
@@ -85,7 +121,8 @@ function composeBody({
     contactName,
     conversationCreatedDate,
     conversationUpdatedDate,
-    timezoneOffset
+    timezoneOffset,
+    entryOrder
 }: ComposeSharedSMSBodyParams): string {
     const agents = gatherAgents(conversation.entities || []);
     const ownerInfo = getOwnerInfo(conversation);
@@ -94,7 +131,8 @@ function composeBody({
         entities: conversation.entities || [],
         timezoneOffset,
         logFormat,
-        contactName
+        contactName,
+        entryOrder
     });
 
     switch (logFormat) {
@@ -198,7 +236,8 @@ function processEntities({
     entities,
     timezoneOffset,
     logFormat,
-    contactName
+    contactName,
+    entryOrder = 'newestFirst'
 }: ProcessSharedSMSEntitiesParams): SharedSMSProcessedEntry[] {
     const processedEntries: SharedSMSProcessedEntry[] = [];
 
@@ -214,7 +253,10 @@ function processEntities({
         }
     }
 
-    processedEntries.sort((a, b) => b.creationTime - a.creationTime);
+    processedEntries.sort((a, b) => {
+        const oldestFirst = getSortableTime(a.creationTime) - getSortableTime(b.creationTime);
+        return entryOrder === 'oldestFirst' ? oldestFirst : -oldestFirst;
+    });
 
     return processedEntries;
 }
@@ -226,10 +268,7 @@ function processEntity({
     contactName
 }: ProcessSharedSMSEntityParams): SharedSMSProcessedEntry | null {
     const creationTime = entity.creationTime;
-    let momentTime = moment(creationTime);
-    if (timezoneOffset) {
-        momentTime = momentTime.utcOffset(timezoneOffset);
-    }
+    const momentTime = applyTimezoneOffset(moment(creationTime), timezoneOffset);
     const formattedTime = momentTime.format('YYYY-MM-DD hh:mm A');
 
     switch (entity.recordType) {
