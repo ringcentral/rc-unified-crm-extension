@@ -76,6 +76,34 @@
       Loading...
     </p>
   </div>
+  <script id="admin-portal-callback">
+    // Comma-separated list of App Connect Admin Console origins, injected by the server
+    // (ADMIN_CONSOLE_ORIGINS). The callback is only ever posted to these origins; the origin
+    // is never read from the URL, because the code can be exchanged for a CRM session.
+    var ADMIN_CONSOLE_ORIGINS = '__ADMIN_CONSOLE_ORIGINS__'.split(',').filter(function (origin) {
+      return origin.indexOf('http') === 0;
+    });
+
+    // Returns 'none' (not an Admin Console attempt), 'no-opener' or 'sent'.
+    function handleAdminPortalCallback(win) {
+      var params = new URLSearchParams(win.location.search);
+      if (!params.get('code') && !params.get('error')) {
+        return 'none';
+      }
+      var state = new URLSearchParams(params.get('state') || '');
+      if (state.get('adminPortal') !== 'true') {
+        return 'none';
+      }
+      if (!win.opener || ADMIN_CONSOLE_ORIGINS.length === 0) {
+        return 'no-opener';
+      }
+      // The browser only delivers the message to a window whose origin matches the target.
+      ADMIN_CONSOLE_ORIGINS.forEach(function (origin) {
+        win.opener.postMessage({ callbackUri: win.location.href }, origin);
+      });
+      return 'sent';
+    }
+  </script>
   <script>
     async function handleRedirect() {
       try {
@@ -86,6 +114,21 @@
         const header = window.document.createElement('h1');
         header.innerHTML = 'RingCentral Extension for Pipedrive';
         contentDiv.appendChild(header);
+        const adminCallbackResult = handleAdminPortalCallback(window);
+        if (adminCallbackResult !== 'none') {
+          const adminMessage = window.document.createElement('div');
+          contentDiv.appendChild(adminMessage);
+          adminMessage.style = 'margin: 0px 30px;font-size: 20px;';
+          if (adminCallbackResult === 'sent') {
+            header.innerHTML = 'Pipedrive authorization completed';
+            adminMessage.innerHTML = 'You can close this window and return to App Connect Admin Console.';
+            setTimeout(() => window.close(), 800);
+          } else {
+            header.innerHTML = 'Unable to return to App Connect Admin Console';
+            adminMessage.innerHTML = 'Please return to the Admin Console, make sure you are logged in to Pipedrive in this browser, and try connecting again.';
+          }
+          return;
+        }
         if (!window.location.search.includes('code')) {
           header.innerHTML = 'Thank you for installing the RingCentral App Connect for Pipedrive';
           const descriptionDev = window.document.createElement('div');

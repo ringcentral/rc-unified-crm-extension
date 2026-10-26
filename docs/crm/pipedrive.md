@@ -33,6 +33,12 @@ When you login successfully, the Chrome extension will automatically update to s
 
 And with that, you will be connected to Pipedrive and ready to begin using the integration. 
 
+### Connect from the App Connect Admin Console
+
+Administrators can also connect Pipedrive from the App Connect Admin Console. Make sure you are logged in to Pipedrive in the same browser first, because Pipedrive's login page can prevent the authorization window from returning its result to the Admin Console. Then click **Connect**, and click "Allow and Install" in the Pipedrive window. The window closes on its own once authorization completes. If the Admin Console reports that it did not receive the Pipedrive authorization, log in to Pipedrive in this browser and try again.
+
+Servers that host their own `/pipedrive-redirect` page must set `ADMIN_CONSOLE_ORIGINS` to a comma-separated list of the Admin Console origins (for example `https://admin.example.com`). Only `https` origins and `http://localhost` are accepted, and the callback is posted only to those origins.
+
 ## Reconnecting when your session expires
 
 Pipedrive may occasionally invalidate your connection, for example after the app is uninstalled from your Pipedrive account or when the stored authorization can no longer be refreshed. When App Connect detects this, it shows a notice and opens the Pipedrive authorization window for you. Click "Allow and Install" to reconnect. Your settings are kept.
