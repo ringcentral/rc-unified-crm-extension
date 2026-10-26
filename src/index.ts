@@ -5,7 +5,6 @@ const {
     connectorRegistry,
     proxyConnector
 } = /** @type {any} */ (require('@app-connect/core'));
-const fs = require('fs');
 const path = require('path');
 const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
 const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
@@ -295,38 +294,9 @@ app.get('/admin/googleSheets/config', async function (req, res) {
 });
 
 // Pipedrive specific routes
-/**
- * Origins of the App Connect Admin Console allowed to receive the Pipedrive OAuth callback.
- * Configured through ADMIN_CONSOLE_ORIGINS (comma separated). Anything that is not an https
- * origin (or http://localhost for development) is dropped; an empty list disables the handoff.
- *
- * @returns {string[]}
- */
-function getAdminConsoleOrigins() {
-    const origins = (process.env.ADMIN_CONSOLE_ORIGINS || '')
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean)
-        .map((value) => {
-            try {
-                const parsed = new URL(value);
-                const isSecure = parsed.protocol === 'https:';
-                const isLocalhost = parsed.protocol === 'http:' && parsed.hostname === 'localhost';
-                return isSecure || isLocalhost ? parsed.origin : '';
-            }
-            catch (e) {
-                return '';
-            }
-        })
-        .filter(Boolean);
-    return [...new Set(origins)];
-}
-
 app.get('/pipedrive-redirect', function (req, res) {
     try {
-        const redirectPage = fs.readFileSync(path.join(__dirname, 'connectors/pipedrive/redirect.html'), 'utf8')
-            .replace('__ADMIN_CONSOLE_ORIGINS__', getAdminConsoleOrigins().join(','));
-        res.type('html').send(redirectPage);
+        res.sendFile(path.join(__dirname, 'connectors/pipedrive/redirect.html'));
     }
     catch (e) {
         sendInternalServerError(res, e, 'Error getting Pipedrive redirect');
