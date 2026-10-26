@@ -77,12 +77,10 @@
     </p>
   </div>
   <script id="admin-portal-callback">
-    // Comma-separated list of App Connect Admin Console origins, injected by the server
-    // (ADMIN_CONSOLE_ORIGINS). The callback is only ever posted to these origins; the origin
-    // is never read from the URL, because the code can be exchanged for a CRM session.
-    var ADMIN_CONSOLE_ORIGINS = '__ADMIN_CONSOLE_ORIGINS__'.split(',').filter(function (origin) {
-      return origin.indexOf('http') === 0;
-    });
+    // App Connect Admin Console origins that may receive the callback. The callback is only
+    // ever posted to these origins; an origin is never read from the URL, because the code can
+    // be exchanged for a CRM session.
+    var ADMIN_CONSOLE_ORIGINS = ['https://appconnect.labs.ringcentral.com'];
 
     // Returns 'none' (not an Admin Console attempt), 'no-opener' or 'sent'.
     function handleAdminPortalCallback(win) {
@@ -94,7 +92,7 @@
       if (state.get('adminPortal') !== 'true') {
         return 'none';
       }
-      if (!win.opener || ADMIN_CONSOLE_ORIGINS.length === 0) {
+      if (!win.opener) {
         return 'no-opener';
       }
       // The browser only delivers the message to a window whose origin matches the target.

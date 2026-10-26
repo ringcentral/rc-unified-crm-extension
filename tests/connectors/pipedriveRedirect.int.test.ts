@@ -53,17 +53,8 @@ describe('Pipedrive Redirect Routes', () => {
         });
 
         describe('Admin Console callback handoff', () => {
-            const originalOrigins = process.env.ADMIN_CONSOLE_ORIGINS;
+            const adminConsoleOrigin = 'https://appconnect.labs.ringcentral.com';
             const adminState = 'platform=pipedrive&rcAccountId=1&adminPortal=true&oauthAttempt=abc';
-
-            afterEach(() => {
-                if (originalOrigins === undefined) {
-                    delete process.env.ADMIN_CONSOLE_ORIGINS;
-                }
-                else {
-                    process.env.ADMIN_CONSOLE_ORIGINS = originalOrigins;
-                }
-            });
 
             // Runs the page's handleAdminPortalCallback against a stubbed window.
             async function runHandoff({ search, opener }) {
@@ -81,31 +72,28 @@ describe('Pipedrive Redirect Routes', () => {
                 return { calls, postMessage: (message, origin) => calls.push({ message, origin }) };
             }
 
-            test('should inject only valid configured origins', async () => {
-                process.env.ADMIN_CONSOLE_ORIGINS = 'https://admin.example.com, http://localhost, http://evil.example.com, not-a-url, https://admin.example.com/path';
-                const res = await request(getServer()).get('/pipedrive-redirect');
-
-                expect(res.text).toContain("'https://admin.example.com,http://localhost'");
-                expect(res.text).not.toContain('evil.example.com');
-                expect(res.text).not.toContain('__ADMIN_CONSOLE_ORIGINS__');
-            });
-
-            test('should post the callback only to configured origins', async () => {
-                process.env.ADMIN_CONSOLE_ORIGINS = 'https://admin.example.com,https://admin-staging.example.com';
+            test('should post the callback only to the Admin Console origin', async () => {
                 const opener = createOpener();
                 const search = `?code=abc&state=${encodeURIComponent(adminState)}`;
                 const { result, win } = await runHandoff({ search, opener });
 
                 expect(result).toEqual('sent');
-                expect(opener.calls.map((call) => call.origin)).toEqual([
-                    'https://admin.example.com',
-                    'https://admin-staging.example.com'
+                expect(opener.calls).toEqual([
+                    { message: { callbackUri: win.location.href }, origin: adminConsoleOrigin }
                 ]);
-                expect(opener.calls[0].message).toEqual({ callbackUri: win.location.href });
+            });
+
+            test('should not take the target origin from the URL', async () => {
+                const opener = createOpener();
+                const state = `${adminState}&adminOrigin=${encodeURIComponent('https://evil.example.com')}`;
+                const search = `?code=abc&adminOrigin=${encodeURIComponent('https://evil.example.com')}&state=${encodeURIComponent(state)}`;
+                const { result } = await runHandoff({ search, opener });
+
+                expect(result).toEqual('sent');
+                expect(opener.calls.map((call) => call.origin)).toEqual([adminConsoleOrigin]);
             });
 
             test('should forward provider errors to the Admin Console', async () => {
-                process.env.ADMIN_CONSOLE_ORIGINS = 'https://admin.example.com';
                 const opener = createOpener();
                 const search = `?error=access_denied&state=${encodeURIComponent(adminState)}`;
                 const { result } = await runHandoff({ search, opener });
@@ -115,25 +103,13 @@ describe('Pipedrive Redirect Routes', () => {
             });
 
             test('should report no-opener when the opener is gone', async () => {
-                process.env.ADMIN_CONSOLE_ORIGINS = 'https://admin.example.com';
                 const search = `?code=abc&state=${encodeURIComponent(adminState)}`;
                 const { result } = await runHandoff({ search, opener: null });
 
                 expect(result).toEqual('no-opener');
             });
 
-            test('should not post when no Admin Console origin is configured', async () => {
-                delete process.env.ADMIN_CONSOLE_ORIGINS;
-                const opener = createOpener();
-                const search = `?code=abc&state=${encodeURIComponent(adminState)}`;
-                const { result } = await runHandoff({ search, opener });
-
-                expect(result).toEqual('no-opener');
-                expect(opener.calls).toHaveLength(0);
-            });
-
             test('should ignore callbacks that are not from the Admin Console', async () => {
-                process.env.ADMIN_CONSOLE_ORIGINS = 'https://admin.example.com';
                 const opener = createOpener();
                 const cases = [
                     '',
