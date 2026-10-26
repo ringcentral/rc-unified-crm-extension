@@ -539,6 +539,11 @@ async function getUserList({ user, authHeader }) {
     return userList;
 }
 
+function toInsightlyUserId(rawId) {
+    const numericId = Number(String(rawId ?? '').replace(/-insightly$/, ''));
+    return Number.isInteger(numericId) && numericId > 0 ? numericId : null;
+}
+
 async function createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const extraDataTracking = {};
 
@@ -549,7 +554,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
                 const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
                 const assigneeUser = await UserModel.findByPk(unAuthData.id);
                 if (assigneeUser) {
-                    assigneeId = assigneeUser.platformAdditionalInfo.id;
+                    // Insightly user model id is `${USER_ID}-insightly`; platformAdditionalInfo has no id
+                    assigneeId = toInsightlyUserId(assigneeUser.id) ?? toInsightlyUserId(assigneeUser.platformAdditionalInfo?.id);
                 }
             }
             catch (e) {
@@ -559,7 +565,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
 
         if (!assigneeId) {
             const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-            assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+            assigneeId = toInsightlyUserId(adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId);
         }
     }
 
@@ -668,7 +674,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, subject, start
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
         const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-        assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+        assigneeId = toInsightlyUserId(adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId);
     }
 
     const putBody: any = {
