@@ -133,13 +133,14 @@ describe('Support console CRM routes', () => {
   test('every CRM route requires a Support staff token', async () => {
     const responses = await Promise.all([
       api().get('/support/crm/vinsolutions/integrations'),
+      api().get('/support/crm/vinsolutions/integrations/12617/users'),
       api().post('/support/crm/vinsolutions/integrations/12617/remove'),
       api().get('/support/crm/vinsolutions/history'),
       api().get('/support/crm/vinsolutions/allowlist'),
       api().put('/support/crm/vinsolutions/allowlist/12617'),
       api().delete('/support/crm/vinsolutions/allowlist/12617'),
     ]);
-    expect(responses.map((response) => response.status)).toEqual([401, 401, 401, 401, 401, 401]);
+    expect(responses.map((response) => response.status)).toEqual([401, 401, 401, 401, 401, 401, 401]);
   });
 
   test('rejects an unsupported CRM platform', async () => {
@@ -251,6 +252,61 @@ describe('Support console CRM routes', () => {
       callTracking: 'VinSolutions callTracking credentials are not configured',
     });
     expect(JSON.stringify(response.body)).not.toContain('secret');
+  });
+
+  describe('dealer users', () => {
+    const userAnn = { UserId: 7, FullName: 'Ann Lee', FirstName: 'Ann', LastName: 'Lee', EmailAddress: 'ann@dealer.test', UserGroup: 'Manager', UserTypes: ['Manager'], IlmAccess: 'Admin' };
+    const userBob = { UserId: 9, FullName: 'Bob Ray', EmailAddress: 'bob@dealer.test', UserGroup: 'Office', UserTypes: [], IlmAccess: 'SalesPerson' };
+
+    function mockUsers(apiKey, accessToken, dealerId, reply, status = 200) {
+      return nock(VIN_API)
+        .get('/gateway/v1/tenant/user')
+        .query({ dealerid: String(dealerId) })
+        .matchHeader('api_key', apiKey)
+        .matchHeader('authorization', `Bearer ${accessToken}`)
+        .reply(status, reply);
+    }
+
+    test('merges users by ID across services and sorts them by name', async () => {
+      mockToken('lm-client', 'lm-token');
+      mockToken('ct-client', 'ct-token');
+      mockUsers('lm-api-key', 'lm-token', 12617, [userBob, userAnn]);
+      mockUsers('ct-api-key', 'ct-token', 12617, [userAnn]);
+
+      const response = await withStaff(api().get('/support/crm/vinsolutions/integrations/12617/users'));
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        platform: 'vinsolutions',
+        integrationId: '12617',
+        services: ['leadManagement', 'callTracking'],
+        serviceErrors: {},
+        users: [
+          { id: '7', name: 'Ann Lee', email: 'ann@dealer.test', group: 'Manager', roles: ['Manager'], access: 'Admin', services: ['leadManagement', 'callTracking'] },
+          { id: '9', name: 'Bob Ray', email: 'bob@dealer.test', group: 'Office', roles: [], access: 'SalesPerson', services: ['leadManagement'] },
+        ],
+      });
+    });
+
+    test('skips a service the dealer has not enabled but reports other failures', async () => {
+      mockToken('lm-client', 'lm-token');
+      mockToken('ct-client', 'ct-token');
+      mockUsers('lm-api-key', 'lm-token', 12617, { Message: 'Supplied dealer id is not associated with your authorization token.' }, 403);
+      mockUsers('ct-api-key', 'ct-token', 12617, { Message: 'Boom' }, 503);
+
+      const response = await withStaff(api().get('/support/crm/vinsolutions/integrations/12617/users'));
+
+      expect(response.status).toBe(200);
+      expect(response.body.users).toEqual([]);
+      expect(response.body.serviceErrors).toEqual({ callTracking: 'VinSolutions returned 503: Boom' });
+    });
+
+    test('rejects an invalid dealer ID and an unsupported platform', async () => {
+      const invalid = await withStaff(api().get('/support/crm/vinsolutions/integrations/abc/users'));
+      const unsupported = await withStaff(api().get('/support/crm/bullhorn/integrations/12617/users'));
+      expect(invalid.status).toBe(400);
+      expect(unsupported.status).toBe(404);
+    });
   });
 
   test('removes a dealer from both services and records who did it', async () => {

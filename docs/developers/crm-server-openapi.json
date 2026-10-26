@@ -4447,6 +4447,93 @@
         }
       }
     },
+    "/support/crm/{platform}/integrations/{id}/users": {
+      "get": {
+        "tags": [
+          "Support Console"
+        ],
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "summary": "List the users of a CRM integration",
+        "operationId": "listSupportCrmIntegrationUsers",
+        "description": "Fetches the dealer's users from each VinSolutions service that has the dealer enabled and merges them by user ID. A service the dealer has not enabled is skipped; any other failure is reported in serviceErrors while the users that loaded are still returned. Nothing is cached.",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vinsolutions"
+              ]
+            },
+            "description": "CRM whose integrations the Support console manages. Only vinsolutions is supported."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            },
+            "description": "CRM-specific integration identifier; the VinSolutions dealer ID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users of the integration, possibly with per-service errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportCrmUserList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The integration ID is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The CRM platform is not supported, or the resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/support/crm/{platform}/integrations/{id}/remove": {
       "post": {
         "tags": [
@@ -9033,6 +9120,97 @@
               "$ref": "#/components/schemas/SupportCrmIntegration"
             },
             "description": "Enabled integrations sorted by ID."
+          }
+        }
+      },
+      "SupportCrmUser": {
+        "type": "object",
+        "description": "One user of a CRM integration (a VinSolutions dealer user).",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "group",
+          "roles",
+          "access",
+          "services"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "CRM user identifier; the VinSolutions user ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "Full name reported by the CRM."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address; empty when the CRM reports none."
+          },
+          "group": {
+            "type": "string",
+            "description": "CRM user group, such as Manager or Office."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CRM user types, such as Manager or FinanceManager."
+          },
+          "access": {
+            "type": "string",
+            "description": "CRM access level, such as Admin or SalesPerson."
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CRM services that listed this user."
+          }
+        }
+      },
+      "SupportCrmUserList": {
+        "type": "object",
+        "description": "Users of one CRM integration, merged across its services.",
+        "required": [
+          "platform",
+          "integrationId",
+          "services",
+          "serviceErrors",
+          "users"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "CRM platform key."
+          },
+          "integrationId": {
+            "type": "string",
+            "description": "CRM integration identifier; the VinSolutions dealer ID."
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CRM services queried, in display order."
+          },
+          "serviceErrors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Failure message per service that could not be listed."
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportCrmUser"
+            },
+            "description": "Users sorted by name."
           }
         }
       },

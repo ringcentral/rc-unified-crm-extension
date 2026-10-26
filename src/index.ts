@@ -535,7 +535,16 @@ app.get('/support/crm/:platform/integrations', supportAuth.requireSupportUser, a
     }
 });
 
-app.post('/support/crm/:platform/integrations/:id/remove', supportAuth.requireSupportUser, async function (req, res) {
+app.get('/support/crm/:platform/integrations/:id/users', supportAuth.requireSupportUser, async function (req, res) {
+    try {
+        res.status(200).json(await supportCrm.listUsers(req.params.platform, req.params.id));
+    }
+    catch (e) {
+        sendSupportCrmError(res, e, 'Error listing Support console CRM integration users');
+    }
+});
+
+app.post('/support/crm/:platform/integrations/:id/remove',supportAuth.requireSupportUser, async function (req, res) {
     try {
         res.status(200).json(await supportCrm.removeIntegration({
             platform: req.params.platform,

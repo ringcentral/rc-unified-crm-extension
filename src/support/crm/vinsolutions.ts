@@ -217,6 +217,77 @@ async function removeIntegration(dealerId, services) {
 }
 
 /**
+ * VinSolutions answers 403 when the dealer is not enabled in the service the token belongs to.
+ *
+ * @param {any} error
+ */
+function isDealerNotAssociated(error) {
+    return error?.response?.status === 403
+        && /not associated/i.test(String(error.response.data?.Message || error.response.data || ''));
+}
+
+/**
+ * @param {string} service
+ * @param {string} dealerId
+ */
+async function fetchUsers(service, dealerId) {
+    const response = await withServiceAuth(service, (headers) => axios.get(
+        `${API_BASE_URL}/gateway/v1/tenant/user`,
+        { params: { dealerid: dealerId }, headers: { ...headers, Accept: 'application/json' }, timeout: REQUEST_TIMEOUT_MS }
+    ));
+    return Array.isArray(response.data) ? response.data : [];
+}
+
+/**
+ * Lists the dealer's users from every service that has the dealer enabled, merged by user ID.
+ * A service the dealer has not enabled is skipped; any other failure is reported in
+ * `serviceErrors`, so the users that did load are still returned.
+ *
+ * @param {string} dealerId
+ */
+async function listUsers(dealerId) {
+    const results: any[] = await Promise.all(serviceNames.map(async (service) => {
+        try {
+            return { service, users: await fetchUsers(service, dealerId) };
+        }
+        catch (e) {
+            if (isDealerNotAssociated(e)) return { service, users: [] };
+            return { service, error: describeError(e) };
+        }
+    }));
+
+    const users = new Map();
+    const serviceErrors = {};
+    for (const result of results) {
+        if (result.error) {
+            serviceErrors[result.service] = result.error;
+            continue;
+        }
+        for (const user of result.users) {
+            if (user?.UserId === undefined || user?.UserId === null) continue;
+            const id = String(user.UserId);
+            const merged = users.get(id) || {
+                id,
+                name: user.FullName || [user.FirstName, user.LastName].filter(Boolean).join(' ').trim(),
+                email: user.EmailAddress || '',
+                group: user.UserGroup || '',
+                roles: Array.isArray(user.UserTypes) ? user.UserTypes : [],
+                access: user.IlmAccess || '',
+                services: [],
+            };
+            merged.services.push(result.service);
+            users.set(id, merged);
+        }
+    }
+
+    return {
+        services: serviceNames,
+        serviceErrors,
+        users: [...users.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    };
+}
+
+/**
  * VinSolutions dealer IDs are positive integers.
  *
  * @param {string} id
@@ -229,6 +300,7 @@ exports.platform = 'vinsolutions';
 exports.services = serviceNames;
 exports.listIntegrations = listIntegrations;
 exports.removeIntegration = removeIntegration;
+exports.listUsers = listUsers;
 exports.isValidIntegrationId = isValidIntegrationId;
 
 export {};
