@@ -21,6 +21,29 @@ This interface updates an existing appointment in the connected CRM. It is calle
 | `durationMinutes` | number | Updated duration in minutes.                                                                         |
 | `contacts`        | array  | (Optional) Replacement list of attendee IDs or contact objects. When provided, existing attendees not in this list are removed. |
 
+The HTTP client sends these fields inside a `patch` wrapper:
+
+```json
+{
+  "patch": {
+    "title": "Updated meeting",
+    "summary": "Discuss next steps",
+    "startTimeUtc": "2026-10-26T12:00:00.000Z",
+    "durationMinutes": 60,
+    "contacts": [{ "id": "2288275906", "type": "contact" }]
+  }
+}
+```
+
+Send `startTimeUtc` and `durationMinutes` together when changing the time. Omit
+both for edits that only change other fields. The server continues to accept the
+deprecated `startTime` input for older clients; current clients send `startTimeUtc`.
+
+`participantName`, `attendees`, `attendeeIds`, `contactId`, and `contactType` are
+display/response fields, not appointment patch fields. Use `contacts` for attendee
+changes. Send a changed status through the separate status, confirm, or cancel
+endpoint, rather than including `status` in the patch.
+
 ## Return value(s)
 
 An object with the following property:

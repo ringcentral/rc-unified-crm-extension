@@ -117,7 +117,7 @@ describe('Clio appointment App-level E2E', () => {
     expectNoPendingCrmRequests();
   });
 
-  test('creates an appointment through the real Clio connector', async () => {
+  test.each([false, true])('creates an appointment through the real Clio connector (client status and metadata: %s)', async (includeClientMetadata) => {
     let calendarQuery;
     const calendarScope = nock(provider.apiBaseUrl)
       .matchHeader('authorization', provider.expectedAuthorization)
@@ -144,7 +144,13 @@ describe('Clio appointment App-level E2E', () => {
 
     const response = await client.post(
       '/appointments',
-      scenarios.create.appRequestBody,
+      includeClientMetadata ? {
+        payload: {
+          ...scenarios.create.appRequestBody.payload,
+          status: 'scheduled',
+          contacts: [{ ...scenarios.create.appRequestBody.payload.contacts[0], name: 'Alice Client', phone: '+14155551234' }],
+        },
+      } : scenarios.create.appRequestBody,
       authConfig(),
     );
 

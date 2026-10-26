@@ -813,6 +813,18 @@ describe('Core router broad route coverage', () => {
     expect(() => AppointmentActionResponseSchema.parse(cancelResponse.body)).not.toThrow();
   });
 
+  test.each([true, false])('forwards client appointment status and full contact references (wrapped: %s)', async (wrapped) => {
+    const payload = {
+      title: 'SushilTest11127', summary: 'Test', startTimeUtc: '2026-10-26T12:39:00.000Z',
+      durationMinutes: 60, status: 'scheduled',
+      contacts: [{ id: '2288275906', type: 'contact', name: 'Sushiltest Contactname', phone: '+14155551234', additionalInfo: {} }],
+    };
+    const response = await request(app).post('/appointments').query(authQuery()).send(wrapped ? { payload } : payload);
+    expect(response.status).toBe(200);
+    expect(response.body.successful).toBe(true);
+    expect(appointmentCore.createAppointment).toHaveBeenCalledWith({ platform: 'testCRM', userId: 'user-1', payload });
+  });
+
   test('rejects malformed appointment request bodies before invoking connectors', async () => {
     appointmentCore.listAppointments.mockClear();
     appointmentCore.createAppointment.mockClear();
@@ -829,7 +841,7 @@ describe('Core router broad route coverage', () => {
       await request(app).post('/appointments').query(authQuery()).send({ arbitrary: true }),
       await request(app).post('/appointments').query(authQuery()).send({
         ...appointmentCreateBody(),
-        payload: { ...appointmentCreateBody().payload, status: 'scheduled' },
+        payload: { ...appointmentCreateBody().payload, status: 123 },
       }),
       await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: 'bad' }),
       await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: {} }),

@@ -82,6 +82,85 @@ Message-log fields:
 
 Submitted values are passed to logging interfaces as `additionalSubmission`.
 
+## Appointment Fields
+
+`page.appointment` controls the appointment page title, title/status input
+visibility, status choices, attendee email requirements, and available actions.
+Add it inside your connector's platform definition at
+`platforms.<platformName>.page.appointment` in the Developer Console manifest
+(or the bundled manifest for local development). Merge it with any existing
+`page` configuration:
+
+```json
+{
+  "page": {
+    "appointment": {
+      "appointmentPageUrl": "https://{atsUrl}/BullhornStaffing/OpenWindow.cfm?Entity=Appointment&id={thirdPartyAppointmentId}",
+      "canOpenAppointmentPage": true,
+      "emailMandatoryInAttendee": false,
+      "filterStatus": {
+        "value": ["All", "Scheduled"]
+      },
+      "showConfirm": false,
+      "status": {
+        "isVisible": true,
+        "value": ["Scheduled"]
+      },
+      "supported": true,
+      "title": "Appointment",
+      "titleField": {
+        "isVisible": true,
+        "value": "Title"
+      }
+    }
+  }
+}
+```
+
+**The Appointment tab requires `page.appointment.supported: true`.** If this
+field is missing or false, the tab is hidden even when the server implements
+appointment APIs. The user/admin **Show Appointments tab** setting must also
+be enabled; it defaults to enabled for supported connectors. Manifest settings
+configure the UI; implement the corresponding appointment interfaces on the
+server to make its actions work.
+
+The example above uses a Bullhorn appointment URL. For another CRM, replace
+`appointmentPageUrl` with that CRM's URL template and configure only the statuses
+and actions your connector supports.
+
+| Field under `page.appointment` | Type | Description |
+| --- | --- | --- |
+| `supported` | boolean | Enables the Appointment tab and its visibility setting. Set to `true` when the connector supports appointments. Missing or `false` hides the tab. |
+| `title` | string | User-facing appointment page/tab label and the basis for create/edit action labels. Defaults to `Appointments`. The example uses `Appointment`. |
+| `appointmentPageUrl` | string | CRM URL template used by **Open Appointment Info** when `canOpenAppointmentPage` is enabled. `{thirdPartyAppointmentId}` is replaced with the CRM appointment ID. `{atsUrl}` is Bullhorn-specific and resolves to the connected user's ATS host/base path without the `https://` prefix, which the example supplies. Other CRMs can use `{hostname}` and supported [URL template tokens](manifest.md#url-template-tokens). |
+| `canOpenAppointmentPage` | boolean | Enables opening the configured `appointmentPageUrl` template. If disabled or the template is missing, the client falls back to an `appointmentUrl` returned with the record, when available. This field does not control tab visibility. |
+| `emailMandatoryInAttendee` | boolean | Requires selected attendees to have an email address before form submission when `true`. Set to `false` for CRMs that allow attendees without email addresses. |
+| `filterStatus.value` | array of strings | Status filters offered on the appointment list. `All` includes every status; `Scheduled` includes scheduled and confirmed records. Other labels match normalized status values (`Canceled` also matches `cancelled`). This configures filtering, not the editable status choices. |
+| `showConfirm` | boolean | Shows the list's **Confirm** action unless explicitly `false`. Use `false` when the connector does not support confirmation. This does not hide the form's status selector. |
+| `status.isVisible` | boolean | Shows the create/edit status selector unless explicitly `false`. When hidden, the client omits initial status on create and does not submit status changes on edit. |
+| `status.value` | array of strings | Status choices offered in create/edit forms. Values are trimmed and lowercased for submission, so `Scheduled` becomes `scheduled`. The first choice supplies the default for new appointments. An omitted or empty list defaults to `Scheduled`, `Confirmed`, and `Canceled`; configure only values your connector supports. |
+| `titleField.isVisible` | boolean | Set explicitly to `true` to show the title input, or `false` to hide it. A hidden title gets a generated value on create and is omitted on update. |
+| `titleField.value` | string | Label for the title input, such as `Title` or `Subject`. Defaults to `Title`; this is a label, not the appointment's title value. |
+
+The request shape stays the same across these configurations:
+
+- Create requests use `{ "payload": { ... } }`; edits use `{ "patch": { ... } }`.
+- Attendees are submitted as `contacts` with IDs and optional CRM types. Contact
+  names and email-check metadata stay in the client for display and validation.
+- Times are submitted as `startTimeUtc` with `durationMinutes`.
+- `titleField.isVisible: false` hides the input. On create the client supplies a
+  title derived from the manifest's appointment title, since the API requires a
+  non-empty title. On update the hidden title is omitted to preserve the CRM value.
+- `status.isVisible: false` omits status from create and prevents edit status
+  submissions. A visible status selector uses the configured `status.value`
+  choices. Unchanged statuses are not submitted during edits; changed statuses
+  use the separate status action after saving the appointment details.
+- Response aliases such as `attendees` and `attendeeIds` remain available for
+  displaying existing records and opening contacts. They are not mutation fields.
+
+See [createAppointment](interfaces/createAppointment.md) and
+[updateAppointment](interfaces/updateAppointment.md) for the server contracts.
+
 ## New-Contact Fields
 
 The `page.newContact.additionalFields` array adds extra fields to the "Create contact" form shown to users when they log a call against an unknown phone number.
@@ -214,4 +293,3 @@ This does not disable the client's local matched-contact cache. If the client al
 ```
 
 The URL can include built-in tokens such as `{crmName}`, `{userName}`, `{userEmail}`, and `{version}` plus any feedback element `const`.
-
