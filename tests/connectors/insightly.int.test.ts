@@ -662,6 +662,39 @@ describe('Insightly Connector', () => {
 
             expect(result.logId).toBe(204);
         });
+
+        it('should derive owner id from the assigned agent user model id', async () => {
+            UserModel.findByPk.mockResolvedValue({
+                id: '2031990-insightly',
+                platformAdditionalInfo: { apiUrl }
+            });
+
+            nock(apiUrl)
+                .post('/v3.1/events', body => body.OWNER_USER_ID === 2031990)
+                .reply(201, { EVENT_ID: 208 });
+
+            nock(apiUrl)
+                .post('/v3.1/events/208/links')
+                .reply(201, {});
+
+            const result = await insightly.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserToken: 'valid-jwt-token'
+                },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(208);
+        });
     });
 
     // ==================== updateCallLog ====================
