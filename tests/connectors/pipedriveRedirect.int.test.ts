@@ -1,3 +1,4 @@
+const vm = require('vm');
 const request = require('supertest');
 const nock = require('nock');
 const { getServer } = require('../../src/index');
@@ -49,6 +50,79 @@ describe('Pipedrive Redirect Routes', () => {
             expect(res.status).toEqual(200);
             expect(res.text).toContain('Pipedrive Marketplace');
             expect(res.text).toContain('www.pipedrive.com/en/marketplace');
+        });
+
+        describe('Admin Console callback handoff', () => {
+            const adminConsoleOrigin = 'https://appconnect.labs.ringcentral.com';
+            const adminState = 'platform=pipedrive&rcAccountId=1&adminPortal=true&oauthAttempt=abc';
+
+            // Runs the page's handleAdminPortalCallback against a stubbed window.
+            async function runHandoff({ search, opener }) {
+                const res = await request(getServer()).get('/pipedrive-redirect');
+                const script = /<script id="admin-portal-callback">([\s\S]*?)<\/script>/.exec(res.text)[1];
+                const context = vm.createContext({ URLSearchParams });
+                vm.runInContext(script, context);
+                const win = { location: { search, href: `https://connector.test/pipedrive-redirect${search}` }, opener };
+                context.win = win;
+                return { result: vm.runInContext('handleAdminPortalCallback(win)', context), win };
+            }
+
+            function createOpener() {
+                const calls = [];
+                return { calls, postMessage: (message, origin) => calls.push({ message, origin }) };
+            }
+
+            test('should post the callback only to the Admin Console origin', async () => {
+                const opener = createOpener();
+                const search = `?code=abc&state=${encodeURIComponent(adminState)}`;
+                const { result, win } = await runHandoff({ search, opener });
+
+                expect(result).toEqual('sent');
+                expect(opener.calls).toEqual([
+                    { message: { callbackUri: win.location.href }, origin: adminConsoleOrigin }
+                ]);
+            });
+
+            test('should not take the target origin from the URL', async () => {
+                const opener = createOpener();
+                const state = `${adminState}&adminOrigin=${encodeURIComponent('https://evil.example.com')}`;
+                const search = `?code=abc&adminOrigin=${encodeURIComponent('https://evil.example.com')}&state=${encodeURIComponent(state)}`;
+                const { result } = await runHandoff({ search, opener });
+
+                expect(result).toEqual('sent');
+                expect(opener.calls.map((call) => call.origin)).toEqual([adminConsoleOrigin]);
+            });
+
+            test('should forward provider errors to the Admin Console', async () => {
+                const opener = createOpener();
+                const search = `?error=access_denied&state=${encodeURIComponent(adminState)}`;
+                const { result } = await runHandoff({ search, opener });
+
+                expect(result).toEqual('sent');
+                expect(opener.calls).toHaveLength(1);
+            });
+
+            test('should report no-opener when the opener is gone', async () => {
+                const search = `?code=abc&state=${encodeURIComponent(adminState)}`;
+                const { result } = await runHandoff({ search, opener: null });
+
+                expect(result).toEqual('no-opener');
+            });
+
+            test('should ignore callbacks that are not from the Admin Console', async () => {
+                const opener = createOpener();
+                const cases = [
+                    '',
+                    '?code=abc',
+                    `?code=abc&state=${encodeURIComponent('platform=pipedrive')}`,
+                    `?state=${encodeURIComponent(adminState)}`
+                ];
+                for (const search of cases) {
+                    const { result } = await runHandoff({ search, opener });
+                    expect(result).toEqual('none');
+                }
+                expect(opener.calls).toHaveLength(0);
+            });
         });
     });
 
