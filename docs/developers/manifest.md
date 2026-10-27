@@ -264,6 +264,7 @@ Use:
 | `auth.apiKey.page.content[].managedFieldType` | `input` for free entry or `dynamic` for connector-provided choices. Dynamic fields require `managedScope: user` and [`getManagedAuthOptions`](interfaces/getManagedAuthOptions.md). |
 | `page.callLog.additionalFields[]` | Custom call log form fields. |
 | `page.messageLog.additionalFields[]` | Custom message log form fields. |
+| `page.appointment` | Appointment tab, form fields, status choices, and actions. Set `supported: true` to make the tab available. See the [appointment manifest example and field reference](manifest-pages.md#appointment-fields). |
 | `page.feedback` | Feedback form and target URL. |
 | `page.useContactSearch` | Enables manual contact search by name when [`findContactWithName`](interfaces/findContactWithName.md) is implemented. |
 | `page.disableContactCache` | Forces phone-number contact lookups to refresh server-side account contact data instead of returning cached account matches. Client-side local matched-contact cache can still be used. |
@@ -374,4 +375,3 @@ The `override` property allows you to define conditions under which certain mani
   }
 ]
 ```
-

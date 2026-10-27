@@ -18,7 +18,12 @@ This interface creates a new appointment in the connected CRM. It is called when
 | `summary`         | string | Notes or body text for the appointment.                                                         |
 | `startTimeUtc`    | string | ISO-8601 UTC timestamp for the appointment start time.                                          |
 | `durationMinutes` | number | Duration of the appointment in minutes.                                                         |
+| `status`          | string | (Optional) Non-empty initial status, such as `scheduled`. Passed to the connector; supported values and behavior depend on the CRM. |
 | `contacts`        | array  | (Optional) Array of contact IDs (strings or numbers) or contact objects with an `id` property to add as attendees. |
+
+Contact objects may include `type`, `contactType`, `name`, and other client contact
+metadata. The server validates the contact ID and forwards the reference to the
+connector. Omitting `status` preserves the connector's default create behavior.
 
 ## Return value(s)
 

@@ -5443,10 +5443,12 @@
                     "summary": "Discuss case plan",
                     "startTimeUtc": "2026-07-20T19:00:00.000Z",
                     "durationMinutes": 30,
+                    "status": "scheduled",
                     "contacts": [
                       {
                         "id": "501",
-                        "type": "Contact"
+                        "type": "Contact",
+                        "name": "Jane Smith"
                       }
                     ]
                   }
@@ -8098,15 +8100,19 @@
               },
               "contactType": {
                 "type": "string"
+              },
+              "name": {
+                "type": "string",
+                "description": "Contact display name supplied by the client."
               }
             },
             "required": [
               "id"
             ],
-            "additionalProperties": false
+            "additionalProperties": true
           }
         ],
-        "description": "CRM contact to associate with the appointment, as an id or typed reference.",
+        "description": "CRM contact to associate with the appointment, as an id or typed reference with optional display metadata.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentCreateRequest": {
@@ -8278,6 +8284,11 @@
             "exclusiveMinimum": true,
             "maximum": 9007199254740991,
             "description": "Appointment duration in whole minutes."
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional initial appointment status passed to the connector; supported values depend on the CRM."
           },
           "contacts": {
             "type": "array",

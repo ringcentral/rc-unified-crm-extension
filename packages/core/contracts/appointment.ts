@@ -69,12 +69,13 @@ export const IdentifiedAppointmentSchema = AppointmentSchema.extend({
 
 export const AppointmentContactReferenceSchema = z.union([
   AppointmentContactIdSchema,
-  z.strictObject({
+  z.looseObject({
     id: AppointmentContactIdSchema,
     type: z.string().optional(),
     contactType: z.string().optional(),
+    name: z.string().describe('Contact display name supplied by the client.').optional(),
   }),
-]).describe('CRM contact to associate with the appointment, as an id or typed reference.');
+]).describe('CRM contact to associate with the appointment, as an id or typed reference with optional display metadata.');
 
 export const AppointmentRangeSchema = z.strictObject({
   startDate: AppointmentDateSchema,
@@ -89,6 +90,9 @@ export const AppointmentCreateInputSchema = z.strictObject({
   summary: z.string().describe('Appointment description or agenda.'),
   startTimeUtc: AppointmentDateTimeSchema.describe('Appointment start timestamp, including its UTC offset.'),
   durationMinutes: AppointmentDurationSchema,
+  status: z.string().trim().min(1).describe(
+    'Optional initial appointment status passed to the connector; supported values depend on the CRM.',
+  ).optional(),
   contacts: z.array(AppointmentContactReferenceSchema).describe(
     'CRM contacts to associate with or invite to the appointment.',
   ).optional(),
@@ -235,7 +239,8 @@ export const appointmentCreateRequestExample = {
     summary: 'Discuss case plan',
     startTimeUtc: '2026-07-20T19:00:00.000Z',
     durationMinutes: 30,
-    contacts: [{ id: '501', type: 'Contact' }],
+    status: 'scheduled',
+    contacts: [{ id: '501', type: 'Contact', name: 'Jane Smith' }],
   },
 } satisfies AppointmentCreateRequest;
 
