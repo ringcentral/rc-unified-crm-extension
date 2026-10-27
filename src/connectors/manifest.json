@@ -507,7 +507,7 @@
         "useAdminAssignedUserToken": true,
         "enableUserMapping": true
       },
-      "isSelectedMessageLogSupported":true,
+      "isSelectedMessageLogSupported": true,
       "contactTypes": [
         {
           "display": "Person",
@@ -2217,5 +2217,5 @@
       ]
     }
   },
-  "version": "2.0.1"
+  "version": "2.0.3"
 }
