@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "App Connect Connector Server API",
-    "version": "2.0.0",
+    "version": "2.0.3",
     "description": "HTTP API exposed by an App Connect connector server (called the CRM or adapter server in older code). The configured manifest serverUrl is the HTTPS base URL, without a trailing slash, to which App Connect appends these paths. The contract combines shared @app-connect/core routes with connector-specific routes implemented by this server; fields and supported capabilities can vary by connector where an operation delegates to a connector interface.\n\nAuthorization: userJwt is an App Connect CRM-session JWT issued by /apiKeyLogin or /oauth-callback; it is not a RingCentral OAuth token. X-RC-Access-Token carries a RingCentral OAuth credential for RingCentral user or administrator validation. Legacy jwtToken and rcAccessToken query parameters remain active for older clients, but credentials in URLs can leak through logs and browser history and should be avoided.\n\nLegacy response convention: some connector operations return HTTP 200 with successful: false and returnMessage when the request was processed but the CRM operation failed. Callers must inspect the response body rather than treating every 2xx response as business success. Payloads can contain CRM records, communications content, recording URLs, and access tokens; do not log credentials or retain personal data beyond the workflow that requires it.",
     "contact": {
       "name": "RingCentral Labs",
@@ -299,7 +299,7 @@
                   "version": {
                     "summary": "Server version",
                     "value": {
-                      "version": "2.0.0"
+                      "version": "2.0.3"
                     }
                   }
                 }
@@ -2758,6 +2758,74 @@
         "description": "Logs RingCentral SMS, MMS, fax, voicemail, or text records to the CRM. Messages can be written individually or grouped into a shared conversation activity, and previously processed RingCentral message IDs are de-duplicated. Fax and MMS payloads can include a RingCentral access token for attachment downloads; treat it as secret and do not persist it."
       }
     },
+    "/messageLog/match": {
+      "post": {
+        "tags": [
+          "Message Logs"
+        ],
+        "summary": "Match SMS messages to existing CRM logs",
+        "operationId": "postMessageLogMatch",
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/MessageLogMatch"
+        },
+        "responses": {
+          "200": {
+            "x-app-connect-generated-contract": true,
+            "description": "Per-message logged-state lookup result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageLogMatchResponse"
+                },
+                "examples": {
+                  "matched": {
+                    "summary": "Some messages have already been logged",
+                    "value": {
+                      "successful": true,
+                      "logs": [
+                        {
+                          "messageId": "6424569101",
+                          "matched": true,
+                          "logId": "crm-entry-1"
+                        },
+                        {
+                          "messageId": "6424569102",
+                          "matched": false
+                        },
+                        {
+                          "messageId": "6424569105",
+                          "matched": true,
+                          "logId": "crm-entry-1"
+                        }
+                      ],
+                      "messageLogs": {
+                        "6424569101": "crm-entry-1",
+                        "6424569105": "crm-entry-1"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
+          }
+        },
+        "description": "Checks whether selected RingCentral SMS message IDs already have CRM log associations. This body-based lookup avoids long query strings for large conversations."
+      }
+    },
     "/calldown": {
       "get": {
         "tags": [
@@ -4379,6 +4447,93 @@
         }
       }
     },
+    "/support/crm/{platform}/integrations/{id}/users": {
+      "get": {
+        "tags": [
+          "Support Console"
+        ],
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          }
+        ],
+        "summary": "List the users of a CRM integration",
+        "operationId": "listSupportCrmIntegrationUsers",
+        "description": "Fetches the dealer's users from each VinSolutions service that has the dealer enabled and merges them by user ID. A service the dealer has not enabled is skipped; any other failure is reported in serviceErrors while the users that loaded are still returned. Nothing is cached.",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vinsolutions"
+              ]
+            },
+            "description": "CRM whose integrations the Support console manages. Only vinsolutions is supported."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            },
+            "description": "CRM-specific integration identifier; the VinSolutions dealer ID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users of the integration, possibly with per-service errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportCrmUserList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The integration ID is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The RingCentral access token is missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The CRM platform is not supported, or the resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/support/crm/{platform}/integrations/{id}/remove": {
       "post": {
         "tags": [
@@ -5288,10 +5443,12 @@
                     "summary": "Discuss case plan",
                     "startTimeUtc": "2026-07-20T19:00:00.000Z",
                     "durationMinutes": 30,
+                    "status": "scheduled",
                     "contacts": [
                       {
                         "id": "501",
-                        "type": "Contact"
+                        "type": "Contact",
+                        "name": "Jane Smith"
                       }
                     ]
                   }
@@ -5362,6 +5519,31 @@
                   "accountValues": {
                     "companyId": "company-123"
                   }
+                }
+              }
+            }
+          }
+        }
+      },
+      "MessageLogMatch": {
+        "x-app-connect-generated-contract": true,
+        "required": true,
+        "description": "Conversation and message ids to check for existing CRM message-log records.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MessageLogMatchRequest"
+            },
+            "examples": {
+              "selectedMessages": {
+                "summary": "Lookup logged state for selected SMS messages",
+                "value": {
+                  "conversationId": "8031152018338945901",
+                  "messageIds": [
+                    "6424569101",
+                    "6424569102",
+                    "6424569105"
+                  ]
                 }
               }
             }
@@ -6981,6 +7163,21 @@
               "description": "Connector-defined entity identifier, represented as a string or number."
             },
             "description": "RingCentral message or local conversation-mapping identifiers recorded by this request; an empty list can indicate a no-op."
+          },
+          "messageLogs": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
+            },
+            "description": "Per-message mapping of RingCentral message id to CRM log record id, returned by the selective single-entry logging path so the client can render logged icons."
           }
         },
         "required": [
@@ -7903,15 +8100,19 @@
               },
               "contactType": {
                 "type": "string"
+              },
+              "name": {
+                "type": "string",
+                "description": "Contact display name supplied by the client."
               }
             },
             "required": [
               "id"
             ],
-            "additionalProperties": false
+            "additionalProperties": true
           }
         ],
-        "description": "CRM contact to associate with the appointment, as an id or typed reference.",
+        "description": "CRM contact to associate with the appointment, as an id or typed reference with optional display metadata.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentCreateRequest": {
@@ -8083,6 +8284,11 @@
             "exclusiveMinimum": true,
             "maximum": 9007199254740991,
             "description": "Appointment duration in whole minutes."
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional initial appointment status passed to the connector; supported values depend on the CRM."
           },
           "contacts": {
             "type": "array",
@@ -8928,6 +9134,97 @@
           }
         }
       },
+      "SupportCrmUser": {
+        "type": "object",
+        "description": "One user of a CRM integration (a VinSolutions dealer user).",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "group",
+          "roles",
+          "access",
+          "services"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "CRM user identifier; the VinSolutions user ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "Full name reported by the CRM."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address; empty when the CRM reports none."
+          },
+          "group": {
+            "type": "string",
+            "description": "CRM user group, such as Manager or Office."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CRM user types, such as Manager or FinanceManager."
+          },
+          "access": {
+            "type": "string",
+            "description": "CRM access level, such as Admin or SalesPerson."
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CRM services that listed this user."
+          }
+        }
+      },
+      "SupportCrmUserList": {
+        "type": "object",
+        "description": "Users of one CRM integration, merged across its services.",
+        "required": [
+          "platform",
+          "integrationId",
+          "services",
+          "serviceErrors",
+          "users"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "CRM platform key."
+          },
+          "integrationId": {
+            "type": "string",
+            "description": "CRM integration identifier; the VinSolutions dealer ID."
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CRM services queried, in display order."
+          },
+          "serviceErrors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Failure message per service that could not be listed."
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportCrmUser"
+            },
+            "description": "Users sorted by name."
+          }
+        }
+      },
       "SupportCrmRemoveRequest": {
         "type": "object",
         "description": "Which CRM services to remove the integration from.",
@@ -9130,6 +9427,134 @@
             "description": "Why the integration is allowlisted."
           }
         }
+      },
+      "MessageLogMatchRequest": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "RingCentral conversation identifier to scope the lookup."
+          },
+          "messageIds": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
+            },
+            "description": "RingCentral message identifiers to match against already logged CRM records."
+          }
+        },
+        "required": [
+          "conversationId"
+        ],
+        "additionalProperties": true,
+        "description": "Bulk lookup request for selective SMS logged-state matching.",
+        "x-app-connect-generated-contract": true
+      },
+      "MessageLogMatchResponse": {
+        "type": "object",
+        "properties": {
+          "successful": {
+            "type": "boolean",
+            "description": "Whether the lookup completed without an App Connect error."
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "messageId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "description": "RingCentral message identifier from the request."
+                },
+                "matched": {
+                  "type": "boolean",
+                  "description": "Whether this message has already been logged."
+                },
+                "logId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "description": "CRM log record identifier for matched messages."
+                },
+                "contactId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "description": "CRM contact associated with the logged message."
+                }
+              },
+              "required": [
+                "messageId",
+                "matched"
+              ],
+              "additionalProperties": true
+            },
+            "description": "Matched/unmatched status for the requested message ids."
+          },
+          "messageLogs": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
+            },
+            "description": "Per-message mapping of RingCentral message id to CRM log record id."
+          },
+          "returnMessage": {
+            "description": "Optional lookup status message.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReturnMessage"
+              }
+            ]
+          }
+        },
+        "required": [
+          "successful"
+        ],
+        "additionalProperties": true,
+        "description": "Bulk lookup result for selective SMS logged-state matching.",
+        "x-app-connect-generated-contract": true
       }
     },
     "headers": {
@@ -9190,6 +9615,8 @@
       "ContactInfo",
       "CallLogMutationResponse",
       "MessageLogResponse",
+      "MessageLogMatchRequest",
+      "MessageLogMatchResponse",
       "CallDispositionRequest",
       "UserSetting",
       "UserSettings",
@@ -9199,6 +9626,7 @@
     "requestBodies": [
       "ApiKeyLogin",
       "PluginRegister",
+      "MessageLogMatch",
       "CallDisposition",
       "UserSettingsUpdate",
       "AdminSettingsUpdate",
@@ -9296,6 +9724,15 @@
         "path": "/messageLog",
         "parameters": [],
         "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/messageLog/match",
+        "parameters": [],
+        "requestBody": true,
         "responses": [
           "200"
         ]

@@ -14,7 +14,8 @@ jest.mock('../../models/dynamo/lockSchema', () => ({
 const ClientOAuth2 = require('client-oauth2');
 const { UserModel } = require('../../models/userModel');
 const connectorRegistry = require('../../connector/registry');
-const { getOAuthApp, checkAndRefreshAccessToken } = require('../../lib/oauth');
+const { getOAuthApp, checkAndRefreshAccessToken, useRedirectFollowingRequest } = require('../../lib/oauth');
+const axios = require('axios');
 const tsOauth = require('../../lib/oauth.ts');
 
 describe('oauth', () => {
@@ -123,6 +124,48 @@ describe('oauth', () => {
           Authorization: undefined
         }
       }));
+    });
+  });
+
+  describe('useRedirectFollowingRequest', () => {
+    test('should send the token request through axios, dropping undefined headers', async () => {
+      const requestSpy = jest.spyOn(axios, 'request').mockResolvedValue({ status: 200, data: '{"access_token":"a"}' });
+      const app = useRedirectFollowingRequest({});
+
+      const result = await app.request('POST', 'https://auth-emea.bullhornstaffing.com/oauth/token', 'code=1', {
+        Authorization: 'Basic abc',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: undefined
+      });
+
+      expect(result).toEqual({ status: 200, body: '{"access_token":"a"}' });
+      const options: any = requestSpy.mock.calls[0][0];
+      expect(options).toMatchObject({
+        method: 'POST',
+        url: 'https://auth-emea.bullhornstaffing.com/oauth/token',
+        data: 'code=1',
+        maxRedirects: 5,
+        validateStatus: expect.any(Function)
+      });
+      expect(options.headers).toEqual({
+        Authorization: 'Basic abc',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      });
+    });
+
+    test('should keep Authorization only when redirected within the same parent domain', async () => {
+      const requestSpy = jest.spyOn(axios, 'request').mockResolvedValue({ status: 200, data: '' });
+      const app = useRedirectFollowingRequest({});
+      await app.request('POST', 'https://auth-emea.bullhornstaffing.com/oauth/token', 'code=1', { Authorization: 'Basic abc' });
+      const { beforeRedirect } = requestSpy.mock.calls[0][0] as any;
+
+      const sameDomain: any = { hostname: 'auth-east.bullhornstaffing.com', headers: {} };
+      beforeRedirect(sameDomain);
+      expect(sameDomain.headers.Authorization).toBe('Basic abc');
+
+      const otherDomain: any = { hostname: 'evil.example.com', headers: {} };
+      beforeRedirect(otherDomain);
+      expect(otherDomain.headers.Authorization).toBeUndefined();
     });
   });
 

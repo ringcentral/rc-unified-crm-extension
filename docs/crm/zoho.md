@@ -22,11 +22,19 @@ Once the extension has been installed, follow these steps to configure Zoho in t
 
     ![Sign in and select Zoho](../img/crm-zoho-ringclone-signin-and-select.png){ .mw-400 }
 
-2. A window will be opened prompting you to login to your Zoho account. Authorize Zoho and click "Accept".
+2. After selecting the Zoho connector, the window will prompt you to select a region. Please select the region corresponding to your Zoho account (Not your RingCentral account).
+
+    ![Select region](../img/crm-zoho-ringclone-select-region.png){ .mw-400 }
+
+3. A window will be opened prompting you to login to your Zoho account. Authorize Zoho and click "Accept".
 
     ![Authorize Zoho](../img/crm-zoho-ringclone-accept.png){ .mw-400 }
+   
+    When you login successfully, the browser extension will automatically update to show you are connected to Zoho. If you are connected, the button next to Zoho will say "logout".
 
-When you login successfully, the browser extension will automatically update to show you are connected to Zoho. If you are connected, the button next to Zoho will say "logout".
+5. As a final step, you will need to add your Zoho organization id to the RingCentral adapter. This organization id typically takes the form of "org000000000". the organization id can be found in Setup > General > Company Setting > Company Details > URL > org(numerical). Please be sure to input the entire id, including the precending "org".
+
+    ![Organization ID](../img/crm-zoho-ringclone-org-id.png){ .mw-400 }
 
 ## Call logging activity
 

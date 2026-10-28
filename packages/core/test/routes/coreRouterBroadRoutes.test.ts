@@ -4,6 +4,7 @@ const request = require('supertest');
 jest.mock('../../handlers/log', () => ({
   saveNoteCache: jest.fn(),
   getCallLog: jest.fn(),
+  getMessageLog: jest.fn(),
   createCallLog: jest.fn(),
   updateCallLog: jest.fn(),
   createMessageLog: jest.fn(),
@@ -404,6 +405,11 @@ describe('Core router broad route coverage', () => {
       logs: [{ sessionId: 'session-1' }],
       returnMessage: { messageType: 'success', message: 'Found' },
       extraDataTracking: { logs: 1 },
+    });
+    logCore.getMessageLog.mockResolvedValue({
+      successful: true,
+      logs: [{ messageId: 'msg-1', matched: true, logId: 'crm-msg-1' }],
+      messageLogs: { 'msg-1': 'crm-msg-1' },
     });
     logCore.createCallLog.mockResolvedValue({
       successful: true,
@@ -807,6 +813,18 @@ describe('Core router broad route coverage', () => {
     expect(() => AppointmentActionResponseSchema.parse(cancelResponse.body)).not.toThrow();
   });
 
+  test.each([true, false])('forwards client appointment status and full contact references (wrapped: %s)', async (wrapped) => {
+    const payload = {
+      title: 'SushilTest11127', summary: 'Test', startTimeUtc: '2026-10-26T12:39:00.000Z',
+      durationMinutes: 60, status: 'scheduled',
+      contacts: [{ id: '2288275906', type: 'contact', name: 'Sushiltest Contactname', phone: '+14155551234', additionalInfo: {} }],
+    };
+    const response = await request(app).post('/appointments').query(authQuery()).send(wrapped ? { payload } : payload);
+    expect(response.status).toBe(200);
+    expect(response.body.successful).toBe(true);
+    expect(appointmentCore.createAppointment).toHaveBeenCalledWith({ platform: 'testCRM', userId: 'user-1', payload });
+  });
+
   test('rejects malformed appointment request bodies before invoking connectors', async () => {
     appointmentCore.listAppointments.mockClear();
     appointmentCore.createAppointment.mockClear();
@@ -823,7 +841,7 @@ describe('Core router broad route coverage', () => {
       await request(app).post('/appointments').query(authQuery()).send({ arbitrary: true }),
       await request(app).post('/appointments').query(authQuery()).send({
         ...appointmentCreateBody(),
-        payload: { ...appointmentCreateBody().payload, status: 'scheduled' },
+        payload: { ...appointmentCreateBody().payload, status: 123 },
       }),
       await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: 'bad' }),
       await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: {} }),
@@ -920,6 +938,63 @@ describe('Core router broad route coverage', () => {
       returnMessage: null,
     });
     expect(() => MessageLogResponseSchema.parse(alreadyLoggedResponse.body)).not.toThrow();
+
+    const messageLogMatchResponse = await request(app)
+      .post('/messageLog/match')
+      .query(authQuery())
+      .send({ conversationId: 'conv-1', messageIds: ['msg-1', 'msg-2'] });
+    expect(messageLogMatchResponse.body).toEqual({
+      successful: true,
+      logs: [{ messageId: 'msg-1', matched: true, logId: 'crm-msg-1' }],
+      messageLogs: { 'msg-1': 'crm-msg-1' },
+    });
+    expect(logCore.getMessageLog).toHaveBeenCalledWith({
+      userId: 'user-1',
+      platform: 'testCRM',
+      conversationId: 'conv-1',
+      messageIds: ['msg-1', 'msg-2'],
+    });
+  });
+
+  test('matches message logs by conversation only and handles edge-case match requests', async () => {
+    logCore.getMessageLog.mockResolvedValueOnce({
+      successful: true,
+      logs: [],
+      messageLogs: {},
+    });
+    const conversationOnly = await request(app)
+      .post('/messageLog/match')
+      .query(authQuery())
+      .set('is-debug', 'true')
+      .send({ conversationId: 'conv-1' });
+    expect(conversationOnly.status).toBe(200);
+    expect(conversationOnly.body._debug.traces).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        methodName: 'matchMessageLog:start',
+        data: expect.objectContaining({ conversationId: 'conv-1' }),
+      }),
+    ]));
+
+    // Without a body parser `req.body` stays undefined.
+    const appWithoutBodyParser = express();
+    appWithoutBodyParser.use('/', createCoreRouter());
+    const emptyBody = await request(appWithoutBodyParser).post('/messageLog/match').query(authQuery());
+    expect(emptyBody.status).toBe(400);
+    expect(emptyBody.body.returnMessage).toEqual(expect.objectContaining({
+      message: 'Invalid message log match request',
+    }));
+
+    logCore.getMessageLog.mockRejectedValueOnce(new Error('lookup crashed'));
+    const unexpectedError = await request(app)
+      .post('/messageLog/match')
+      .query(authQuery())
+      .send({ conversationId: 'conv-1', messageIds: ['msg-1'] });
+    expect(unexpectedError.status).toBe(400);
+    expect(analytics.track).toHaveBeenLastCalledWith(expect.objectContaining({
+      interfaceName: 'matchMessageLog',
+      success: false,
+      extras: expect.objectContaining({ statusCode: 'unknown' }),
+    }));
   });
 
   test('wraps representative route responses with debug trace data', async () => {
@@ -967,6 +1042,7 @@ describe('Core router broad route coverage', () => {
     await expectDebugResponse(request(app).patch('/callLog').query(authQuery()).send({ accountId: 'acc' }));
     await expectDebugResponse(request(app).put('/callDisposition').query(authQuery()).send({ sessionId: 's1' }));
     await expectDebugResponse(request(app).post('/messageLog').query(authQuery()).send({ messages: [] }));
+    await expectDebugResponse(request(app).post('/messageLog/match').query(authQuery()).send({ conversationId: 'conv-1', messageIds: ['msg-1'] }));
     await expectDebugResponse(request(app).get('/custom/contact/search').query({ ...authQuery(), name: 'Alice' }));
     await expectDebugResponse(request(app).get('/ringcentral/admin/report').query(authQuery()));
     await expectDebugResponse(request(app).get('/ringcentral/admin/userReport').query({ ...authQuery(), rcExtensionId: 'ext-1' }));
@@ -1042,6 +1118,7 @@ describe('Core router broad route coverage', () => {
       ['patch', '/callLog', { accountId: 'acc' }],
       ['put', '/callDisposition', { sessionId: 's1' }],
       ['post', '/messageLog', { messages: [] }],
+      ['post', '/messageLog/match', { conversationId: 'conv-1', messageIds: ['msg-1'] }],
       ['post', '/calldown', { contactId: 'c1' }],
       ['get', '/calldown'],
       ['delete', '/calldown/item-1'],
@@ -1073,6 +1150,7 @@ describe('Core router broad route coverage', () => {
     await expect(request(app).post('/apiKeyLogin').send({ apiKey: 'api-key' })).resolves.toMatchObject({ status: 400 });
     await expect(request(app).post('/appointments/appt-2/status').query(authQuery()).send({})).resolves.toMatchObject({ status: 400 });
     await expect(request(app).delete('/admin/managedOAuth/account').query({ rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 400 });
+    await expect(request(app).post('/messageLog/match').query(authQuery()).send({ messageIds: ['msg-1'] })).resolves.toMatchObject({ status: 400 });
   });
 
   test('rejects protected routes when JWT is invalid', async () => {
@@ -1102,6 +1180,7 @@ describe('Core router broad route coverage', () => {
     await expectInvalidJwt(() => request(app).patch('/callLog').query({ jwtToken: 'bad' }).send({}));
     await expectInvalidJwt(() => request(app).put('/callDisposition').query({ jwtToken: 'bad' }).send({ sessionId: 's1' }), 'Invalid JWT token');
     await expectInvalidJwt(() => request(app).post('/messageLog').query({ jwtToken: 'bad' }).send({ messages: [] }));
+    await expectInvalidJwt(() => request(app).post('/messageLog/match').query({ jwtToken: 'bad' }).send({ conversationId: 'conv-1', messageIds: ['msg-1'] }));
     await expectInvalidJwt(() => request(app).get('/custom/contact/search').query({ jwtToken: 'bad', name: 'Alice' }), 'Invalid JWT token');
     await expectInvalidJwt(() => request(app).get('/accountData').query({ jwtToken: 'bad', keys: 'activityTypes' }));
   });
@@ -1460,6 +1539,9 @@ describe('Core router broad route coverage', () => {
 
     logCore.createMessageLog.mockRejectedValueOnce({ response: { status: 500 }, message: 'message failed' });
     await expect(request(app).post('/messageLog').query(authQuery()).send({ messages: [] })).resolves.toMatchObject({ status: 400 });
+
+    logCore.getMessageLog.mockRejectedValueOnce({ response: { status: 500 }, message: 'message match failed' });
+    await expect(request(app).post('/messageLog/match').query(authQuery()).send({ conversationId: 'conv-1', messageIds: ['msg-1'] })).resolves.toMatchObject({ status: 400 });
 
     calldown.list.mockRejectedValueOnce({ response: { status: 500 }, message: 'calldown failed' });
     await expect(request(app).get('/calldown').query(authQuery())).resolves.toMatchObject({ status: 400 });

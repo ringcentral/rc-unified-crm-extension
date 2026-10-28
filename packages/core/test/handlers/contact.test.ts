@@ -223,6 +223,59 @@ describe('Contact Handler', () => {
       expect(result.successful).toBe(true);
       expect(result.contact).toEqual(freshContact);
       expect(mockConnector.findContact).toHaveBeenCalled();
+      const cachedData = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-123',
+          platformName: 'testCRM',
+          dataKey: 'contact-+1234567890'
+        }
+      });
+      expect(cachedData.data).toEqual(freshContact);
+    });
+
+    test('should still return matched contact when a concurrent lookup cached the same number first', async () => {
+      await UserModel.create(mockUser);
+
+      const concurrentContact = [
+        { id: 'contact-1', name: 'Concurrent Contact', type: 'Contact', phone: '+1234567890' }
+      ];
+      const matchedContact = [
+        { id: 'contact-1', name: 'Matched Contact', type: 'Contact', phone: '+1234567890' }
+      ];
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        findContact: jest.fn().mockImplementation(async () => {
+          // Another request writes the cache row after this one has already missed the cache.
+          await AccountDataModel.create({
+            rcAccountId: 'rc-account-123',
+            platformName: 'testCRM',
+            dataKey: 'contact-+1234567890',
+            data: concurrentContact
+          });
+          return { successful: true, matchedContactInfo: matchedContact };
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await contactHandler.findContact({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        phoneNumber: '+1234567890'
+      });
+
+      expect(result.successful).toBe(true);
+      expect(result.contact).toEqual(matchedContact);
+      const cachedRows = await AccountDataModel.findAll({
+        where: {
+          rcAccountId: 'rc-account-123',
+          platformName: 'testCRM',
+          dataKey: 'contact-+1234567890'
+        }
+      });
+      expect(cachedRows).toHaveLength(1);
+      expect(cachedRows[0].data).toEqual(matchedContact);
     });
 
     test('should find contact with apiKey auth and cache result', async () => {

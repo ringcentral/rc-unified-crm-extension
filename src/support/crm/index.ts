@@ -213,6 +213,17 @@ async function listIntegrations(platform) {
 }
 
 /**
+ * @param {string} platform
+ * @param {string} integrationId
+ */
+async function listUsers(platform, integrationId) {
+    const provider = getProvider(platform);
+    assertIntegrationId(provider, integrationId);
+    const result = await provider.listUsers(integrationId);
+    return { platform, integrationId, ...result };
+}
+
+/**
  * Staff choose which of the CRM's services to remove the integration from.
  *
  * @param {any} provider
@@ -421,6 +432,7 @@ async function deleteAllowlistEntry({ platform, integrationId, supportUser }) {
 exports.SUPPORT_ACCOUNT_ID = SUPPORT_ACCOUNT_ID;
 exports.SupportCrmError = SupportCrmError;
 exports.listIntegrations = listIntegrations;
+exports.listUsers = listUsers;
 exports.removeIntegration = removeIntegration;
 exports.getHistory = getHistory;
 exports.listAllowlist = listAllowlist;

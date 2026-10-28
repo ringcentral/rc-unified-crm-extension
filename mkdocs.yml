@@ -217,6 +217,7 @@ nav:
       - 'Manifest properties': developers/manifest.md
       - 'Customizing pages': developers/manifest-pages.md
       - 'Custom settings': developers/custom-settings.md
+      - 'Account-level data': developers/account-level-data.md
       - 'Regional services': developers/regional-services.md
       - 'Sample manifest': https://github.com/ringcentral/rc-unified-crm-extension/blob/main/src/connectors/manifest.json
     - 'Server':

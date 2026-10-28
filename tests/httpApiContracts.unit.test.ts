@@ -14,17 +14,29 @@ import {
 const specPath = path.resolve(__dirname, '..', 'docs', 'developers', 'crm-server-openapi.json');
 
 describe('typed HTTP API contracts', () => {
+  test('accepts the canonical appointment update sent by the client', () => {
+    const request = { patch: {
+      title: 'SushilTest Event1', summary: 'Test', startTimeUtc: '2026-10-26T12:00:00.000Z', durationMinutes: 60,
+      contacts: [{ id: '2288275906', type: 'contact' }],
+    } };
+    expect(AppointmentPatchRequestSchema.parse(request)).toEqual(request);
+  });
+
+  test.each(['participantName', 'attendees', 'attendeeIds', 'contactId', 'contactType'])('rejects response-only appointment update field %s', (field) => {
+    expect(AppointmentPatchRequestSchema.safeParse({ patch: { summary: 'Test', [field]: [] } }).success).toBe(false);
+  });
+
   test.each([
     ['create payload cannot be null', AppointmentCreateRequestSchema, { payload: null }],
     ['create payload requires canonical fields', AppointmentCreateRequestSchema, { payload: { title: 'Meeting' } }],
     ['create request rejects arbitrary objects', AppointmentCreateRequestSchema, { arbitrary: true }],
-    ['create request rejects ignored status', AppointmentCreateRequestSchema, {
+    ['create request rejects a non-string status', AppointmentCreateRequestSchema, {
       payload: {
         title: 'Meeting',
         summary: '',
         startTimeUtc: '2026-07-20T19:00:00.000Z',
         durationMinutes: 30,
-        status: 'scheduled',
+        status: 123,
       },
     }],
     ['contact references require a positive numeric identifier', AppointmentCreateRequestSchema, {
@@ -47,6 +59,21 @@ describe('typed HTTP API contracts', () => {
     ['range start must precede end', AppointmentRangeSchema, { startDate: '2026-08-01', endDate: '2026-07-01' }],
   ])('rejects malformed appointment contract: %s', (_name, schema, value) => {
     expect(schema.safeParse(value).success).toBe(false);
+  });
+
+  test.each([true, false])('accepts client appointment status and contact metadata (wrapped: %s)', (wrapped) => {
+    const payload = {
+      title: 'SushilTest11127', summary: 'Test', startTimeUtc: '2026-10-26T12:39:00.000Z',
+      durationMinutes: 60, status: 'scheduled',
+      contacts: [{ id: '2288275906', type: 'contact', name: 'Sushiltest Contactname', phone: '+14155551234', additionalInfo: {} }],
+    };
+    expect(AppointmentCreateRequestSchema.parse(wrapped ? { payload } : payload)).toEqual(wrapped ? { payload } : payload);
+  });
+
+  test.each(['', '   ', null, 123, {}])('rejects invalid initial appointment status %p', (status) => {
+    expect(AppointmentCreateRequestSchema.safeParse({ payload: {
+      title: 'Meeting', summary: '', startTimeUtc: '2026-10-26T12:39:00.000Z', durationMinutes: 60, status,
+    } }).success).toBe(false);
   });
 
   test.each([

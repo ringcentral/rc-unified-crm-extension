@@ -2,7 +2,8 @@ const Sequelize = require('sequelize');
 const { sequelize: rawSequelize } = require('./sequelize');
 const sequelize = rawSequelize as any;
 
-// Model for User data
+// Stores RingCentral message ids (or local conversation bucket ids) mapped to
+// CRM activity ids.
 const MessageLogModel = sequelize.define('messageLogs', {
     id: {
         type: Sequelize.STRING,
@@ -20,9 +21,21 @@ const MessageLogModel = sequelize.define('messageLogs', {
     thirdPartyLogId: {
         type: Sequelize.STRING,
     },
+    contactId: {
+        type: Sequelize.STRING,
+    },
     userId: {
         type: Sequelize.STRING,
     }
+}, {
+    indexes: [
+        { fields: ['conversationId'] },
+        { fields: ['conversationLogId'] },
+        {
+            name: 'message_logs_user_platform_conversation_message',
+            fields: ['userId', 'platform', 'conversationId', 'id']
+        }
+    ]
 });
 
 export { MessageLogModel };

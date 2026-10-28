@@ -1,5 +1,10 @@
 # Release notes
 
+## 2.0.1
+
+- Better: Pipedrive supports direct authrization now.
+- Fix: Pipedrive sign-in bug.
+
 ## 2.0.0
 
 - Please refer to [2.0 announcement](https://community.ringcentral.com/integrations-app-connect-33/app-connect-2-0-is-coming-october-8-12077)

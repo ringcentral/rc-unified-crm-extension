@@ -1,4 +1,16 @@
 {
+    "2.0.1": {
+        "pipedrive": [
+            {
+                "type": "Better",
+                "description": "Pipedrive supports direct authrization now."
+            },
+            {
+                "type": "Fix",
+                "description": "Pipedrive sign-in bug."
+            }
+        ]
+    },
     "1.7.44": {
         "global": [
             {

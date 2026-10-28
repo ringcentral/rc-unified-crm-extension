@@ -21,7 +21,7 @@ const { handleApiError: rawHandleApiError } = require('../lib/errorHandler');
 const handleApiError = /** @type {(error: unknown, platform: string, operation: string, context?: Record<string, unknown>) => ContactHandlerResult} */ (rawHandleApiError);
 const { CRM_ERROR_CODE } = require('../lib/constants');
 const { AccountDataModel: RawAccountDataModel } = require('../models/accountDataModel');
-const AccountDataModel = /** @type {{ findOne(options: Record<string, unknown>): Promise<AccountContactDataRecord | null>, create(values: Record<string, unknown>): Promise<AccountContactDataRecord> }} */ (RawAccountDataModel);
+const AccountDataModel = /** @type {{ findOne(options: Record<string, unknown>): Promise<AccountContactDataRecord | null>, create(values: Record<string, unknown>): Promise<AccountContactDataRecord>, upsert(values: Record<string, unknown>): Promise<unknown> }} */ (RawAccountDataModel);
 
 /**
  * @param {FindContactParams} params
@@ -111,19 +111,14 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             // save in org data
             // Danger: it does NOT support one RC account mapping to multiple CRM platforms, because contacts will be shared
             if (user.rcAccountId) {
-                if (existingMatchedContactInfo) {
-                    await existingMatchedContactInfo.update({
-                        data: matchedContactInfo
-                    });
-                }
-                else {
-                    await AccountDataModel.create({
-                        rcAccountId: user.rcAccountId,
-                        platformName: platform,
-                        dataKey: `contact-${phoneNumber}`,
-                        data: matchedContactInfo
-                    });
-                }
+                // Concurrent lookups for the same number can both miss the cache; a plain insert
+                // would then hit the composite primary key and fail an otherwise successful match.
+                await AccountDataModel.upsert({
+                    rcAccountId: user.rcAccountId,
+                    platformName: platform,
+                    dataKey: `contact-${phoneNumber}`,
+                    data: matchedContactInfo
+                });
                 console.log('store new matched contact info in account data');
             }
             return { successful, returnMessage, contact: matchedContactInfo, extraDataTracking };

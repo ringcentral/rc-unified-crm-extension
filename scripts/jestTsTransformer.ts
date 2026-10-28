@@ -29,12 +29,14 @@ function getCompilerOptions() {
     const rawConfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'));
     const parsed = ts.convertCompilerOptionsFromJson(rawConfig.compilerOptions || {}, rootDir);
 
+    // Coverage is reported against the original .ts lines only when Jest gets a
+    // source map back; without one, lcov/Codecov use transpiled line numbers.
     compilerOptions = {
         ...parsed.options,
         module: ts.ModuleKind.CommonJS,
-        sourceMap: false,
+        sourceMap: true,
         inlineSourceMap: false,
-        inlineSources: false
+        inlineSources: true
     };
 
     return compilerOptions;
@@ -119,7 +121,10 @@ module.exports = {
             reportDiagnostics: false
         });
 
-        return { code: output.outputText };
+        return {
+            code: output.outputText.replace(/\n\/\/# sourceMappingURL=.*$/, ''),
+            map: output.sourceMapText ? JSON.parse(output.sourceMapText) : null
+        };
     }
 };
 

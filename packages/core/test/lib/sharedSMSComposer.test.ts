@@ -114,6 +114,54 @@ describe('sharedSMSComposer', () => {
       expect(result.body).toContain('END');
     });
 
+    test('should append the conversation date and time when includeTime is set', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        includeTime: true
+      });
+
+      expect(result.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
+    });
+
+    test('should omit the date suffix when the conversation creation time is invalid', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: { ...baseConversation, creationTime: 'not-a-date' },
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        includeTime: true
+      });
+
+      expect(result.subject).toBe('SMS conversation with John Customer');
+    });
+
+    test('should use customSubject when provided', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        customSubject: 'Updated  title - SMS conversation with Testsushil Labsaccount - 08/21/2026 07:28 AM'
+      });
+
+      expect(result.subject).toBe('Updated  title - SMS conversation with Testsushil Labsaccount - 08/21/2026 07:28 AM');
+    });
+
+    test('should ignore blank customSubject and keep the default title', () => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        customSubject: '   '
+      });
+
+      expect(result.subject).toBe('SMS conversation with John Customer');
+    });
+
     test('should compose SMS log in HTML format', () => {
       const result = composeSharedSMSLog({
         logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
@@ -126,6 +174,26 @@ describe('sharedSMSComposer', () => {
       expect(result.body).toContain('<b>Conversation summary</b>');
       expect(result.body).toContain('<b>Participants</b>');
       expect(result.body).toContain('<li>');
+    });
+
+    test('should keep HTML-format subjects free of markup for custom and dated titles', () => {
+      const dated = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        includeTime: true
+      });
+      const custom = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00',
+        customSubject: 'Follow-up with John'
+      });
+
+      expect(dated.subject).toBe('SMS conversation with John Customer - 01/15/2024 10:30 AM');
+      expect(custom.subject).toBe('Follow-up with John');
     });
 
     test('should compose SMS log in Markdown format', () => {
@@ -269,6 +337,44 @@ describe('sharedSMSComposer', () => {
 
       // The time should be adjusted by +5 hours
       expect(result.body).toContain('Started:');
+    });
+
+    test.each([
+      ['an hours string', '-4', '01/15/2024 06:30 AM', '2024-01-15 06:30 AM'],
+      ['a fractional hours string', '5.5', '01/15/2024 04:00 PM', '2024-01-15 04:00 PM'],
+      ['a numeric hours value', -4, '01/15/2024 06:30 AM', '2024-01-15 06:30 AM'],
+      ['a minutes string', '-240', '01/15/2024 06:30 AM', '2024-01-15 06:30 AM'],
+      ['an +HH:MM string', '+05:30', '01/15/2024 04:00 PM', '2024-01-15 04:00 PM'],
+      ['zero', '0', '01/15/2024 10:30 AM', '2024-01-15 10:30 AM'],
+    ])('applies the user timezone offset given as %s to the subject and entries', (_label, timezoneOffset, subjectTime, entryTime) => {
+      const result = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset,
+        includeTime: true
+      });
+
+      expect(result.subject).toBe(`SMS conversation with John Customer - ${subjectTime}`);
+      expect(result.body).toContain(entryTime);
+    });
+
+    test('ignores an unparseable timezone offset', () => {
+      const withInvalidOffset = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        timezoneOffset: 'not-an-offset',
+        includeTime: true
+      });
+      const withoutOffset = composeSharedSMSLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        conversation: baseConversation,
+        contactName: 'John Customer',
+        includeTime: true
+      });
+
+      expect(withInvalidOffset).toEqual(withoutOffset);
     });
 
     test('should handle empty entities array', () => {
@@ -765,6 +871,90 @@ describe('sharedSMSComposer', () => {
       expect(allContent).toContain('First message');
       expect(allContent).toContain('Second message');
       expect(allContent).toContain('Third message');
+      expect(result.map(r => r.content)).toEqual([
+        expect.stringContaining('Third message'),
+        expect.stringContaining('Second message'),
+        expect.stringContaining('First message'),
+      ]);
+    });
+
+    test('should sort entities with numeric creation times newest first', () => {
+      const entities = [
+        {
+          recordType: 'AliveMessage',
+          creationTime: 3000,
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Third numeric message'
+        },
+        {
+          recordType: 'AliveMessage',
+          creationTime: 1000,
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'First numeric message'
+        },
+        {
+          recordType: 'AliveMessage',
+          creationTime: 2000,
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Second numeric message'
+        }
+      ];
+
+      const result = processEntities({
+        entities,
+        timezoneOffset: '+00:00',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        contactName: 'Customer'
+      });
+
+      expect(result.map(r => r.content)).toEqual([
+        expect.stringContaining('Third numeric message'),
+        expect.stringContaining('Second numeric message'),
+        expect.stringContaining('First numeric message'),
+      ]);
+    });
+
+    test('should sort oldest first and treat unparseable creation times as the earliest', () => {
+      const entities = [
+        {
+          recordType: 'AliveMessage',
+          creationTime: '2024-01-15T11:00:00Z',
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Later message'
+        },
+        {
+          recordType: 'AliveMessage',
+          creationTime: 'not-a-date',
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Undated message'
+        },
+        {
+          recordType: 'AliveMessage',
+          creationTime: '2024-01-15T10:00:00Z',
+          direction: 'Outbound',
+          author: { name: 'Agent' },
+          text: 'Earlier message'
+        }
+      ];
+
+      const result = processEntities({
+        entities,
+        timezoneOffset: '+00:00',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        contactName: 'Customer',
+        entryOrder: 'oldestFirst'
+      });
+
+      expect(result.map(r => r.content)).toEqual([
+        expect.stringContaining('Undated message'),
+        expect.stringContaining('Earlier message'),
+        expect.stringContaining('Later message'),
+      ]);
     });
 
     test('should apply timezone offset to timestamps', () => {

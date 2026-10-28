@@ -100,10 +100,13 @@ Composite primary key:
 Main usage in current code:
 
 - cached contact lookups keyed as `contact-${phoneNumber}`
+- connector account-level data (for example Pipedrive `activityTypes`, Bullhorn `bullhornData`), keyed by the data key registered in the connector's `accountData` table
 
-Helper export:
+Helper exports from `lib/accountData.ts`:
 
-- `getOrRefreshAccountData()` which returns cached data unless `forceRefresh` is set
+- `getAccountData()` returns cached data unless it is older than the descriptor's `ttlMs` (default 24 hours) or `forceRefresh` is set. It serves stale data when a refresh fails.
+- `getAccountDataKeys()` lists the data keys a connector registered.
+- See [Account-level data](../../../docs/developers/account-level-data.md) for the connector-facing guide.
 - Account-data descriptors can set `mergePartialResult: true` when individual object properties are fetched independently. Successful properties then replace cached values, while omitted failed properties retain their last known good values.
 
 ### `models/callDownListModel.ts`
