@@ -55,6 +55,8 @@ Loyally supports a number of CRMs through App Connect. All connectors come with 
 
 <div class="grid cards" markdown>
 
+-    [![Act!](img/crm-logo-act.png){ .mw-250 }](crm/act.md)
+
 -    [![GoHighLevel](img/crm-logos-highlevel.png){ .mw-250 }](crm/gohighlevel.md)
      
 -    [![FreshDesk](img/crm-logos-freshdesk.png){ .mw-250 }](crm/freshdesk.md)
