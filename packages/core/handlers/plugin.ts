@@ -18,6 +18,110 @@ const userCore = /** @type {any} */ (require('./user'));
 
 const PUBLIC_MANIFEST_BASE = 'https://appconnect.labs.ringcentral.com/public-api/connectors';
 
+const MANIFEST_REFRESH_TTL_MS = 10 * 60 * 1000;
+const MANIFEST_REFRESH_FAILURE_TTL_MS = 60 * 1000;
+
+/** @type {Map<string, { expiresAt: number, promise: Promise<ResolvePluginManifestResult | null> }>} */
+const manifestRefreshCache = new Map();
+
+function clearPluginManifestRefreshCache() {
+    manifestRefreshCache.clear();
+}
+
+/**
+ * Resolve the published manifest at most once per TTL per plugin. Failures resolve to null
+ * so a manifest outage never breaks activity logging.
+ *
+ * @param {{ pluginId: string, pluginAccess?: PluginAccess, ownerRcAccountId?: string | number, pluginName?: string }} params
+ * @returns {Promise<ResolvePluginManifestResult | null>}
+ */
+function resolvePluginManifestCached({ pluginId, pluginAccess, ownerRcAccountId, pluginName }) {
+    const key = [pluginId, pluginAccess, ownerRcAccountId, pluginName].join('|');
+    const cached = manifestRefreshCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.promise;
+    }
+    const entry = {
+        expiresAt: Date.now() + MANIFEST_REFRESH_TTL_MS,
+        promise: resolvePluginManifest({ pluginId, pluginAccess, ownerRcAccountId, pluginName }).catch(error => {
+            logger.warn('Failed to resolve plugin manifest for refresh', { pluginId, message: error?.message });
+            entry.expiresAt = Date.now() + MANIFEST_REFRESH_FAILURE_TTL_MS;
+            return null;
+        }),
+    };
+    manifestRefreshCache.set(key, entry);
+    return entry.promise;
+}
+
+/**
+ * @param {string | undefined} url
+ * @returns {string | null}
+ */
+function getUrlOrigin(url) {
+    try {
+        return url ? new URL(url).origin : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Bring an account's stored plugin snapshot up to the published manifest version.
+ * Keeps the existing plugin JWT. Any failure leaves the stored snapshot untouched.
+ *
+ * @param {{ rcAccountId: string | number, pluginId: string, data: any }} params
+ * @returns {Promise<any>} the snapshot to use for this invocation
+ */
+async function refreshPluginSnapshotIfStale({ rcAccountId, pluginId, data }) {
+    try {
+        const registration = data?.registration || {};
+        const resolved = await resolvePluginManifestCached({
+            pluginId,
+            pluginAccess: registration.pluginAccess,
+            ownerRcAccountId: registration.ownerRcAccountId,
+            pluginName: registration.pluginName,
+        });
+        const latestVersion = resolved?.pluginData?.version;
+        if (!resolved || typeof latestVersion !== 'string' || latestVersion === data?.version) {
+            return data;
+        }
+        const latestManifest = resolved.pluginManifest;
+        if (!latestManifest?.endpointUrl) {
+            return data;
+        }
+        const previousRegisterOrigin = getUrlOrigin(data?.userRegisterEndpointUrl);
+        const latestRegisterOrigin = getUrlOrigin(latestManifest.userRegisterEndpointUrl);
+        if (previousRegisterOrigin && latestRegisterOrigin && previousRegisterOrigin !== latestRegisterOrigin) {
+            // The stored JWT was issued by a different plugin server; the admin must reinstall.
+            logger.warn('Plugin registration host changed; reinstall required to upgrade', {
+                pluginId,
+                installedVersion: data?.version,
+                latestVersion,
+            });
+            return data;
+        }
+        const jwtToken = data?.jwtToken;
+        const refreshedData = {
+            ...latestManifest,
+            version: latestVersion,
+            registration: {
+                ...registration,
+                pluginName: resolved.platformKey,
+            },
+        };
+        await persistPluginData({
+            rcAccountId: rcAccountId.toString(),
+            pluginId,
+            jwtToken,
+            pluginData: refreshedData,
+        });
+        return { jwtToken, ...refreshedData };
+    } catch (error) {
+        logger.warn('Failed to refresh plugin snapshot', { pluginId, message: error?.message });
+        return data;
+    }
+}
+
 /**
  * @param {{ rcAccountId: string | number }} params
  * @returns {Promise<InstalledPlugin[]>}
@@ -29,10 +133,14 @@ async function getPluginsFromRcAccountId({ rcAccountId }) {
             dataKey: 'pluginData',
         },
     });
-    const workingPlugins = accountData.map(data => ({
+    const workingPlugins = await Promise.all(accountData.map(async data => ({
         id: data.platformName,
-        data: data.data,
-    }));
+        data: await refreshPluginSnapshotIfStale({
+            rcAccountId,
+            pluginId: data.platformName,
+            data: data.data,
+        }),
+    })));
     return workingPlugins;
 }
 
@@ -198,7 +306,7 @@ async function persistPluginData({ rcAccountId, pluginId, jwtToken, pluginData =
  * @returns {Promise<RegisterPluginAccountResult>}
  */
 async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, pluginAccess, pluginName, ownerRcAccountId }) {
-    const { pluginManifest } = await resolvePluginManifest({ pluginId, pluginAccess, ownerRcAccountId, pluginName });
+    const { pluginData: publishedManifest, pluginManifest, platformKey } = await resolvePluginManifest({ pluginId, pluginAccess, ownerRcAccountId, pluginName });
     if (!pluginManifest?.endpointUrl) {
         throw new Error(`Plugin endpoint URL not found for ${pluginId}`);
     }
@@ -217,7 +325,16 @@ async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, plu
         rcAccountId: rcAccountId?.toString(),
         pluginId,
         jwtToken: pluginJwtToken,
-        pluginData: pluginManifest,
+        pluginData: {
+            ...pluginManifest,
+            ...(typeof publishedManifest?.version === 'string' ? { version: publishedManifest.version } : {}),
+            // Remembered so the snapshot can be refreshed when a newer version is published.
+            registration: {
+                pluginAccess,
+                ownerRcAccountId: ownerRcAccountId?.toString(),
+                pluginName: platformKey,
+            },
+        },
     });
 
     return {
@@ -245,6 +362,8 @@ async function unregisterPluginAccount({ pluginId, rcAccountId }) {
 }
 
 exports.getPluginsFromRcAccountId = getPluginsFromRcAccountId;
+exports.refreshPluginSnapshotIfStale = refreshPluginSnapshotIfStale;
+exports.clearPluginManifestRefreshCache = clearPluginManifestRefreshCache;
 exports.getPluginConfigFromUserSettings = getPluginConfigFromUserSettings;
 exports.getPluginConfigForUser = getPluginConfigForUser;
 exports.getPluginLicenseStatus = getPluginLicenseStatus;

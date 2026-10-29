@@ -32,6 +32,7 @@ describe('Plugin Handler', () => {
   });
 
   afterEach(async () => {
+    pluginHandler.clearPluginManifestRefreshCache();
     await CacheModel.destroy({ where: {} });
     await AccountDataModel.destroy({ where: {} });
     await AdminConfigModel.destroy({ where: {} });
@@ -298,6 +299,147 @@ describe('Plugin Handler', () => {
         pluginId: 'plugin-one',
         rcAccountId: '12345',
         message: 'db unavailable'
+      });
+    });
+  });
+
+  describe('plugin snapshot refresh', () => {
+    const rcAccountId = '12345';
+    const pluginId = 'versioned-plugin';
+    const registration = { pluginAccess: 'public', pluginName: 'plugin.versioned' };
+
+    function publishedManifest(version: string, overrides: Record<string, unknown> = {}) {
+      return {
+        data: {
+          version,
+          platforms: {
+            'plugin.versioned': {
+              endpointUrl: 'https://plugins.example.com/v2/plugin',
+              userRegisterEndpointUrl: 'https://plugins.example.com/v2/register',
+              supportedLogTypes: ['call', 'sms'],
+              ...overrides,
+            },
+          },
+        },
+      };
+    }
+
+    async function installSnapshot(data: Record<string, unknown>) {
+      await AccountDataModel.create({
+        rcAccountId,
+        platformName: pluginId,
+        dataKey: 'pluginData',
+        data: {
+          jwtToken: 'plugin-jwt-token',
+          version: '1.0.0',
+          endpointUrl: 'https://plugins.example.com/v1/plugin',
+          userRegisterEndpointUrl: 'https://plugins.example.com/v1/register',
+          supportedLogTypes: ['call'],
+          registration,
+          ...data,
+        },
+      });
+    }
+
+    async function storedSnapshot() {
+      const row = await AccountDataModel.findOne({
+        where: { rcAccountId, platformName: pluginId, dataKey: 'pluginData' },
+      });
+      return row.data;
+    }
+
+    test('should refresh the stored snapshot and keep the jwt when a newer version is published', async () => {
+      await installSnapshot({});
+      axios.get.mockResolvedValue(publishedManifest('2.0.0'));
+
+      const [plugin] = await pluginHandler.getPluginsFromRcAccountId({ rcAccountId });
+
+      expect(plugin.data.version).toBe('2.0.0');
+      expect(plugin.data.jwtToken).toBe('plugin-jwt-token');
+      expect(plugin.data.supportedLogTypes).toEqual(['call', 'sms']);
+      const stored = await storedSnapshot();
+      expect(stored.version).toBe('2.0.0');
+      expect(stored.endpointUrl).toBe('https://plugins.example.com/v2/plugin');
+      expect(stored.jwtToken).toBe('plugin-jwt-token');
+      expect(stored.registration).toEqual(registration);
+    });
+
+    test('should not rewrite the snapshot when the published version is unchanged', async () => {
+      await installSnapshot({});
+      axios.get.mockResolvedValue(publishedManifest('1.0.0'));
+
+      const [plugin] = await pluginHandler.getPluginsFromRcAccountId({ rcAccountId });
+
+      expect(plugin.data.endpointUrl).toBe('https://plugins.example.com/v1/plugin');
+      expect((await storedSnapshot()).endpointUrl).toBe('https://plugins.example.com/v1/plugin');
+    });
+
+    test('should refresh a legacy snapshot that has no stored version', async () => {
+      await installSnapshot({ version: undefined, registration: undefined });
+      axios.get.mockResolvedValue(publishedManifest('1.0.0'));
+
+      const [plugin] = await pluginHandler.getPluginsFromRcAccountId({ rcAccountId });
+
+      expect(plugin.data.version).toBe('1.0.0');
+      expect(plugin.data.jwtToken).toBe('plugin-jwt-token');
+    });
+
+    test('should keep the stored snapshot when the manifest cannot be fetched', async () => {
+      await installSnapshot({});
+      axios.get.mockRejectedValue(new Error('manifest unavailable'));
+
+      const [plugin] = await pluginHandler.getPluginsFromRcAccountId({ rcAccountId });
+
+      expect(plugin.data.version).toBe('1.0.0');
+      expect(plugin.data.endpointUrl).toBe('https://plugins.example.com/v1/plugin');
+    });
+
+    test('should keep the stored snapshot when the registration host changed', async () => {
+      await installSnapshot({});
+      axios.get.mockResolvedValue(publishedManifest('2.0.0', {
+        userRegisterEndpointUrl: 'https://other-host.example.com/register',
+      }));
+      const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+
+      const [plugin] = await pluginHandler.getPluginsFromRcAccountId({ rcAccountId });
+
+      expect(plugin.data.version).toBe('1.0.0');
+      expect((await storedSnapshot()).version).toBe('1.0.0');
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Plugin registration host changed; reinstall required to upgrade',
+        expect.objectContaining({ pluginId, latestVersion: '2.0.0' }),
+      );
+    });
+
+    test('should fetch the manifest only once within the cache window', async () => {
+      await installSnapshot({});
+      axios.get.mockResolvedValue(publishedManifest('1.0.0'));
+
+      await pluginHandler.getPluginsFromRcAccountId({ rcAccountId });
+      await pluginHandler.getPluginsFromRcAccountId({ rcAccountId });
+
+      expect(axios.get).toHaveBeenCalledTimes(1);
+    });
+
+    test('should persist registration details when registering a plugin', async () => {
+      axios.get.mockResolvedValue(publishedManifest('3.0.0'));
+      axios.post.mockResolvedValue({ data: { jwtToken: 'new-jwt' } });
+
+      await pluginHandler.registerPluginAccount({
+        pluginId,
+        rcAccessToken: 'rc-access-token',
+        rcAccountId,
+        pluginAccess: 'shared',
+        ownerRcAccountId: '999',
+        pluginName: 'plugin.versioned',
+      });
+
+      const stored = await storedSnapshot();
+      expect(stored.version).toBe('3.0.0');
+      expect(stored.registration).toEqual({
+        pluginAccess: 'shared',
+        ownerRcAccountId: '999',
+        pluginName: 'plugin.versioned',
       });
     });
   });

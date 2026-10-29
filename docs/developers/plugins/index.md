@@ -287,6 +287,19 @@ App Connect does not block a plugin because the account is unlicensed. The licen
 
 Changing `pricingInfoUrl`, `purchaseUrl`, or `manageSubscriptionUrl` on an approved plugin sends it back for review. Changing the price, unit, period, or description does not.
 
+## Publishing a new version
+
+Accounts that already installed your plugin pick up a new published version automatically. You do not need administrators to reinstall it, and they keep the configuration they entered.
+
+- **Execution.** When App Connect handles an activity, it checks the published manifest `version` (at most once every 10 minutes per plugin). If the version differs from the one the account installed, App Connect replaces the stored copy of the manifest with the new one. The plugin JWT issued at registration is kept. If the manifest cannot be fetched, the account keeps running the version it already has.
+- **Admin Console.** When an administrator opens **Plugins**, the stored settings of each installed plugin are brought up to the published version. Values and locks the administrator already set are kept, newly declared configuration fields are added with their defaults, and fields you removed from `pageContent` stay in the stored settings.
+- **Change the version string.** An update is detected only when `version` changes. Publishing a manifest change without changing `version` is not picked up by installed accounts.
+
+!!! warning "A new registration host still needs a reinstall"
+    The plugin JWT is issued by your plugin server. If `userRegisterEndpointUrl` moves to a different host, App Connect does not upgrade accounts that installed the earlier version, because their token would not be valid there. Ask administrators to uninstall and reinstall the plugin. Keep the registration host stable across versions where you can.
+
+Every installed account moves to the new `endpointUrl`, `supportedLogTypes`, `isAsync`, and license settings as soon as the new version is approved and published, so keep your plugin server compatible with requests and configuration from the previous version.
+
 ## Custom Configuration
 
 Plugin configuration is similar to connector custom settings. The saved config is passed to the plugin invocation as `config`; core reads it from user settings under:

@@ -70,6 +70,8 @@ describe('Handler TypeScript module exports', () => {
     ],
     plugin: [
       'getPluginsFromRcAccountId',
+      'refreshPluginSnapshotIfStale',
+      'clearPluginManifestRefreshCache',
       'getPluginConfigFromUserSettings',
       'getPluginLicenseStatus',
       'getRefreshedJwtTokenFromHeaders',
