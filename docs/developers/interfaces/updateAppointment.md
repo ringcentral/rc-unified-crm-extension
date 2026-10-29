@@ -39,6 +39,9 @@ Send `startTimeUtc` and `durationMinutes` together when changing the time. Omit
 both for edits that only change other fields. The server continues to accept the
 deprecated `startTime` input for older clients; current clients send `startTimeUtc`.
 
+Contact IDs may be non-empty strings, including UUIDs and alphanumeric CRM IDs,
+or positive integers. String IDs are not required to be numeric.
+
 `participantName`, `attendees`, `attendeeIds`, `contactId`, and `contactType` are
 display/response fields, not appointment patch fields. Use `contacts` for attendee
 changes. Send a changed status through the separate status, confirm, or cancel
