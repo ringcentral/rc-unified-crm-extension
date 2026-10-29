@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-const SUPPORTED_VARIABLES = [
+const CONNECTOR_VARIABLES = [
   {
     key: 'APP_SERVER',
     description: 'App Server URL (e.g., https://your-server.com)',
@@ -28,11 +28,41 @@ const SUPPORTED_VARIABLES = [
   }
 ];
 
+const PLUGIN_VARIABLES = [
+  {
+    key: 'PLUGIN_SERVER_SECRET_KEY',
+    description: 'Plugin secret key shown in the Developer Console (plugin Quick setup)',
+    validate: (value) => {
+      if (!value) return { valid: false, message: 'Secret key cannot be empty' };
+      return { valid: true };
+    },
+    required: true
+  }
+];
+
+// Template placeholders that mean "not configured yet"
+const PLACEHOLDER_VALUES = ['plugin_replace_with_your_plugin_setting_key'];
+
+let SUPPORTED_VARIABLES: any[] = CONNECTOR_VARIABLES;
+
+/**
+ * The plugin template ships PLUGIN_SERVER_SECRET_KEY in .env.test; the connector template does not.
+ */
+function detectProjectKind(cwd: string): 'plugin' | 'connector' {
+  for (const file of ['.env', '.env.test']) {
+    const filePath = path.join(cwd, file);
+    if (fs.existsSync(filePath) && /^PLUGIN_SERVER_SECRET_KEY\s*=/m.test(fs.readFileSync(filePath, 'utf8'))) {
+      return 'plugin';
+    }
+  }
+  return 'connector';
+}
+
 /**
  * Parse .env file content into key-value pairs
  */
 function parseEnvFile(content) {
-  const lines = content.split('\n');
+  const lines = content.split(/\r?\n/);
   const env = new Map<string, string>();
   const structure: any[] = []; // Preserve structure including comments and empty lines
 
@@ -74,11 +104,10 @@ function serializeEnvFile(structure, updatedEnv) {
 }
 
 /**
- * Ensure .env file exists (copy from .env.sample or create from scratch)
+ * Ensure .env file exists (copy from .env.test or .env.sample, or create from scratch)
  */
 function ensureEnvFile(cwd) {
   const envPath = path.join(cwd, '.env');
-  const samplePath = path.join(cwd, '.env.sample');
 
   if (fs.existsSync(envPath)) {
     return envPath;
@@ -86,25 +115,15 @@ function ensureEnvFile(cwd) {
 
   console.log('.env file not found.');
 
-  // Try to copy from .env.sample
-  if (fs.existsSync(samplePath)) {
-    console.log('Copying from .env.sample...');
-    fs.copyFileSync(samplePath, envPath);
-    console.log('✅ Created .env from .env.sample');
+  const templateFile = ['.env.test', '.env.sample'].find((file) => fs.existsSync(path.join(cwd, file)));
+  if (templateFile) {
+    fs.copyFileSync(path.join(cwd, templateFile), envPath);
+    console.log(`✅ Created .env from ${templateFile}`);
   } else {
     console.log('Creating new .env file from scratch...');
-    // Create basic .env template
-    const template = [
-      '# RingCentral App Connect Configuration',
-      '',
-      '# App Server URL',
-      'APP_SERVER=',
-      '',
-      '# App Server Secret Key',
-      'APP_SERVER_SECRET_KEY=',
-      ''
-    ].join('\n');
-    fs.writeFileSync(envPath, template);
+    const lines = ['# RingCentral App Connect Configuration', ''];
+    SUPPORTED_VARIABLES.forEach((v) => lines.push(`# ${v.description}`, `${v.key}=`, ''));
+    fs.writeFileSync(envPath, lines.join('\n'));
     console.log('✅ Created new .env file');
   }
 
@@ -342,7 +361,8 @@ function getCurrentValue(envPath: string, variableName: string) {
 
   const content = fs.readFileSync(envPath, 'utf8');
   const { env } = parseEnvFile(content);
-  return env.get(variableName) || '';
+  const value = env.get(variableName) || '';
+  return PLACEHOLDER_VALUES.includes(value) ? '' : value;
 }
 
 /**
@@ -357,16 +377,26 @@ async function env(options: { appServer?: string; secretKey?: string; menu?: boo
       throw new Error('No package.json found in current directory. Run this in your project root.');
     }
 
+    const kind = detectProjectKind(cwd);
+    SUPPORTED_VARIABLES = kind === 'plugin' ? PLUGIN_VARIABLES : CONNECTOR_VARIABLES;
+    const secretKeyName = SUPPORTED_VARIABLES.find((v) => v.key.endsWith('SECRET_KEY')).key;
+
     // Support CLI flags for non-interactive mode
     if (options.appServer || options.secretKey) {
       const envPath = ensureEnvFile(cwd);
       if (options.appServer) {
-        updateEnvVariable(envPath, 'APP_SERVER', options.appServer);
-        console.log('✅ APP_SERVER set');
+        if (kind === 'plugin') {
+          console.log('ℹ️  Plugins do not use APP_SERVER; ignoring --app-server');
+        } else {
+          const result = CONNECTOR_VARIABLES[0].validate(options.appServer);
+          if (!result.valid) throw new Error(`Invalid --app-server: ${result.message}`);
+          updateEnvVariable(envPath, 'APP_SERVER', options.appServer);
+          console.log('✅ APP_SERVER set');
+        }
       }
       if (options.secretKey) {
-        updateEnvVariable(envPath, 'APP_SERVER_SECRET_KEY', options.secretKey);
-        console.log('✅ APP_SERVER_SECRET_KEY set');
+        updateEnvVariable(envPath, secretKeyName, options.secretKey);
+        console.log(`✅ ${secretKeyName} set`);
       }
       return;
     }

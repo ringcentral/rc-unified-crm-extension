@@ -4,7 +4,7 @@ This guide creates a local connector server from the App Connect template, regis
 
 ## Prerequisites
 
-- Node.js 16 or newer
+- Node.js 20 or newer
 - npm or another JavaScript package manager
 - RingCentral account for the Developer Console and App Connect extension
 - A public tunnel for local testing, such as ngrok or `lite-http-tunnel`
@@ -25,20 +25,34 @@ For a first test, provide:
 
 The connector is private by default and visible to your organization.
 
-After creating the connector, copy the **complete Unique Identifier** shown by the
-Developer Console. The complete value includes any developer namespace added by the
-Console. For example, if the field displays the prefix `ringcentral_labs.` and you enter
-`zendesk`, the identifier used at runtime is `ringcentral_labs.zendesk`, not `zendesk`.
-The identifier is permanent after creation.
+After creating the connector, open its **Quick setup** section. It shows the **complete Unique Identifier**, including any developer namespace added by the Console. For example, if the field displays the prefix `ringcentral_labs.` and you enter `zendesk`, the identifier used at runtime is `ringcentral_labs.zendesk`, not `zendesk`. The identifier is permanent after creation.
 
 ## 2. Scaffold A Connector Server
 
-Use the CLI:
+Run the CLI and follow the prompts:
 
 ```bash
-npx @app-connect/cli init my-crm-connector
+npx @app-connect/cli init
+```
+
+The CLI asks for:
+
+1. **Connector unique identifier**: paste the complete value from the Developer Console. The CLI writes it into `src/app.ts` as the first argument of `registerConnector()`.
+2. **Project directory**: the folder to create. It defaults to the last part of the identifier.
+
+To skip the prompts, pass them as arguments:
+
+```bash
+npx @app-connect/cli init my-crm-connector --id ringcentral_labs.zendesk
+```
+
+Then enter the project directory:
+
+```bash
 cd my-crm-connector
 ```
+
+The CLI also downloads the template, installs dependencies, and copies `.env.test` to `.env`. Use `--no-install` or `--no-env` to skip those steps.
 
 The generated server includes:
 
@@ -47,19 +61,16 @@ The generated server includes:
 - `src/connectors/interfaces/*.ts`, starter implementations backed by mock JSON files
 - `.env.test`, a local environment example
 
-Open `src/app.ts` and replace the template platform key with the complete Unique
-Identifier copied from the Developer Console:
+Open `src/app.ts` and confirm the registration uses your complete identifier:
 
 ```ts
 connectorRegistry.registerConnector(
   'ringcentral_labs.zendesk',
-  zendeskConnector,
+  myCRMConnector,
 );
 ```
 
-The first argument to `registerConnector()` MUST exactly match the complete Developer
-Console identifier, including its namespace. Do not substitute the display name or only
-the short CRM name.
+The first argument to `registerConnector()` MUST exactly match the complete Developer Console identifier, including its namespace. Do not substitute the display name or only the short CRM name. If you ran `init` without an identifier (for example in a non-interactive shell), the CLI leaves the placeholder `myCRM` and you must replace it manually.
 
 If dependencies were not installed automatically:
 
@@ -67,24 +78,32 @@ If dependencies were not installed automatically:
 npm install
 ```
 
-Copy and edit the environment file:
+## 3. Configure The Environment
+
+Run the following inside the project:
 
 ```bash
-cp .env.test .env
+npx @app-connect/cli env
 ```
 
-On Windows PowerShell:
+The command creates `.env` from `.env.test` if it does not exist yet, then prompts for:
 
-```powershell
-Copy-Item .env.test .env
+| Variable | Where to find it |
+| --- | --- |
+| `APP_SERVER` | The public URL of your server, such as your tunnel URL. The Console Quick setup shows the connector server URL. |
+| `APP_SERVER_SECRET_KEY` | The connector secret key in the Console Quick setup. |
+
+To skip the prompts:
+
+```bash
+npx @app-connect/cli env --app-server https://xx.ngrok.io --secret-key <your-secret-key>
 ```
 
-The template uses `AC_DATABASE_URL` for its database connection so it does not collide
-with a generic `DATABASE_URL` exported by another local project. `DATABASE_URL` remains
-supported for existing deployments. If both variables are set, App Connect uses
-`AC_DATABASE_URL` and prints a warning.
+Other values in `.env`, such as your CRM's OAuth client settings, can be edited by hand.
 
-## 3. Start The Server
+The template uses `AC_DATABASE_URL` for its database connection so it does not collide with a generic `DATABASE_URL` exported by another local project. `DATABASE_URL` remains supported for existing deployments. If both variables are set, App Connect uses `AC_DATABASE_URL` and prints a warning.
+
+## 4. Start The Server And Expose It
 
 Run:
 
@@ -92,29 +111,12 @@ Run:
 npm run dev
 ```
 
-At startup, verify the sanitized database target printed to the console. The default
-template should report `SQLite: ./db.sqlite`. Credentials and URL query parameters are
-never included in this diagnostic.
+At startup, verify the sanitized database target printed to the console. The default template should report `SQLite: ./db.sqlite`. Credentials and URL query parameters are never included in this diagnostic.
 
-The template server registers `myCRM` with `connectorRegistry.registerConnector('myCRM', myCRMConnector)` and serves the core App Connect routes.
-
-Before continuing, confirm that you replaced `myCRM` with the complete Developer Console
-Unique Identifier as described in step 2.
-
-## 4. Expose The Server
-
-Expose the local server with an HTTPS tunnel and update the Developer Console connector server URL to that tunnel URL.
-
-The main repository includes scripts such as:
+Expose the local server (port `6066` by default) with an HTTPS tunnel and update the Developer Console connector server URL to that tunnel URL. For example:
 
 ```bash
-npm run tunnel
-```
-
-or:
-
-```bash
-npm run ngrok
+ngrok http 6066
 ```
 
 Use whatever tunnel is available in your environment.
@@ -158,7 +160,7 @@ The Developer Console manifest controls what the client shows. The server implem
 
 Before testing a feature, verify both sides:
 
-- Developer Console's complete Unique Identifier exactly matches the first argument to `connectorRegistry.registerConnector()`.
+- The Developer Console's complete Unique Identifier exactly matches the first argument to `connectorRegistry.registerConnector()`.
 - Manifest advertises the fields or feature.
 - Connector exports the matching interface.
 - `/implementedInterfaces?platform=<complete-unique-identifier>` reports the method as implemented.

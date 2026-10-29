@@ -15,10 +15,12 @@ npm i
 Copy the environment example file and configure your settings:
 
 ```bash
-cp .env.test .env
+npx @app-connect/cli env
 ```
 
-Edit `.env` with your CRM API credentials and other configuration.
+This creates `.env` from `.env.test` (if `npx @app-connect/cli init` has not already) and prompts for `APP_SERVER` and `APP_SERVER_SECRET_KEY` from the Developer Console Quick setup. Then edit `.env` with your CRM API credentials and other configuration.
+
+Make sure `src/app.ts` registers the connector with the complete Unique Identifier from the Developer Console (`connectorRegistry.registerConnector('<unique-identifier>', ...)`). `npx @app-connect/cli init` sets this for you.
 
 ### 3. Start the Server
 
@@ -47,8 +49,8 @@ The template follows a modular structure:
 
 ### Connector development
 
-1. Create a new connector file in the `src/connectors/` directory, or update `src/connector/myCRM` directly. Implement the required [interface methods](https://ringcentral.github.io/rc-unified-crm-extension/developers/interfaces/)
-2. Edit `manifest.json` file in `src/connector/manifest.json`. Change `serverUrl` to `http://localhost:6066` for local development. Full manifest docs [here](https://ringcentral.github.io/rc-unified-crm-extension/developers/manifest/).
+1. Create a new connector file in the `src/connectors/` directory, or update `src/connectors/myCRM.ts` directly. Implement the required [interface methods](https://ringcentral.github.io/rc-unified-crm-extension/developers/interfaces/)
+2. Manage the manifest in the [Developer Console](https://appconnect.labs.ringcentral.com/console); the template does not ship a manifest file. Set the connector server URL to your tunnel URL for local development. Full manifest docs [here](https://ringcentral.github.io/rc-unified-crm-extension/developers/manifest/).
 
 ### Adding Custom Endpoints
 

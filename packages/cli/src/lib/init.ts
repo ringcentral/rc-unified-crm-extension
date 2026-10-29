@@ -5,6 +5,7 @@ const { createWriteStream } = require('fs');
 const { pipeline } = require('stream/promises');
 const { extract } = require('tar');
 const { spawn } = require('child_process');
+const { ask, isInteractive } = require('./prompt');
 
 const TEMPLATE_REPO = 'https://github.com/ringcentral/rc-unified-crm-extension';
 const TEMPLATE_BRANCH = 'main';
@@ -61,6 +62,40 @@ function buildDevCommand(manager: string) {
   }
 }
 
+const CONNECTOR_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]*$/;
+
+function validateConnectorId(value: string): string | null {
+  if (!value) return 'The unique identifier cannot be empty.';
+  if (!CONNECTOR_ID_PATTERN.test(value)) {
+    return 'Use only letters, numbers, ".", "_" and "-" (copy it from the Developer Console, e.g. ringcentral_labs.zendesk).';
+  }
+  return null;
+}
+
+function toSlug(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^[-.]+|[-.]+$/g, '') || 'my-app-connect-project';
+}
+
+/**
+ * The key passed to connectorRegistry.registerConnector() must equal the complete
+ * Unique Identifier shown in the Developer Console (including its namespace).
+ */
+async function resolveConnectorId(options: any): Promise<string | undefined> {
+  if (options.id) {
+    const error = validateConnectorId(options.id);
+    if (error) throw new Error(error);
+    return options.id;
+  }
+  if (!isInteractive()) {
+    console.log('\nNo --id provided and this is not an interactive terminal; leaving the placeholder "myCRM" in src/app.ts.');
+    console.log('Replace it with the Unique Identifier from the Developer Console before starting the server.');
+    return undefined;
+  }
+  console.log('\nOpen your connector in the Developer Console and copy its complete Unique Identifier');
+  console.log('(including any namespace prefix, e.g. ringcentral_labs.zendesk).\n');
+  return ask('Connector unique identifier', validateConnectorId);
+}
+
 function getTemplatePath(templateName = 'default') {
   const templatePath = TEMPLATE_PATHS[templateName];
   if (!templatePath) {
@@ -69,7 +104,7 @@ function getTemplatePath(templateName = 'default') {
   return templatePath;
 }
 
-async function downloadTemplate(projectName: string | undefined, options: any) {
+async function downloadTemplate(projectName: string | undefined, options: any, connectorId?: string) {
   const projectDir = projectName || 'my-app-connect-project';
   const fullPath = path.resolve(projectDir);
   const templateName = options.template || 'default';
@@ -122,30 +157,29 @@ async function downloadTemplate(projectName: string | undefined, options: any) {
     const packageJsonPath = path.join(fullPath, 'package.json');
     if (fs.existsSync(packageJsonPath)) {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      packageJson.name = (projectName || 'my-app-connect-project').replace(/\s+/g, '-');
+      packageJson.name = toSlug(path.basename(fullPath));
       packageJson.version = '0.0.1';
       packageJson.description = `RingCentral App Connect project: ${projectName || 'my-app-connect-project'}`;
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     }
 
     const appTsPath = path.join(fullPath, 'src', 'app.ts');
-    if (templateName === 'default' && fs.existsSync(appTsPath) && projectName) {
+    if (templateName === 'default' && connectorId) {
+      if (!fs.existsSync(appTsPath)) {
+        throw new Error('src/app.ts not found in the template; cannot set the connector identifier.');
+      }
       const appTs = fs.readFileSync(appTsPath, 'utf8');
-      const updatedAppTs = appTs.replace('\'myCRM\'', `'${projectName}'`);
-      fs.writeFileSync(appTsPath, updatedAppTs);
+      const registration = /registerConnector\(\s*'myCRM'/;
+      if (!registration.test(appTs)) {
+        throw new Error('Could not find registerConnector(\'myCRM\', ...) in src/app.ts; set the connector identifier manually.');
+      }
+      fs.writeFileSync(appTsPath, appTs.replace(registration, `registerConnector('${connectorId}'`));
+      console.log(`Registered connector as '${connectorId}' in src/app.ts`);
     }
 
     console.log('\nProject created successfully!');
-    console.log('\nNext steps:');
-    console.log(`  cd ${projectDir}`);
-    console.log('  npm install');
-    if (templateName === 'default') {
-      console.log('  cp .env.test .env  # Configure your environment');
-    }
-    console.log('  npm run dev        # Start development server');
-
     const docsUrl = templateName === 'plugin'
-      ? 'https://ringcentral.github.io/rc-unified-crm-extension/developers/plugins/'
+      ? 'https://ringcentral.github.io/rc-unified-crm-extension/developers/plugins/getting-started/'
       : 'https://ringcentral.github.io/rc-unified-crm-extension/developers/getting-started/';
     console.log(`\nDocumentation: ${docsUrl}`);
 
@@ -190,7 +224,18 @@ async function downloadFile(url: string, dest: string): Promise<void> {
 
 async function init(projectName: string | undefined, options: any) {
   try {
-    const { fullPath, projectDir, templateName } = await downloadTemplate(projectName, options);
+    const templateName = options.template || 'default';
+    getTemplatePath(templateName);
+
+    let connectorId: string | undefined;
+    if (templateName === 'default') {
+      connectorId = await resolveConnectorId(options);
+      if (!projectName && isInteractive()) {
+        projectName = await ask('Project directory', undefined, toSlug(connectorId.split('.').pop()));
+      }
+    }
+
+    const { fullPath, projectDir } = await downloadTemplate(projectName, options, connectorId);
 
     const runInCwd = async (cmd, args) => run(cmd, args, { cwd: fullPath });
     const manager = detectPackageManager(fullPath);
@@ -224,10 +269,11 @@ async function init(projectName: string | undefined, options: any) {
       return;
     }
 
+    const quotedDir = /\s/.test(projectDir) ? `"${projectDir}"` : projectDir;
     console.log('\nDone. Next:');
-    console.log(`  cd ${projectDir}`);
+    console.log(`  cd ${quotedDir}`);
     if (!options.install) console.log('  npm install');
-    if (!options.env && templateName === 'default') console.log('  cp .env.test .env');
+    console.log('  npx @app-connect/cli env   # set the secret key (and server URL) from the Developer Console');
     console.log('  npm run dev');
   } catch (error) {
     throw new Error(`Failed to initialize project: ${error.message}`);
