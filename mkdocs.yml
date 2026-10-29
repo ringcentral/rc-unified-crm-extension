@@ -273,7 +273,12 @@ nav:
         - 'postSaveUserInfo': developers/interfaces/postSaveUserInfo.md
 
   - 'Plugins':
-    - 'Getting started': developers/plugins/index.md
+    - 'Overview': developers/plugins/index.md
+    - 'Getting started': developers/plugins/getting-started.md
+    - 'Manifest and configuration': developers/plugins/manifest.md
+    - 'Server endpoints': developers/plugins/endpoints.md
+    - 'User OAuth': developers/plugins/oauth.md
+    - 'Licensing and pricing': developers/plugins/licensing.md
 
   - 'API Reference':
     - 'Connectors': developers/crm-server-openapi-public.json
