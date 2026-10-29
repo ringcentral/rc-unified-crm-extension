@@ -6,7 +6,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
     const mockCallLogs = require(mockCallLogsPath);
     const callLog = mockCallLogs.find(callLog => callLog.id === callLogId);
     const subject = callLog.subject;
-    const note = callLog.note ? callLog.note.split('- Note: ')[1].split('\n')[0] : '';
+    // The "- Note: " line is only present when the user entered agent notes
+    const noteMatch = (callLog.note || '').match(/- Note: (.*)/);
+    const note = noteMatch ? noteMatch[1] : '';
     //-------------------------------------------------------------------------------------
     //--- CHECK: In extension, for a logged call, click edit to see if info is fetched ----
     //-------------------------------------------------------------------------------------
