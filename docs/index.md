@@ -102,6 +102,7 @@ Logging to your CRM in real time
 <p class="ac-v5-ticker-label">19+ supported integrations and growing</p>
 <div class="ac-v5-ticker-overflow">
 <div class="ac-v5-ticker-track">
+<div class="ac-v5-ticker-pill"><a href="crm/act/"><img src="img/crm-logo-act.png" alt="Act!"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/agencyzoom/"><img src="img/crm-logos-agencyzoom.png" alt="AgencyZoom"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/bullhorn/"><img src="img/crm-logos-bullhorn.png" alt="Bullhorn"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/clio/"><img src="img/crm-logos-clio.png" alt="Clio"></a></div>
@@ -119,6 +120,7 @@ Logging to your CRM in real time
 <div class="ac-v5-ticker-pill"><a href="crm/vinsolutions/"><img src="img/crm-logos-vinsolutions.png" alt="Vin Solutions"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/dominion/"><img src="img/crm-logos-dominion.png" alt="Dominion"></a></div>
 <!-- duplicate set for seamless loop -->
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/act/" tabindex="-1"><img src="img/crm-logo-act.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/agencyzoom/" tabindex="-1"><img src="img/crm-logos-agencyzoom.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/bullhorn/" tabindex="-1"><img src="img/crm-logos-bullhorn.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/clio/" tabindex="-1"><img src="img/crm-logos-clio.png" alt=""></a></div>

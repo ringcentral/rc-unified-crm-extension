@@ -122,6 +122,7 @@ nav:
 - 'Integrations':
   - 'Connectors':
     - 'Overview': crm/index.md
+    - 'Act!': crm/act.md
     - 'AgencyZoom': crm/agencyzoom/index.md
     - 'Bullhorn': crm/bullhorn.md
     - 'Clio': crm/clio.md
