@@ -57,6 +57,52 @@ Each contact can include:
 | `title`, `company`, `email`, `createdDate`, `mostRecentActivityDate` | Optional display/search metadata. |
 | `additionalInfo` | Object keyed by manifest `additionalFields[].const` values. Use this for contact-dependent options such as matters, deals, or opportunities. |
 | `isNewContact` | Use only for the special "Create new contact..." option. Core does not cache contacts marked this way. |
+| `widget` | Optional call pop widget shown in the **App Connect Contact** side panel during a call. See [Call pop widget](#call-pop-widget). |
+
+## Call pop widget
+
+A connector can attach a read-only widget to a matched contact. When the contact is matched for a call, the client shows it in the **App Connect Contact** widget of the phone's side panel. The content is an Embeddable JSON schema page, so it renders natively. Adaptive Cards are not supported.
+
+Enable it by setting `page.contactWidget.supported` to `true` in the manifest (see [manifest](../manifest.md)). Without it the client reuses the locally cached contact and never asks the server for the widget.
+
+```json
+{
+  "id": "123",
+  "name": "Jane Doe",
+  "type": "Contact",
+  "phone": "+16505550100",
+  "widget": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "caseList": { "type": "string" }
+      }
+    },
+    "uiSchema": {
+      "title": { "ui:field": "typography", "ui:variant": "body2" },
+      "caseList": { "ui:field": "list" }
+    },
+    "formData": { "title": "Open cases" },
+    "actions": [{ "id": "open-crm", "label": "Open in CRM" }],
+    "links": { "open-crm": "https://crm.example.com/contacts/123" }
+  }
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `schema`, `uiSchema`, `formData` | The JSON schema page. See the [Embeddable JSON schema page reference](https://ringcentral.github.io/ringcentral-embeddable/jsonschema-page/?path=/docs/jsonschemapage-documentation--docs). Do not set `type`; the client adds it. |
+| `actions` | Optional buttons in the widget's actions menu: `{ id, label, color? }`, at most 10. |
+| `links` | Optional map from an `actions[].id`, a button property name, or a `list` item `const` value to an `http(s)` URL. The client opens the URL when that button or item is clicked. |
+
+Rules enforced by core:
+
+- v1 does not support form elements. Only properties whose `ui:field` is `typography`, `list`, `button` or `admonition`, or whose `ui:widget` is `hidden`, are kept. Other properties are removed and logged.
+- A widget larger than 20 KB when serialized is dropped.
+- A malformed widget is dropped without failing the lookup.
+- Contacts that carry a widget are not cached in account data, so the widget always reflects the CRM at call time.
+- When several matched contacts have widgets, the client shows one titled section per contact. Keep `links` ids unique across contacts.
 
 ## Created-Date Resolver Support
 

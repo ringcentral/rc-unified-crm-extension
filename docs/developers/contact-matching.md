@@ -79,3 +79,7 @@ When users or auto-logging rules create a contact, core calls [`createContact`](
 3. Search a number that does not exist and confirm the no-match/create-contact flow.
 4. Test manual name search.
 5. Test contact-dependent fields in the call and message log forms.
+
+## Call pop widget
+
+A matched contact can carry a read-only `widget` that the phone shows in the **App Connect Contact** side panel during a call. See [Call pop widget](interfaces/findContact.md#call-pop-widget) for the format and the manifest flag that enables it.

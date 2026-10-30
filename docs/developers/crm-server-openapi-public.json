@@ -4763,6 +4763,64 @@
           "isNewContact": {
             "type": "boolean",
             "description": "Whether this is a synthetic create-new-contact option rather than an existing CRM record."
+          },
+          "widget": {
+            "type": "object",
+            "properties": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true,
+                "description": "Embeddable JSON schema of the read-only call pop widget page."
+              },
+              "uiSchema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true,
+                "description": "Embeddable uiSchema. Only typography, list, button and admonition fields are kept."
+              },
+              "formData": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true,
+                "description": "Embeddable form data supplying the page values."
+              },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "color": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": true
+                },
+                "description": "Optional buttons for the widget actions menu."
+              },
+              "links": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Maps an action id, button property name or list item value to an http(s) URL the client opens on click."
+              }
+            },
+            "required": [
+              "schema"
+            ],
+            "additionalProperties": true,
+            "description": "Optional read-only call pop widget shown in the App Connect Contact side panel during a call. Core removes form elements and drops widgets larger than 20 KB."
           }
         },
         "additionalProperties": true,

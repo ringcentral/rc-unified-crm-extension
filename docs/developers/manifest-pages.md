@@ -261,6 +261,20 @@ Set `page.disableContactCache` to true when phone-number contact lookups should 
 
 This does not disable the client's local matched-contact cache. If the client already has a local match and the lookup does not explicitly force a local refresh, it can still use that local match without making an online request.
 
+Set `page.contactWidget.supported` to true when the connector's [`findContact`](interfaces/findContact.md#call-pop-widget) returns a call pop `widget`:
+
+```json
+{
+  "page": {
+    "contactWidget": {
+      "supported": true
+    }
+  }
+}
+```
+
+During a call the client then looks up the contact online once per call, bypassing the local matched-contact cache, and shows the widget in the **App Connect Contact** side panel. The widget is cleared when the call ends.
+
 ## Feedback Page
 
 ```json

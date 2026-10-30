@@ -32,6 +32,21 @@ export const ContactInfoSchema = z.looseObject({
   isNewContact: z.boolean().describe(
     'Whether this is a synthetic create-new-contact option rather than an existing CRM record.',
   ).optional(),
+  widget: z.looseObject({
+    schema: JsonMapSchema.describe('Embeddable JSON schema of the read-only call pop widget page.'),
+    uiSchema: JsonMapSchema.describe('Embeddable uiSchema. Only typography, list, button and admonition fields are kept.').optional(),
+    formData: JsonMapSchema.describe('Embeddable form data supplying the page values.').optional(),
+    actions: z.array(z.looseObject({
+      id: z.string(),
+      label: z.string(),
+      color: z.string().optional(),
+    })).describe('Optional buttons for the widget actions menu.').optional(),
+    links: z.record(z.string(), z.string()).describe(
+      'Maps an action id, button property name or list item value to an http(s) URL the client opens on click.',
+    ).optional(),
+  }).describe(
+    'Optional read-only call pop widget shown in the App Connect Contact side panel during a call. Core removes form elements and drops widgets larger than 20 KB.',
+  ).optional(),
 }).describe('Connector-normalized CRM contact returned by lookup and create operations.');
 
 export const CallLogMutationResponseSchema = z.looseObject({

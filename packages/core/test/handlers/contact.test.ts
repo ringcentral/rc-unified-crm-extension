@@ -320,6 +320,52 @@ describe('Contact Handler', () => {
       expect(cachedData.data).toEqual(matchedContact);
     });
 
+    test('should sanitize the call pop widget and skip caching contacts that carry one', async () => {
+      await UserModel.create(mockUser);
+
+      const widget = {
+        schema: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            note: { type: 'string' }
+          }
+        },
+        uiSchema: {
+          title: { 'ui:field': 'typography' },
+          note: { 'ui:field': 'search' }
+        },
+        formData: { title: 'Open cases' }
+      };
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        findContact: jest.fn().mockResolvedValue({
+          successful: true,
+          matchedContactInfo: [{ id: 'c1', name: 'With Widget', type: 'Contact', phone: '+9876543211', widget }]
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await contactHandler.findContact({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        phoneNumber: '+9876543211'
+      });
+
+      expect(result.successful).toBe(true);
+      expect(Object.keys(result.contact[0].widget.schema.properties)).toEqual(['title']);
+      expect(result.contact[0].widget.uiSchema.note).toBeUndefined();
+      const cachedData = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-123',
+          platformName: 'testCRM',
+          dataKey: 'contact-+9876543211'
+        }
+      });
+      expect(cachedData).toBeNull();
+    });
+
     test('should find contact with oauth auth', async () => {
       // Arrange
       await UserModel.create(mockUser);

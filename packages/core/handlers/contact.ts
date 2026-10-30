@@ -20,6 +20,7 @@ const Connector = /** @type {{ getProxyConfig(proxyId: string): Promise<ProxyCon
 const { handleApiError: rawHandleApiError } = require('../lib/errorHandler');
 const handleApiError = /** @type {(error: unknown, platform: string, operation: string, context?: Record<string, unknown>) => ContactHandlerResult} */ (rawHandleApiError);
 const { CRM_ERROR_CODE } = require('../lib/constants');
+const { sanitizeContactsWidget } = require('../lib/contactWidget');
 const { AccountDataModel: RawAccountDataModel } = require('../models/accountDataModel');
 const AccountDataModel = /** @type {{ findOne(options: Record<string, unknown>): Promise<AccountContactDataRecord | null>, create(values: Record<string, unknown>): Promise<AccountContactDataRecord>, upsert(values: Record<string, unknown>): Promise<unknown> }} */ (RawAccountDataModel);
 
@@ -102,7 +103,8 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 break;
         }
 
-        const { successful, matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension, proxyConfig, tracer, isForceRefreshAccountData });
+        const { successful, matchedContactInfo: rawMatchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension, proxyConfig, tracer, isForceRefreshAccountData });
+        const matchedContactInfo = sanitizeContactsWidget(rawMatchedContactInfo);
         tracer?.trace('handler.findContact:platformFindResult', { successful, matchedContactInfo });
 
         const matchedNonNewContacts = matchedContactInfo?.filter(c => !c.isNewContact) ?? [];
@@ -110,7 +112,9 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             tracer?.trace('handler.findContact:contactsFound', { count: matchedContactInfo.length });
             // save in org data
             // Danger: it does NOT support one RC account mapping to multiple CRM platforms, because contacts will be shared
-            if (user.rcAccountId) {
+            // Contacts carrying a call pop widget are not cached: the widget shows live CRM data and a cached copy would go stale.
+            const hasWidget = matchedContactInfo.some(c => c.widget);
+            if (user.rcAccountId && !hasWidget) {
                 // Concurrent lookups for the same number can both miss the cache; a plain insert
                 // would then hit the composite primary key and fail an otherwise successful match.
                 await AccountDataModel.upsert({
