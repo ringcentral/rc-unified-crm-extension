@@ -1220,31 +1220,8 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         }
         const selectedMessageIds = parsedSelectedMessageIds?.data ?? [];
         if (selectedMessageIds.length > 0) {
-            // The manifest flag is the server-side gate. A selection must never
-            // fall back to the whole-conversation path, which would log
-            // messages the user did not pick.
-            let selectedMessageLogSupported = false;
-            if (typeof connectorRegistry.getManifest === 'function') {
-                try {
-                    // The bundled server manifest is registered as the registry's
-                    // default manifest, not once per connector.
-                    const manifest = connectorRegistry.getManifest(platform, true);
-                    selectedMessageLogSupported = manifest?.platforms?.[platform]?.isSelectedMessageLogSupported === true;
-                }
-                catch (error) {
-                    selectedMessageLogSupported = false;
-                }
-            }
-            if (!selectedMessageLogSupported) {
-                return {
-                    successful: false,
-                    returnMessage: {
-                        message: 'Logging selected messages is not supported for this CRM.',
-                        messageType: 'warning',
-                        ttl: 3000
-                    }
-                };
-            }
+            // A selection must never fall back to the whole-conversation path,
+            // which would log messages the user did not pick.
             return await logSelectedMessagesAsSingleEntry({
                 platform,
                 userId,
