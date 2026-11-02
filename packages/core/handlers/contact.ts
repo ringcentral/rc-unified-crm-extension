@@ -114,6 +114,11 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             // Danger: it does NOT support one RC account mapping to multiple CRM platforms, because contacts will be shared
             // Contacts carrying a call pop widget are not cached: the widget shows live CRM data and a cached copy would go stale.
             const hasWidget = matchedContactInfo.some(c => c.widget);
+            if (hasWidget && existingMatchedContactInfo) {
+                // An entry cached before the connector returned widgets would keep serving contacts without one.
+                await existingMatchedContactInfo.destroy();
+                tracer?.trace('handler.findContact:staleCacheRemoved', { phoneNumber });
+            }
             if (user.rcAccountId && !hasWidget) {
                 // Concurrent lookups for the same number can both miss the cache; a plain insert
                 // would then hit the composite primary key and fail an otherwise successful match.

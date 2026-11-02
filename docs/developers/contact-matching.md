@@ -82,4 +82,4 @@ When users or auto-logging rules create a contact, core calls [`createContact`](
 
 ## Call pop widget
 
-A matched contact can carry a read-only `widget` that the phone shows in the **App Connect Contact** side panel during a call. See [Call pop widget](interfaces/findContact.md#call-pop-widget) for the format and the manifest flag that enables it.
+A matched contact can carry a read-only `widget` that the phone shows in the **{CRM name} Contact** side panel (for example "Clio Contact") during a call. See [Call pop widget](interfaces/findContact.md#call-pop-widget) for the format.

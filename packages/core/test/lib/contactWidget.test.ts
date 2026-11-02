@@ -68,6 +68,21 @@ describe('contactWidget', () => {
       expect(result.schema.properties.id).toBeDefined();
     });
 
+    test('keeps link fields that point at http(s) and removes the others', () => {
+      const widget = {
+        schema: { type: 'object', properties: { good: { type: 'string' }, bad: { type: 'string' }, none: { type: 'string' } } },
+        uiSchema: {
+          good: { 'ui:field': 'link', 'ui:href': 'https://crm.example/1' },
+          bad: { 'ui:field': 'link', 'ui:href': 'javascript:alert(1)' },
+          none: { 'ui:field': 'link' },
+        },
+      };
+
+      const result = sanitizeContactWidget(widget);
+
+      expect(Object.keys(result.schema.properties)).toEqual(['good']);
+    });
+
     test('returns undefined when nothing renderable remains', () => {
       const result = sanitizeContactWidget({
         schema: { type: 'object', properties: { name: { type: 'string' } } },

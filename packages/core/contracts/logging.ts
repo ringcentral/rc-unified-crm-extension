@@ -45,7 +45,7 @@ export const ContactInfoSchema = z.looseObject({
       'Maps an action id, button property name or list item value to an http(s) URL the client opens on click.',
     ).optional(),
   }).describe(
-    'Optional read-only call pop widget shown in the App Connect Contact side panel during a call. Core removes form elements and drops widgets larger than 20 KB.',
+    'Optional read-only call pop widget shown in the "{CRM name} Contact" side panel during a call. Core removes form elements and drops widgets larger than 20 KB.',
   ).optional(),
 }).describe('Connector-normalized CRM contact returned by lookup and create operations.');
 

@@ -366,6 +366,43 @@ describe('Contact Handler', () => {
       expect(cachedData).toBeNull();
     });
 
+    test('should remove a stale cached entry when a forced refresh returns a widget', async () => {
+      await UserModel.create(mockUser);
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-123',
+        platformName: 'testCRM',
+        dataKey: 'contact-+9876543212',
+        data: [{ id: 'c1', name: 'Cached Without Widget', type: 'Contact' }]
+      });
+      const widget = {
+        schema: { type: 'object', properties: { title: { type: 'string' } } },
+        uiSchema: { title: { 'ui:field': 'typography' } },
+        formData: { title: 'Hello' }
+      };
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        findContact: jest.fn().mockResolvedValue({
+          successful: true,
+          matchedContactInfo: [{ id: 'c1', name: 'Cached Without Widget', type: 'Contact', widget }]
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await contactHandler.findContact({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        phoneNumber: '+9876543212',
+        isForceRefreshAccountData: true
+      });
+
+      expect(result.contact[0].widget).toBeDefined();
+      const cachedData = await AccountDataModel.findOne({
+        where: { rcAccountId: 'rc-account-123', platformName: 'testCRM', dataKey: 'contact-+9876543212' }
+      });
+      expect(cachedData).toBeNull();
+    });
+
     test('should find contact with oauth auth', async () => {
       // Arrange
       await UserModel.create(mockUser);

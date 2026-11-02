@@ -268,7 +268,6 @@ Use:
 | `page.feedback` | Feedback form and target URL. |
 | `page.useContactSearch` | Enables manual contact search by name when [`findContactWithName`](interfaces/findContactWithName.md) is implemented. |
 | `page.disableContactCache` | Forces phone-number contact lookups to refresh server-side account contact data instead of returning cached account matches. Client-side local matched-contact cache can still be used. |
-| `page.contactWidget` | Set `supported: true` to show the contact's call pop `widget` in the App Connect Contact side panel during calls. See [call pop widget](interfaces/findContact.md#call-pop-widget). |
 | `settings[]` | Connector-specific settings available under user/admin settings. |
 
 ## Validation

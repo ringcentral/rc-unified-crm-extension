@@ -57,13 +57,13 @@ Each contact can include:
 | `title`, `company`, `email`, `createdDate`, `mostRecentActivityDate` | Optional display/search metadata. |
 | `additionalInfo` | Object keyed by manifest `additionalFields[].const` values. Use this for contact-dependent options such as matters, deals, or opportunities. |
 | `isNewContact` | Use only for the special "Create new contact..." option. Core does not cache contacts marked this way. |
-| `widget` | Optional call pop widget shown in the **App Connect Contact** side panel during a call. See [Call pop widget](#call-pop-widget). |
+| `widget` | Optional call pop widget shown in the **{CRM name} Contact** side panel (for example "Clio Contact") during a call. See [Call pop widget](#call-pop-widget). |
 
 ## Call pop widget
 
-A connector can attach a read-only widget to a matched contact. When the contact is matched for a call, the client shows it in the **App Connect Contact** widget of the phone's side panel. The content is an Embeddable JSON schema page, so it renders natively. Adaptive Cards are not supported.
+A connector can attach a read-only widget to a matched contact. When the contact is matched for a call, the client shows it in a widget named after the CRM, such as **Clio Contact**, in the phone's side panel. The content is an Embeddable JSON schema page, so it renders natively. Adaptive Cards are not supported.
 
-Enable it by setting `page.contactWidget.supported` to `true` in the manifest (see [manifest](../manifest.md)). Without it the client reuses the locally cached contact and never asks the server for the widget.
+No manifest setting is needed: the client shows the widget whenever a matched contact carries one. The widget is kept in the client's local matched-contact cache, and the client re-fetches it from the server once per call so it stays current.
 
 ```json
 {
@@ -75,17 +75,22 @@ Enable it by setting `page.contactWidget.supported` to `true` in the manifest (s
     "schema": {
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "caseList": { "type": "string" }
+        "title": { "type": "string", "description": "Jane Doe" },
+        "openInCrm": { "type": "string", "title": "Open in CRM" },
+        "caseList": { "type": "string", "oneOf": [{ "const": "c1", "title": "Case 1", "description": "Open" }] }
       }
     },
     "uiSchema": {
-      "title": { "ui:field": "typography", "ui:variant": "body2" },
-      "caseList": { "ui:field": "list" }
+      "title": { "ui:field": "typography", "ui:variant": "subheading1" },
+      "openInCrm": { "ui:field": "button", "ui:variant": "outlined", "ui:fullWidth": true },
+      "caseList": { "ui:field": "list", "ui:showSelected": false },
+      "ui:order": ["title", "openInCrm", "caseList"]
     },
-    "formData": { "title": "Open cases" },
-    "actions": [{ "id": "open-crm", "label": "Open in CRM" }],
-    "links": { "open-crm": "https://crm.example.com/contacts/123" }
+    "formData": {},
+    "links": {
+      "openInCrm": "https://crm.example.com/contacts/123",
+      "c1": "https://crm.example.com/cases/c1"
+    }
   }
 }
 ```
@@ -93,16 +98,20 @@ Enable it by setting `page.contactWidget.supported` to `true` in the manifest (s
 | Field | Description |
 | --- | --- |
 | `schema`, `uiSchema`, `formData` | The JSON schema page. See the [Embeddable JSON schema page reference](https://ringcentral.github.io/ringcentral-embeddable/jsonschema-page/?path=/docs/jsonschemapage-documentation--docs). Do not set `type`; the client adds it. |
-| `actions` | Optional buttons in the widget's actions menu: `{ id, label, color? }`, at most 10. |
-| `links` | Optional map from an `actions[].id`, a button property name, or a `list` item `const` value to an `http(s)` URL. The client opens the URL when that button or item is clicked. |
+| `actions` | Optional buttons in the widget's actions menu: `{ id, label, color? }`, at most 10. A button placed in the page itself (`ui:field: button`) is usually clearer. |
+| `links` | Optional map from a button property name, an `actions[].id`, or a `list` item `const` value to an `http(s)` URL. The client opens the URL when that button or item is clicked. A `link` field does not need an entry: it opens its own `ui:href`. |
+
+A `typography` field shows the Markdown in its schema `description`, not a `formData` value. A `button` shows its schema `title`. Typography variants: `title1`, `title2`, `subheading1`, `subheading2`, `body1`, `body2`, `caption1`, `caption2`. Embeddable does not preserve the order of `schema.properties` (fields can come out alphabetical), so list every property in `uiSchema["ui:order"]` to control the order.
+
+The Clio connector (`src/connectors/clio/index.ts`, `buildContactWidget`) is a working example: a heading, a one-line summary (type, created and updated dates), an **Open in Clio** button and the matters list, each matter linking to its Clio page.
 
 Rules enforced by core:
 
-- v1 does not support form elements. Only properties whose `ui:field` is `typography`, `list`, `button` or `admonition`, or whose `ui:widget` is `hidden`, are kept. Other properties are removed and logged.
+- v1 does not support form elements. Only properties whose `ui:field` is `typography`, `link`, `list`, `button` or `admonition`, or whose `ui:widget` is `hidden`, are kept. A `link` field is kept only when `ui:href` is an `http(s)` URL. Other properties are removed and logged.
 - A widget larger than 20 KB when serialized is dropped.
 - A malformed widget is dropped without failing the lookup.
 - Contacts that carry a widget are not cached in account data, so the widget always reflects the CRM at call time.
-- When several matched contacts have widgets, the client shows one titled section per contact. Keep `links` ids unique across contacts.
+- When several matched contacts have widgets, the client adds a **Contact** dropdown at the top and shows the widget of the selected contact, the first one by default. Each contact's widget is independent, so the same property and `links` names can be used in all of them.
 
 ## Created-Date Resolver Support
 

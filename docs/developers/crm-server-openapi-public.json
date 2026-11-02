@@ -4820,7 +4820,7 @@
               "schema"
             ],
             "additionalProperties": true,
-            "description": "Optional read-only call pop widget shown in the App Connect Contact side panel during a call. Core removes form elements and drops widgets larger than 20 KB."
+            "description": "Optional read-only call pop widget shown in the \"{CRM name} Contact\" side panel during a call. Core removes form elements and drops widgets larger than 20 KB."
           }
         },
         "additionalProperties": true,
