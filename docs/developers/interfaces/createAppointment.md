@@ -25,6 +25,9 @@ Contact objects may include `type`, `contactType`, `name`, and other client cont
 metadata. The server validates the contact ID and forwards the reference to the
 connector. Omitting `status` preserves the connector's default create behavior.
 
+Contact IDs may be non-empty strings, including UUIDs and alphanumeric CRM IDs,
+or positive integers. String IDs are not required to be numeric.
+
 ## Return value(s)
 
 An object with the following properties:

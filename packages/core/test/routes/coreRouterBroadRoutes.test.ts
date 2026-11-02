@@ -825,6 +825,28 @@ describe('Core router broad route coverage', () => {
     expect(appointmentCore.createAppointment).toHaveBeenCalledWith({ platform: 'testCRM', userId: 'user-1', payload });
   });
 
+  test.each([true, false])('forwards UUID contact IDs unchanged on appointment create and update (wrapped: %s)', async (wrapped) => {
+    const contacts = [{ id: 'a523aa6f-2de3-40bb-a00e-cf58ada3672b' }];
+    const payload = {
+      title: 'test', summary: 'testtest', startTimeUtc: '2026-10-28T13:05:00.000Z',
+      durationMinutes: 60, status: 'scheduled', contacts,
+    };
+    const createResponse = await request(app).post('/appointments').query(authQuery())
+      .send(wrapped ? { payload } : payload);
+    expect(createResponse.status).toBe(200);
+    expect(createResponse.body.successful).toBe(true);
+    expect(appointmentCore.createAppointment).toHaveBeenCalledWith({ platform: 'testCRM', userId: 'user-1', payload });
+
+    const patch = { contacts };
+    const updateResponse = await request(app).patch('/appointments/appt-2').query(authQuery())
+      .send(wrapped ? { patch } : patch);
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.successful).toBe(true);
+    expect(appointmentCore.updateAppointment).toHaveBeenCalledWith({
+      platform: 'testCRM', userId: 'user-1', appointmentId: 'appt-2', patchBody: patch,
+    });
+  });
+
   test('rejects malformed appointment request bodies before invoking connectors', async () => {
     appointmentCore.listAppointments.mockClear();
     appointmentCore.createAppointment.mockClear();
@@ -843,6 +865,10 @@ describe('Core router broad route coverage', () => {
         ...appointmentCreateBody(),
         payload: { ...appointmentCreateBody().payload, status: 123 },
       }),
+      await request(app).post('/appointments').query(authQuery()).send({
+        payload: { ...appointmentCreateBody().payload, contacts: [{ id: '   ' }] },
+      }),
+      await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { contacts: [{ id: 0 }] } }),
       await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: 'bad' }),
       await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: {} }),
       await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { location: 'Zoom' } }),

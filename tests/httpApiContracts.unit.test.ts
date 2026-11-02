@@ -39,13 +39,13 @@ describe('typed HTTP API contracts', () => {
         status: 123,
       },
     }],
-    ['contact references require a positive numeric identifier', AppointmentCreateRequestSchema, {
+    ['contact references require a non-empty identifier', AppointmentCreateRequestSchema, {
       payload: {
         title: 'Meeting',
         summary: '',
         startTimeUtc: '2026-07-20T19:00:00.000Z',
         durationMinutes: 30,
-        contacts: ['contact-1'],
+        contacts: [''],
       },
     }],
     ['patch wrapper must contain an object', AppointmentPatchRequestSchema, { patch: 'bad' }],
@@ -68,6 +68,36 @@ describe('typed HTTP API contracts', () => {
       contacts: [{ id: '2288275906', type: 'contact', name: 'Sushiltest Contactname', phone: '+14155551234', additionalInfo: {} }],
     };
     expect(AppointmentCreateRequestSchema.parse(wrapped ? { payload } : payload)).toEqual(wrapped ? { payload } : payload);
+  });
+
+  test.each([true, false])('preserves CRM string and numeric contact IDs for create and update (wrapped: %s)', (wrapped) => {
+    const ids = ['a523aa6f-2de3-40bb-a00e-cf58ada3672b', 'contact-1', '2240710412', 2240710412];
+    const contacts = ids.flatMap((id) => [id, { id, type: 'contact' }]);
+    const payload = {
+      title: 'test', summary: 'testtest', startTimeUtc: '2026-10-28T13:05:00.000Z',
+      durationMinutes: 60, status: 'scheduled', contacts,
+    };
+    const createBody = wrapped ? { payload } : payload;
+    expect(AppointmentCreateRequestSchema.parse(createBody)).toEqual(createBody);
+
+    for (const patch of [
+      { contacts },
+      { contacts, startTimeUtc: payload.startTimeUtc, durationMinutes: 60 },
+      { contacts, startTime: payload.startTimeUtc, durationMinutes: 60 },
+    ]) {
+      const patchBody = wrapped ? { patch } : patch;
+      expect(AppointmentPatchRequestSchema.parse(patchBody)).toEqual(patchBody);
+    }
+  });
+
+  test.each(['', '   ', '\t\n', 0, -1, 1.5, null, true, {}, undefined])('rejects invalid appointment contact ID %p', (id) => {
+    for (const contact of [id, { id }]) {
+      expect(AppointmentCreateRequestSchema.safeParse({ payload: {
+        title: 'Meeting', summary: '', startTimeUtc: '2026-10-28T13:05:00.000Z',
+        durationMinutes: 60, contacts: [contact],
+      } }).success).toBe(false);
+      expect(AppointmentPatchRequestSchema.safeParse({ patch: { contacts: [contact] } }).success).toBe(false);
+    }
   });
 
   test.each(['', '   ', null, 123, {}])('rejects invalid initial appointment status %p', (status) => {

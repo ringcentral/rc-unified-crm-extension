@@ -6950,7 +6950,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^[1-9]\\d*$"
+                "minLength": 1
               },
               {
                 "type": "integer",
@@ -6959,7 +6959,7 @@
                 "maximum": 9007199254740991
               }
             ],
-            "description": "Positive CRM contact identifier."
+            "description": "CRM contact identifier as a non-empty string (including UUIDs) or positive integer."
           },
           {
             "type": "object",
@@ -6968,7 +6968,7 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "pattern": "^[1-9]\\d*$"
+                    "minLength": 1
                   },
                   {
                     "type": "integer",
@@ -6977,7 +6977,7 @@
                     "maximum": 9007199254740991
                   }
                 ],
-                "description": "Positive CRM contact identifier."
+                "description": "CRM contact identifier as a non-empty string (including UUIDs) or positive integer."
               },
               "type": {
                 "type": "string"

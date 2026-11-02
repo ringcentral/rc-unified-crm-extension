@@ -19,9 +19,9 @@ const AppointmentIdSchema = z.union([
 ]).describe('Connector appointment identifier.');
 
 const AppointmentContactIdSchema = z.union([
-  z.string().regex(/^[1-9]\d*$/),
+  z.string().trim().min(1),
   z.number().int().positive(),
-]).describe('Positive CRM contact identifier.');
+]).describe('CRM contact identifier as a non-empty string (including UUIDs) or positive integer.');
 
 export const AppointmentDateSchema = z.iso.date().describe(
   'ISO-8601 calendar date.',
