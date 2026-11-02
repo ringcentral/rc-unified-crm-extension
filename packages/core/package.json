@@ -1,6 +1,6 @@
 {
   "name": "@app-connect/core",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "RingCentral App Connect Core",
   "main": "dist/index.js",
   "types": "dist/types/index.d.ts",

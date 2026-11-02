@@ -1,5 +1,16 @@
 # Release notes
 
+## 2.1.4
+
+- New: Contact search results can show the App Connect contact call pop widget.
+- Better: Plugins installed on an account now pick up newly published plugin versions automatically.
+- Better: Appointment creation and update now accept string contact IDs.
+
+## 2.0.4
+
+- Better: Plugins installed on an account now pick up newly published plugin versions automatically.
+- Better: Appointment creation and update now accept string contact IDs.
+
 ## 2.0.1
 
 - Better: Pipedrive supports direct authrization now.

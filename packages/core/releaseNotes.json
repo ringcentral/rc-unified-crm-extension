@@ -1,4 +1,32 @@
 {
+    "2.1.4": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Contact search results can show the App Connect contact call pop widget."
+            },
+            {
+                "type": "Better",
+                "description": "Plugins installed on an account now pick up newly published plugin versions automatically."
+            },
+            {
+                "type": "Better",
+                "description": "Appointment creation and update now accept string contact IDs."
+            }
+        ]
+    },
+    "2.0.4": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Plugins installed on an account now pick up newly published plugin versions automatically."
+            },
+            {
+                "type": "Better",
+                "description": "Appointment creation and update now accept string contact IDs."
+            }
+        ]
+    },
     "1.7.44": {
         "global": [
             {
