@@ -2694,14 +2694,6 @@ describe('Log Handler', () => {
   });
 
   describe('createMessageLog (selective single-entry)', () => {
-    beforeEach(() => {
-      connectorRegistry.getManifest.mockReturnValue({
-        platforms: {
-          testCRM: { isSelectedMessageLogSupported: true },
-        },
-      });
-    });
-
     async function seedUser() {
       await UserModel.create({
         id: 'test-user-id',
@@ -2771,7 +2763,6 @@ describe('Log Handler', () => {
       });
 
       expect(result.successful).toBe(true);
-      expect(connectorRegistry.getManifest).toHaveBeenCalledWith('testCRM', true);
       // All selected messages are composed into ONE createMessageLog call.
       expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
       expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
@@ -2805,16 +2796,7 @@ describe('Log Handler', () => {
       expect(messageRows.every((a) => a.contactId === 'contact-123')).toBe(true);
     });
 
-    const unsupportedSelectionResponse = {
-      successful: false,
-      returnMessage: {
-        message: 'Logging selected messages is not supported for this CRM.',
-        messageType: 'warning',
-        ttl: 3000,
-      },
-    };
-
-    test('rejects selectedMessageIds when the connector does not opt in', async () => {
+    test('logs the selection for a platform whose manifest has no selected-message flag', async () => {
       await seedUser();
       connectorRegistry.getManifest.mockReturnValue({
         platforms: { testCRM: {} },
@@ -2828,11 +2810,12 @@ describe('Log Handler', () => {
         incomingData: buildIncomingData(['msg-1']),
       });
 
-      // Falling back would log the whole conversation, not the user's selection.
-      expect(result).toEqual(unsupportedSelectionResponse);
-      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
-      expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
-      expect(await MessageLogModel.count()).toBe(0);
+      expect(result.successful).toBe(true);
+      expect(result.messageLogs).toEqual({ 'msg-1': 'crm-entry-1' });
+      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        messages: [expect.objectContaining({ id: 'msg-1' })],
+      }));
     });
 
     test('uses the whole-conversation path when selectedMessageIds is empty', async () => {
@@ -2895,37 +2878,6 @@ describe('Log Handler', () => {
         successful: false,
         returnMessage: { message: 'No message to log.', messageType: 'warning', ttl: 3000 },
       });
-    });
-
-    test.each([
-      ['the registry has no getManifest', () => {
-        const original = connectorRegistry.getManifest;
-        connectorRegistry.getManifest = undefined;
-        return () => { connectorRegistry.getManifest = original; };
-      }],
-      ['getManifest throws', () => {
-        connectorRegistry.getManifest.mockImplementation(() => { throw new Error('manifest unavailable'); });
-        return () => {};
-      }],
-    ])('rejects the selection when %s', async (_label, arrange) => {
-      await seedUser();
-      const mockConnector = buildSelectiveConnector();
-      connectorRegistry.getConnector.mockReturnValue(mockConnector);
-      const restore = arrange();
-
-      try {
-        const result = await logHandler.createMessageLog({
-          platform: 'testCRM',
-          userId: 'test-user-id',
-          incomingData: buildIncomingData(['msg-1']),
-        });
-
-        expect(result).toEqual(unsupportedSelectionResponse);
-        expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
-      }
-      finally {
-        restore();
-      }
     });
 
     test('a later normal log for the same day does not append to the selected entry', async () => {
