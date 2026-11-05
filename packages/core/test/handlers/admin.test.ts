@@ -196,6 +196,24 @@ describe('Admin Handler', () => {
       const config = await AdminConfigModel.findByPk('hashed-existing');
       expect(config.userSettings).toEqual({ autoLogCalls: true, autoLogMessages: false });
     });
+
+    test('should store do-not-contact lists exactly as submitted', async () => {
+      // Arrange
+      const userSettings = {
+        doNotContactRestrictNumbers: { value: ['+14155551234', '+1415*'], customizable: false },
+        doNotContactWarnNumbers: { value: ['1234'], customizable: false }
+      };
+
+      // Act
+      await adminHandler.upsertAdminSettings({
+        hashedRcAccountId: 'hashed-dnc',
+        adminSettings: { userSettings }
+      });
+
+      // Assert
+      const stored = await adminHandler.getAdminSettings({ hashedRcAccountId: 'hashed-dnc' });
+      expect(stored.userSettings).toEqual(userSettings);
+    });
   });
 
   describe('getAdminSettings', () => {
