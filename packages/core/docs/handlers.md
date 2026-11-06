@@ -7,7 +7,7 @@ Handlers contain the shared business workflows behind the route layer.
 | File | Responsibility | Main exports |
 | --- | --- | --- |
 | `handlers/auth.ts` | Connector login, OAuth callback handling, user persistence, and auth validation | `onOAuthCallback`, `onApiKeyLogin`, `authValidation`, `getLicenseStatus`, `onRingcentralOAuthCallback` |
-| `handlers/contact.ts` | Contact search, creation, and account-data caching | `findContact`, `createContact`, `findContactWithName` |
+| `handlers/contact.ts` | Contact search, creation, account-data caching, and contact widgets | `findContact`, `createContact`, `findContactWithName`, `getContactWidget` |
 | `handlers/log.ts` | Call logging, message logging, plugin execution, async plugin callbacks, call-log lookup, and note cache writes | `createCallLog`, `updateCallLog`, `createMessageLog`, `getCallLog`, `saveNoteCache`, `handleAsyncPluginCallback` |
 | `handlers/admin.ts` | Admin settings, RingCentral reporting, server logging settings, and user mapping | `validateAdminRole`, `upsertAdminSettings`, `getAdminSettings`, `updateAdminRcTokens`, `getServerLoggingSettings`, `updateServerLoggingSettings`, `getAdminReport`, `getUserReport`, `getUserMapping`, `reinitializeUserMapping` |
 | `handlers/user.ts` | User info refresh, user setting reads, admin/user setting merge, and updates | `refreshUserInfo`, `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
@@ -48,6 +48,7 @@ Key behavior:
 - Cache refresh can be forced with `isForceRefreshAccountData`.
 - Missing or expired users return warning-style response objects rather than throwing.
 - `findContactWithName()` mirrors the phone lookup path without the account-data cache.
+- `getContactWidget()` passes the client's cached matched contacts to the connector and sanitizes the returned widgets so they stay read-only. Widgets are never cached.
 
 Known caveat called out in code:
 

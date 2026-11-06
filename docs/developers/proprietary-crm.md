@@ -34,6 +34,7 @@ Hand the `appconnect-readiness` skill your CRM's OpenAPI spec (or its docs) and 
 | Capability | Enables |
 | --- | --- |
 | Contact search by name | Manual search through `findContactWithName`. |
+| Contact widget | Read-only CRM details for matched contacts in the phone's side panel through `getContactWidget`. |
 | User list with emails | Server-side logging user mapping through `getUserList`. |
 | Related entities | Contact-dependent fields such as matters, deals, opportunities, cases, or jobs. |
 | Disposition/category update | `upsertCallDisposition` after a call log exists. |

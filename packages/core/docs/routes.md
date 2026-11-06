@@ -68,6 +68,7 @@ This page documents the non-MCP HTTP routes defined in `index.ts`.
 | --- | --- | --- |
 | `GET` | `/contact` | Finds contacts by phone number |
 | `POST` | `/contact` | Creates a new contact |
+| `POST` | `/contact/widget` | Returns the read-only contact widget of each matched contact (`getContactWidget`) |
 | `GET` | `/custom/contact/search` | Finds contacts by name |
 
 ## Logging And Disposition Routes
