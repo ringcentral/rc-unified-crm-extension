@@ -8,6 +8,7 @@ Implement:
 
 - [`findContact`](interfaces/findContact.md)
 - [`findContactWithName`](interfaces/findContactWithName.md), optional manual search
+- [`getContactWidget`](interfaces/getContactWidget.md), optional read-only widget for the matched contacts, shown in the phone's side panel during a call
 - [`createContact`](interfaces/createContact.md), optional contact creation
 
 ## Phone Lookup
@@ -79,7 +80,3 @@ When users or auto-logging rules create a contact, core calls [`createContact`](
 3. Search a number that does not exist and confirm the no-match/create-contact flow.
 4. Test manual name search.
 5. Test contact-dependent fields in the call and message log forms.
-
-## Call pop widget
-
-A matched contact can carry a read-only `widget` that the phone shows in the **{CRM name} Contact** side panel (for example "Clio Contact") during a call. See [Call pop widget](interfaces/findContact.md#call-pop-widget) for the format.

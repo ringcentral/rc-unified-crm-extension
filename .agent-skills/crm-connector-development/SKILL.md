@@ -21,6 +21,7 @@ Every connector MUST implement these interfaces:
 | `unAuthorize({ user })` | Logout/revoke tokens |
 | `findContact({ user, authHeader, phoneNumber, isExtension })` | Match contacts by phone number |
 | `findContactWithName({ user, authHeader, name })` | Search contacts by name |
+| `getContactWidget({ user, authHeader, phoneNumber, contacts })` | Optional read-only widget per matched contact for the phone's side panel |
 | `createContact({ user, authHeader, phoneNumber, newContactName })` | Create new contact |
 | `createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId })` | Log a call |
 | `updateCallLog({ user, existingCallLog, authHeader, subject, duration, additionalSubmission, composedLogDetails, hashedAccountId })` | Update existing call log |

@@ -209,8 +209,7 @@ function mapFindContactResponse({ config, response, opName = 'findContact' }) {
       company: getByPath(it, itemMap.companyPath || 'company') || "",
       createdDate: getByPath(it, itemMap.createdDatePath || 'createdDate') || undefined,
       mostRecentActivityDate: getByPath(it, itemMap.mostRecentActivityDatePath || 'mostRecentActivityDate') || undefined,
-      additionalInfo: getByPath(it, itemMap.additionalInfoPath || 'additionalInfo') || null,
-      ...(itemMap.widgetPath ? { widget: getByPath(it, itemMap.widgetPath) || undefined } : {})
+      additionalInfo: getByPath(it, itemMap.additionalInfoPath || 'additionalInfo') || null
     };
   });
 }

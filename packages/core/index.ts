@@ -378,6 +378,7 @@ function createCoreRouter() {
                     unAuthorize: !!platformModule.unAuthorize,
                     upsertCallDisposition: !!platformModule.upsertCallDisposition,
                     findContactWithName: !!platformModule.findContactWithName,
+                    getContactWidget: !!platformModule.getContactWidget,
                     getUserList: !!platformModule.getUserList,
                     getManagedAuthOptions: !!platformModule.getManagedAuthOptions,
                     getLicenseStatus: !!platformModule.getLicenseStatus,
@@ -3130,6 +3131,71 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Contact Search by Name',
             interfaceName: 'contactSearchByName',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: {
+                statusCode
+            }
+        });
+    });
+    router.post('/contact/widget', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('getContactWidget:start', { body: req.body });
+        let platformName = null;
+        let success = false;
+        let statusCode = 200;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (jwtToken) {
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('getContactWidget:invalidJwtToken', {});
+                    res.status(400).send(wrapDebugResponse(tracer, 'Invalid JWT token'));
+                    success = false;
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
+                platformName = platform;
+                const { phoneNumber, contacts } = req.body ?? {};
+                if (!phoneNumber || !Array.isArray(contacts)) {
+                    res.status(400).send(wrapDebugResponse(tracer, 'Please provide phoneNumber and contacts.'));
+                    return;
+                }
+                const { successful, returnMessage, widgets, isRevokeUserSession } = await contactCore.getContactWidget({ platform, userId, phoneNumber, contacts });
+                if (isRevokeUserSession) {
+                    sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
+                    success = false;
+                }
+                else {
+                    res.status(200).send(wrapDebugResponse(tracer, { successful, returnMessage, widgets: widgets ?? [] }));
+                    success = successful;
+                }
+            }
+            else {
+                tracer?.trace('getContactWidget:noToken', {});
+                res.status(400).send(wrapDebugResponse(tracer, 'Please go to Settings and authorize CRM platform'));
+                success = false;
+            }
+        }
+        catch (e) {
+            logger.error('Get contact widget failed', { platform: platformName, stack: e.stack });
+            statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(wrapDebugResponse(tracer, { error: getErrorResponse(e) }));
+            tracer?.traceError('getContactWidget:error', e, { platform: platformName });
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get contact widget',
+            interfaceName: 'getContactWidget',
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,

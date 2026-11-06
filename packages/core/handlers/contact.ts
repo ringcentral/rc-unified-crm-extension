@@ -7,6 +7,7 @@
 /** @typedef {import('../types').CreateContactParams} CreateContactParams */
 /** @typedef {import('../types').FindContactParams} FindContactParams */
 /** @typedef {import('../types').FindContactWithNameParams} FindContactWithNameParams */
+/** @typedef {import('../types').GetContactWidgetParams} GetContactWidgetParams */
 /** @typedef {import('../types').OAuthInfo} OAuthInfo */
 /** @typedef {import('../types').ProviderError} ProviderError */
 /** @typedef {import('../types').ProxyConfig} ProxyConfig */
@@ -18,9 +19,9 @@ const connectorRegistry = /** @type {{ getConnector(platform: string): ContactCo
 const { Connector: RawConnector } = require('../models/dynamo/connectorSchema');
 const Connector = /** @type {{ getProxyConfig(proxyId: string): Promise<ProxyConfig | null> }} */ (/** @type {unknown} */ (RawConnector));
 const { handleApiError: rawHandleApiError } = require('../lib/errorHandler');
+const { sanitizeContactWidgets } = require('../lib/contactWidget');
 const handleApiError = /** @type {(error: unknown, platform: string, operation: string, context?: Record<string, unknown>) => ContactHandlerResult} */ (rawHandleApiError);
 const { CRM_ERROR_CODE } = require('../lib/constants');
-const { sanitizeContactsWidget } = require('../lib/contactWidget');
 const { AccountDataModel: RawAccountDataModel } = require('../models/accountDataModel');
 const AccountDataModel = /** @type {{ findOne(options: Record<string, unknown>): Promise<AccountContactDataRecord | null>, create(values: Record<string, unknown>): Promise<AccountContactDataRecord>, upsert(values: Record<string, unknown>): Promise<unknown> }} */ (RawAccountDataModel);
 
@@ -103,8 +104,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 break;
         }
 
-        const { successful, matchedContactInfo: rawMatchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension, proxyConfig, tracer, isForceRefreshAccountData });
-        const matchedContactInfo = sanitizeContactsWidget(rawMatchedContactInfo);
+        const { successful, matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension, proxyConfig, tracer, isForceRefreshAccountData });
         tracer?.trace('handler.findContact:platformFindResult', { successful, matchedContactInfo });
 
         const matchedNonNewContacts = matchedContactInfo?.filter(c => !c.isNewContact) ?? [];
@@ -112,14 +112,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             tracer?.trace('handler.findContact:contactsFound', { count: matchedContactInfo.length });
             // save in org data
             // Danger: it does NOT support one RC account mapping to multiple CRM platforms, because contacts will be shared
-            // Contacts carrying a call pop widget are not cached: the widget shows live CRM data and a cached copy would go stale.
-            const hasWidget = matchedContactInfo.some(c => c.widget);
-            if (hasWidget && existingMatchedContactInfo) {
-                // An entry cached before the connector returned widgets would keep serving contacts without one.
-                await existingMatchedContactInfo.destroy();
-                tracer?.trace('handler.findContact:staleCacheRemoved', { phoneNumber });
-            }
-            if (user.rcAccountId && !hasWidget) {
+            if (user.rcAccountId) {
                 // Concurrent lookups for the same number can both miss the cache; a plain insert
                 // would then hit the composite primary key and fail an otherwise successful match.
                 await AccountDataModel.upsert({
@@ -313,8 +306,77 @@ async function findContactWithName({ platform, userId, name }) {
     }
 }
 
+/**
+ * Asks the connector for the widget of each matched contact. The widgets are sanitized so they stay read-only.
+ * @param {GetContactWidgetParams} params
+ * @returns {Promise<ContactHandlerResult>}
+ */
+async function getContactWidget({ platform, userId, phoneNumber, contacts }) {
+    try {
+        let user = await UserModel.findOne({
+            where: {
+                id: userId,
+                platform
+            }
+        });
+        if (!user || !user.accessToken) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: 'Please connect your CRM account to see the contact widget.',
+                    messageType: 'warning',
+                    ttl: 5000
+                }
+            };
+        }
+        const platformModule = connectorRegistry.getConnector(platform);
+        if (!platformModule.getContactWidget) {
+            return { successful: true, widgets: [] };
+        }
+        const proxyId = user.platformAdditionalInfo?.proxyId;
+        let proxyConfig = null;
+        if (proxyId) {
+            proxyConfig = await Connector.getProxyConfig(proxyId);
+        }
+        const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
+        let authHeader = '';
+        switch (authType) {
+            case 'oauth':
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                if (!user) {
+                    return {
+                        successful: false,
+                        returnMessage: {
+                            message: 'User session expired. Please connect again.',
+                            messageType: 'warning',
+                            ttl: 5000
+                        },
+                        isRevokeUserSession: true
+                    }
+                }
+                authHeader = `Bearer ${user.accessToken}`;
+                break;
+            case 'apiKey':
+                const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                authHeader = `Basic ${basicAuth}`;
+                break;
+        }
+        const { successful, widgets, returnMessage, extraDataTracking } = await platformModule.getContactWidget({ user, authHeader, phoneNumber, contacts, proxyConfig });
+        return {
+            successful,
+            returnMessage,
+            widgets: sanitizeContactWidgets(widgets),
+            extraDataTracking
+        };
+    } catch (e) {
+        return handleApiError(e, platform, 'getContactWidget', { userId, phoneNumber });
+    }
+}
+
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.findContactWithName = findContactWithName;
+exports.getContactWidget = getContactWidget;
 
 export {};

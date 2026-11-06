@@ -245,6 +245,7 @@ nav:
       - 'Call logging':
         - 'findContact (by phone)': developers/interfaces/findContact.md
         - 'findContactWithName': developers/interfaces/findContactWithName.md
+        - 'getContactWidget': developers/interfaces/getContactWidget.md
         - 'createContact': developers/interfaces/createContact.md
         - 'createCallLog': developers/interfaces/createCallLog.md
         - 'updateCallLog': developers/interfaces/updateCallLog.md

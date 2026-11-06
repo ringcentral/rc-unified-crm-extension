@@ -3,7 +3,7 @@
         "global": [
             {
                 "type": "New",
-                "description": "Contact search results can show the App Connect contact call pop widget."
+                "description": "Connectors can show a contact widget in the phone's side panel during calls by implementing the new getContactWidget interface."
             },
             {
                 "type": "Better",

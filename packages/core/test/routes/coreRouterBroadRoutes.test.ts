@@ -14,6 +14,7 @@ jest.mock('../../handlers/contact', () => ({
   findContact: jest.fn(),
   createContact: jest.fn(),
   findContactWithName: jest.fn(),
+  getContactWidget: jest.fn(),
 }));
 jest.mock('../../handlers/appointment', () => ({
   listAppointments: jest.fn(),
@@ -770,6 +771,27 @@ describe('Core router broad route coverage', () => {
     });
     expect((await request(app).post('/contact').query(authQuery()).send({ phoneNumber: '+1555', newContactName: 'Alice' })).body.contact).toEqual({ id: 'contact-2' });
     expect((await request(app).get('/custom/contact/search').query({ ...authQuery(), name: 'Alice' })).body.contact).toEqual([{ id: 'contact-3' }]);
+  });
+
+  test('serves contact widgets for the matched contacts', async () => {
+    contactCore.getContactWidget.mockResolvedValue({
+      successful: true,
+      widgets: [{ contactId: '1', widget: { schema: { type: 'object', properties: {} } } }],
+    });
+
+    const response = await request(app).post('/contact/widget').query(authQuery()).send({ phoneNumber: '+1555', contacts: [{ id: '1' }] });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      successful: true,
+      widgets: [{ contactId: '1', widget: { schema: { type: 'object', properties: {} } } }],
+    });
+    expect(contactCore.getContactWidget).toHaveBeenCalledWith(expect.objectContaining({ phoneNumber: '+1555', contacts: [{ id: '1' }] }));
+    expect((await request(app).post('/contact/widget').query(authQuery()).send({ phoneNumber: '+1555' })).status).toBe(400);
+    expect((await request(app).post('/contact/widget').send({ phoneNumber: '+1555', contacts: [] })).status).toBe(400);
+
+    contactCore.getContactWidget.mockResolvedValue({ successful: false, returnMessage: { message: 'expired' }, isRevokeUserSession: true });
+    expect((await request(app).post('/contact/widget').query(authQuery()).send({ phoneNumber: '+1555', contacts: [] })).status).not.toBe(200);
   });
 
   test('serves appointment list, create, update, status, refresh, confirm, and cancel routes', async () => {

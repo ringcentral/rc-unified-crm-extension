@@ -358,21 +358,6 @@ describe('proxy engine utilities', () => {
     ]);
   });
 
-  test('mapFindContactResponse maps the call pop widget only when widgetPath is configured', () => {
-    const widget = { schema: { type: 'object', properties: {} }, uiSchema: {} };
-    const response = { data: { contacts: [{ id: 'c1', name: 'Alice', card: widget }] } };
-    const build = (item: Record<string, string>) => ({
-      operations: {
-        findContact: {
-          responseMapping: { listPath: 'body.contacts', item: { idPath: 'id', namePath: 'name', ...item } }
-        }
-      }
-    });
-
-    expect(mapFindContactResponse({ config: build({ widgetPath: 'card' }), response })[0].widget).toEqual(widget);
-    expect(mapFindContactResponse({ config: build({}), response })[0]).not.toHaveProperty('widget');
-  });
-
   test('mapFindContactResponse returns defaults when mappings or fields are absent', () => {
     expect(mapFindContactResponse({
       config: { operations: {} },

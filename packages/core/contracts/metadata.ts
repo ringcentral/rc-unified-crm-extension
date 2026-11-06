@@ -52,6 +52,7 @@ export const ImplementedInterfacesResponseSchema = z.looseObject({
     'Whether the connector implements upsertCallDisposition.',
   ),
   findContactWithName: z.boolean().describe('Whether the connector implements findContactWithName.'),
+  getContactWidget: z.boolean().describe('Whether the connector implements getContactWidget, the read-only contact widget shown during calls.'),
   getUserList: z.boolean().describe('Whether the connector implements getUserList.'),
   getManagedAuthOptions: z.boolean().describe(
     'Whether the connector implements dynamic managed-auth option loading.',
@@ -118,6 +119,7 @@ export const implementedInterfacesResponseExample = {
   unAuthorize: true,
   upsertCallDisposition: true,
   findContactWithName: true,
+  getContactWidget: true,
   getUserList: false,
   getManagedAuthOptions: false,
   getLicenseStatus: true,

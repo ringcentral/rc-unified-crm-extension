@@ -203,14 +203,11 @@ Proxy mode saves `platformAdditionalInfo` after removing any `password` field fr
       "companyPath": "company",
       "createdDatePath": "created_at",
       "mostRecentActivityDatePath": "updated_at",
-      "additionalInfoPath": "additionalInfo",
-      "widgetPath": "widget"
+      "additionalInfoPath": "additionalInfo"
     }
   }
 }
 ```
-
-`widgetPath` is optional. When set, the value at that path is returned as the contact's call pop `widget`; see [findContact](interfaces/findContact.md#call-pop-widget) for its shape.
 
 `createdDatePath` should map to the CRM record creation timestamp. Auto logging needs it when users choose the "earliest created contact" resolver for multiple contact matches.
 

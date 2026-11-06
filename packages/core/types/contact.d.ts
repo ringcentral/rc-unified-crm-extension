@@ -64,6 +64,13 @@ export interface FindContactWithNameParams {
   name: string;
 }
 
+export interface GetContactWidgetParams {
+  platform: string;
+  userId: string;
+  phoneNumber: string;
+  contacts: ContactInfo[];
+}
+
 export interface ContactHandlerResult {
   successful: boolean;
   returnMessage?: ReturnMessage | null;
@@ -115,6 +122,22 @@ export interface FindContactWithNameConnectorParams {
   proxyConfig?: ProxyConfig | null;
 }
 
+export interface GetContactWidgetConnectorParams {
+  user: ContactHandlerUser;
+  authHeader: string;
+  phoneNumber: string;
+  /** The matched contacts the client has cached for this phone number, as returned by findContact. */
+  contacts: ContactInfo[];
+  proxyConfig?: ProxyConfig | null;
+}
+
+export interface GetContactWidgetConnectorResult {
+  successful: boolean;
+  widgets?: { contactId: string | number; widget: unknown }[] | null;
+  returnMessage?: ReturnMessage | null;
+  extraDataTracking?: unknown;
+}
+
 export interface ContactConnectorImplementation {
   getAuthType(params: ContactAuthParams): ContactAuthType | Promise<ContactAuthType>;
   getBasicAuth(params: { apiKey?: unknown }): string;
@@ -122,4 +145,5 @@ export interface ContactConnectorImplementation {
   findContact(params: FindContactConnectorParams): FindContactConnectorResult | Promise<FindContactConnectorResult>;
   createContact(params: CreateContactConnectorParams): CreateContactConnectorResult | Promise<CreateContactConnectorResult>;
   findContactWithName(params: FindContactWithNameConnectorParams): FindContactConnectorResult | Promise<FindContactConnectorResult>;
+  getContactWidget?(params: GetContactWidgetConnectorParams): GetContactWidgetConnectorResult | Promise<GetContactWidgetConnectorResult>;
 }

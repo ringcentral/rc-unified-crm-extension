@@ -1,4 +1,4 @@
-const { MAX_WIDGET_BYTES, sanitizeContactWidget, sanitizeContactsWidget } = require('../../lib/contactWidget');
+const { MAX_WIDGET_BYTES, sanitizeContactWidget, sanitizeContactWidgets } = require('../../lib/contactWidget');
 
 const baseWidget = (): any => ({
   schema: {
@@ -117,19 +117,23 @@ describe('contactWidget', () => {
     });
   });
 
-  describe('sanitizeContactsWidget', () => {
-    test('passes through contacts without a widget and non-arrays', () => {
-      const contacts = [{ id: '1', name: 'A' }];
-
-      expect(sanitizeContactsWidget(contacts)).toEqual(contacts);
-      expect(sanitizeContactsWidget(null)).toBeNull();
-      expect(sanitizeContactsWidget(undefined)).toBeUndefined();
+  describe('sanitizeContactWidgets', () => {
+    test('returns an empty list for non-arrays', () => {
+      expect(sanitizeContactWidgets(null)).toEqual([]);
+      expect(sanitizeContactWidgets(undefined)).toEqual([]);
+      expect(sanitizeContactWidgets({})).toEqual([]);
     });
 
-    test('removes an invalid widget from the contact', () => {
-      const result = sanitizeContactsWidget([{ id: '1', name: 'A', widget: { schema: 'nope' } }]);
+    test('keeps valid entries with a string contact id and drops the rest', () => {
+      const result = sanitizeContactWidgets([
+        { contactId: 1, widget: baseWidget() },
+        { contactId: '2', widget: { schema: 'nope' } },
+        { widget: baseWidget() },
+        null,
+      ]);
 
-      expect(result).toEqual([{ id: '1', name: 'A' }]);
+      expect(result.map(r => r.contactId)).toEqual(['1']);
+      expect(Object.keys(result[0].widget.schema.properties)).toEqual(['title', 'cases', 'open']);
     });
   });
 });

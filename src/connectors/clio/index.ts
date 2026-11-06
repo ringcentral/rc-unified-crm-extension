@@ -333,6 +333,74 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat = '
     };
 }
 
+const WIDGET_MAX_MATTERS = 10;
+
+// Example of a contact widget: read-only contact info shown in the "{CRM name} Contact" side panel.
+// `contacts` are the matched contacts the client cached from findContact, so name, type, dates and matters
+// are already there and no Clio request is needed. `schema`/`uiSchema` is an Embeddable JSON schema page and
+// `ui:order` sets the order: a heading, a one-line summary, an "Open in Clio" button and the matters list.
+// `links` maps the button (by its property name) and each matter (by its list value) to the Clio page the
+// client opens on click.
+function buildContactWidget({ hostname, contact }: { hostname: string, contact: any }) {
+    const matters: any[] = contact.additionalInfo?.matters ?? [];
+    const shownMatters = matters.slice(0, WIDGET_MAX_MATTERS);
+    const dateOnly = (value: unknown) => String(value).slice(0, 10);
+    const summary = [
+        contact.type ?? 'Contact',
+        contact.createdDate ? `Created ${dateOnly(contact.createdDate)}` : null,
+        contact.mostRecentActivityDate ? `Updated ${dateOnly(contact.mostRecentActivityDate)}` : null
+    ].filter(Boolean).join(' · ');
+    // A typography field shows its schema `description` (Markdown), not formData.
+    const properties: Record<string, any> = {
+        name: { type: 'string', description: contact.name },
+        summary: { type: 'string', description: summary },
+        openInClio: { type: 'string', title: 'Open in Clio' },
+        mattersTitle: { type: 'string', description: matters.length > 0 ? `Matters (${matters.length})` : 'Matters' }
+    };
+    const uiSchema: Record<string, any> = {
+        name: { 'ui:field': 'typography', 'ui:variant': 'subheading1' },
+        summary: { 'ui:field': 'typography', 'ui:variant': 'caption1' },
+        openInClio: { 'ui:field': 'button', 'ui:variant': 'outlined', 'ui:fullWidth': true },
+        mattersTitle: { 'ui:field': 'typography', 'ui:variant': 'subheading2' }
+    };
+    const links: Record<string, string> = { openInClio: `https://${hostname}/nc/#/contacts/${contact.id}` };
+    if (shownMatters.length > 0) {
+        properties.matters = {
+            type: 'string',
+            oneOf: shownMatters.map(m => ({ const: String(m.const), title: m.title, description: m.description }))
+        };
+        uiSchema.matters = { 'ui:field': 'list', 'ui:showSelected': false };
+        for (const m of shownMatters) {
+            links[String(m.const)] = `https://${hostname}/nc/#/matters/${m.const}`;
+        }
+    }
+    else {
+        properties.noMatters = { type: 'string', description: 'No matters for this contact.' };
+        uiSchema.noMatters = { 'ui:field': 'typography', 'ui:variant': 'caption1' };
+    }
+    if (matters.length > shownMatters.length) {
+        properties.moreMatters = { type: 'string', description: `+${matters.length - shownMatters.length} more in Clio` };
+        uiSchema.moreMatters = { 'ui:field': 'typography', 'ui:variant': 'caption1' };
+    }
+    // Embeddable does not keep the order of `properties`, so the order is stated explicitly.
+    uiSchema['ui:order'] = Object.keys(properties);
+    return {
+        schema: { type: 'object', properties },
+        uiSchema,
+        formData: {},
+        links
+    };
+}
+
+async function getContactWidget({ user, contacts }) {
+    return {
+        successful: true,
+        widgets: (contacts ?? [])
+            .filter(contact => !contact.isNewContact)
+            .map(contact => ({ contactId: contact.id, widget: buildContactWidget({ hostname: user.hostname, contact }) }))
+    };
+}
+
 async function findContactWithName({ user, authHeader, name, appointment }) {
     const matchedContactInfo = [];
     let extraDataTracking = {};
@@ -1612,6 +1680,7 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
+exports.getContactWidget = getContactWidget;
 exports.getLogFormatType = getLogFormatType;
 exports.listAppointments = listAppointments;
 exports.createAppointment = createAppointment;

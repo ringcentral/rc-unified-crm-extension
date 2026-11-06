@@ -171,6 +171,7 @@
                       "unAuthorize": true,
                       "upsertCallDisposition": true,
                       "findContactWithName": true,
+                      "getContactWidget": true,
                       "getUserList": false,
                       "getManagedAuthOptions": false,
                       "getLicenseStatus": true,
@@ -1841,6 +1842,146 @@
           }
         },
         "description": "Creates a CRM contact using the supplied name, phone number, optional CRM entity type, and connector-defined additional submission fields. Connector validation failures can return HTTP 200 with successful: false and returnMessage."
+      }
+    },
+    "/contact/widget": {
+      "post": {
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Get contact widgets for matched contacts",
+        "operationId": "getContactWidget",
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "phoneNumber",
+                  "contacts"
+                ],
+                "properties": {
+                  "phoneNumber": {
+                    "type": "string",
+                    "description": "Phone number of the call."
+                  },
+                  "contacts": {
+                    "type": "array",
+                    "description": "The matched contacts the client has cached for the phone number, as returned by the contact search.",
+                    "items": {
+                      "$ref": "#/components/schemas/ContactInfo"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Read-only widgets, one per contact that has one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "successful",
+                    "widgets"
+                  ],
+                  "properties": {
+                    "successful": {
+                      "type": "boolean"
+                    },
+                    "returnMessage": {
+                      "$ref": "#/components/schemas/ReturnMessage"
+                    },
+                    "widgets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "contactId",
+                          "widget"
+                        ],
+                        "properties": {
+                          "contactId": {
+                            "type": "string"
+                          },
+                          "widget": {
+                            "type": "object",
+                            "description": "An Embeddable JSON schema page. Form elements are removed by the server.",
+                            "required": [
+                              "schema"
+                            ],
+                            "properties": {
+                              "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                              },
+                              "uiSchema": {
+                                "type": "object",
+                                "additionalProperties": true
+                              },
+                              "formData": {
+                                "type": "object",
+                                "additionalProperties": true
+                              },
+                              "actions": {
+                                "type": "array",
+                                "maxItems": 10,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "id",
+                                    "label"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "label": {
+                                      "type": "string"
+                                    },
+                                    "color": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "links": {
+                                "type": "object",
+                                "description": "Maps a button property name, an action id or a list item value to an http(s) URL the client opens on click.",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
+          }
+        },
+        "description": "Asks the connector for the read-only widget of each matched contact, shown in the phone side panel during a call. Connectors that do not implement getContactWidget return an empty list. Widgets are not cached."
       }
     },
     "/custom/contact/search": {
@@ -4763,64 +4904,6 @@
           "isNewContact": {
             "type": "boolean",
             "description": "Whether this is a synthetic create-new-contact option rather than an existing CRM record."
-          },
-          "widget": {
-            "type": "object",
-            "properties": {
-              "schema": {
-                "type": "object",
-                "properties": {},
-                "additionalProperties": true,
-                "description": "Embeddable JSON schema of the read-only call pop widget page."
-              },
-              "uiSchema": {
-                "type": "object",
-                "properties": {},
-                "additionalProperties": true,
-                "description": "Embeddable uiSchema. Only typography, list, button and admonition fields are kept."
-              },
-              "formData": {
-                "type": "object",
-                "properties": {},
-                "additionalProperties": true,
-                "description": "Embeddable form data supplying the page values."
-              },
-              "actions": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "label": {
-                      "type": "string"
-                    },
-                    "color": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "label"
-                  ],
-                  "additionalProperties": true
-                },
-                "description": "Optional buttons for the widget actions menu."
-              },
-              "links": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "description": "Maps an action id, button property name or list item value to an http(s) URL the client opens on click."
-              }
-            },
-            "required": [
-              "schema"
-            ],
-            "additionalProperties": true,
-            "description": "Optional read-only call pop widget shown in the \"{CRM name} Contact\" side panel during a call. Core removes form elements and drops widgets larger than 20 KB."
           }
         },
         "additionalProperties": true,
@@ -6244,6 +6327,10 @@
             "type": "boolean",
             "description": "Whether the connector implements findContactWithName."
           },
+          "getContactWidget": {
+            "type": "boolean",
+            "description": "Whether the connector implements getContactWidget, the read-only contact widget shown during calls."
+          },
           "getUserList": {
             "type": "boolean",
             "description": "Whether the connector implements getUserList."
@@ -6288,6 +6375,7 @@
           "unAuthorize",
           "upsertCallDisposition",
           "findContactWithName",
+          "getContactWidget",
           "getUserList",
           "getManagedAuthOptions",
           "getLicenseStatus",

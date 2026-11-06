@@ -1,5 +1,5 @@
-// Call pop widget: a connector may attach `widget` to a matched contact. The client renders it as an
-// Embeddable JSON schema page, read-only. Anything that would render a form element is removed here.
+// Contact widget: a connector's `getContactWidget` returns a widget per matched contact. The client renders it
+// as an Embeddable JSON schema page, read-only. Anything that would render a form element is removed here.
 
 const MAX_WIDGET_BYTES = 20 * 1024;
 const MAX_ACTIONS = 10;
@@ -103,23 +103,31 @@ function sanitizeContactWidget(widget: any): ContactWidget | undefined {
     };
 }
 
-/** Replaces each contact's `widget` with its sanitized form, or removes it when invalid. */
-function sanitizeContactsWidget<T extends Record<string, any>>(contacts: T[] | null | undefined): T[] | null | undefined {
-    if (!Array.isArray(contacts)) {
-        return contacts;
+interface ContactWidgetResult {
+    contactId: string;
+    widget: ContactWidget;
+}
+
+/** Keeps the `{ contactId, widget }` entries whose widget is valid, with the widget sanitized. */
+function sanitizeContactWidgets(widgets: any): ContactWidgetResult[] {
+    if (!Array.isArray(widgets)) {
+        return [];
     }
-    return contacts.map(contact => {
-        if (!contact || !('widget' in contact)) {
-            return contact;
+    const result: ContactWidgetResult[] = [];
+    for (const entry of widgets) {
+        if (!isPlainObject(entry) || entry.contactId === undefined || entry.contactId === null) {
+            continue;
         }
-        const { widget, ...rest } = contact;
-        const sanitized = sanitizeContactWidget(widget);
-        return (sanitized ? { ...rest, widget: sanitized } : rest) as unknown as T;
-    });
+        const widget = sanitizeContactWidget(entry.widget);
+        if (widget) {
+            result.push({ contactId: String(entry.contactId), widget });
+        }
+    }
+    return result;
 }
 
 export {
     MAX_WIDGET_BYTES,
     sanitizeContactWidget,
-    sanitizeContactsWidget
+    sanitizeContactWidgets
 };

@@ -2,7 +2,7 @@
 
 ## 2.1.4
 
-- New: Contact search results can show the App Connect contact call pop widget.
+- New: Connectors can show a contact widget in the phone's side panel during calls by implementing the new getContactWidget interface.
 - Better: Plugins installed on an account now pick up newly published plugin versions automatically.
 - Better: Appointment creation and update now accept string contact IDs.
 

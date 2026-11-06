@@ -65,7 +65,6 @@ export interface ProxyResponseItemMapping {
   createdDatePath?: string;
   mostRecentActivityDatePath?: string;
   additionalInfoPath?: string;
-  widgetPath?: string;
   [key: string]: unknown;
 }
 
@@ -155,7 +154,6 @@ export interface ProxyContactInfo {
   createdDate?: unknown;
   mostRecentActivityDate?: unknown;
   additionalInfo: unknown;
-  widget?: unknown;
 }
 
 export interface MapProxyResponseParams {

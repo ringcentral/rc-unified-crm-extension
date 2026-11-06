@@ -267,6 +267,7 @@ describe('Core Router implementedInterfaces contract', () => {
       unAuthorize: false,
       upsertCallDisposition: false,
       findContactWithName: true,
+      getContactWidget: false,
       getUserList: false,
       getManagedAuthOptions: false,
       getLicenseStatus: true,

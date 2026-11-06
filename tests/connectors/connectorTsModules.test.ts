@@ -178,6 +178,7 @@ describe('app connector TypeScript modules', () => {
             'findContactWithName',
             'getAuthType',
             'getCallLog',
+            'getContactWidget',
             'getLogFormatType',
             'getOauthInfo',
             'getUserInfo',
