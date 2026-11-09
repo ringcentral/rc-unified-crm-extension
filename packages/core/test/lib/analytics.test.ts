@@ -1,6 +1,7 @@
 describe('analytics', () => {
   let mixpanelInit;
   let peopleSetOnce;
+  let peopleSet;
   let track;
   let parseUserAgent;
 
@@ -10,10 +11,12 @@ describe('analytics', () => {
   }: { token?: string; modulePath?: string } = {}) {
     jest.resetModules();
     peopleSetOnce = jest.fn();
+    peopleSet = jest.fn((_id, _props, cb) => cb());
     track = jest.fn();
     mixpanelInit = jest.fn(() => ({
       people: {
-        set_once: peopleSetOnce
+        set_once: peopleSetOnce,
+        set: peopleSet
       },
       track
     }));
@@ -180,6 +183,28 @@ describe('analytics', () => {
       extraKey: 'extra-value'
     }));
     expect(logger.info).toHaveBeenCalledWith('Event: Call Log Created');
+  });
+
+  test('adds validated raw attributes, protects them from extras, and deduplicates profile updates', () => {
+    const { analytics } = loadAnalytics({ token: 'mixpanel-token' });
+    const { getHashValue } = require('../../lib/util');
+    analytics.init();
+    const accountId = getHashValue('101', process.env.HASH_KEY);
+    const extensionId = getHashValue('202', process.env.HASH_KEY);
+    const params = { eventName: 'Create call log', accountId, extensionId, rcAccountIdRaw: '101', rcExtensionIdRaw: 202,
+      extras: { rcAccountIdRaw: 'wrong', analyticsSchemaVersion: 99 } };
+    analytics.track(params);
+    analytics.track(params);
+    expect(track).toHaveBeenCalledTimes(2);
+    expect(track).toHaveBeenLastCalledWith('Create call log', expect.objectContaining({
+      distinct_id: extensionId, rcAccountId: accountId, rcAccountIdRaw: '101', rcExtensionIdRaw: '202', analyticsSchemaVersion: 2
+    }));
+    expect(peopleSet).toHaveBeenCalledTimes(1);
+    expect(peopleSet).toHaveBeenCalledWith(extensionId, { rcAccountIdRaw: '101', rcExtensionIdRaw: '202' }, expect.any(Function));
+    analytics.track({ ...params, rcExtensionIdRaw: '303' });
+    const last = track.mock.calls[2][1];
+    expect(last.analyticsIdentityStatus).toBe('mismatch');
+    expect(last).not.toHaveProperty('rcAccountIdRaw');
   });
 
   test('uses explicit eventAddedVia when provided', () => {
