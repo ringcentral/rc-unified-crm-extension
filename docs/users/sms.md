@@ -43,6 +43,8 @@ Individual RingCentral users with a direct phone number enabled for SMS can send
 
 ### Logging direct SMS conversations
 
+In beta 2.1.5, selected-message logging is available across CRM platforms for direct SMS conversations. Turn off automatic SMS logging, then enable **Log selected messages** in user or administrator settings to choose individual messages to log instead of the whole conversation. Voicemail and fax auto-logging keep their own settings.
+
 Similar to call logging, App Connect can also log SMS messages. To help prevent a CRM from being overwhelmed by individual records for each SMS, App Connect creates a single CRM record that contains a digest of all the SMS messages sent between you and a recipient sent in a single day. 
 
 ### Logging shared SMS conversations

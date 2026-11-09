@@ -65,6 +65,8 @@ When multiple contacts are matched, users can select a policy by which one of th
 * Select the first contact in alphabetical order
 * Select the earliest created contact record
 
+These policies also apply to automatic SMS, voicemail, and fax logging. For the earliest-created policy, every matching CRM contact must provide a valid creation date. If a date is missing, App Connect skips that log and shows a warning to contact the connector developer.
+
 <figure markdown>
   ![Logging calls](../img/logging-auto-logging-policies.png)
   <figcaption>Settings to help users resolve conflicts in an automated fashion</figcaption>

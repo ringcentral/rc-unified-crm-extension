@@ -1,4 +1,44 @@
 {
+    "2.1.5": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "CRM sign-in callbacks handle non-JSON state correctly, and failed plugin authorization shows a warning without continuing through CRM sign-in."
+            },
+            {
+                "type": "Fix",
+                "description": "Background call and message logging no longer repeatedly display the CRM connection warning during a session."
+            },
+            {
+                "type": "Better",
+                "description": "Automatic SMS, voicemail, and fax logging follows unknown-contact and multiple-contact preferences, including the earliest-created contact option."
+            },
+            {
+                "type": "Better",
+                "description": "Selected SMS logging is available across CRM platforms when enabled in user or administrator settings."
+            },
+            {
+                "type": "Better",
+                "description": "Contact widgets load through the dedicated getContactWidget interface when opened or refreshed, keeping contact matching separate from widget content."
+            }
+        ]
+    },
+    "2.0.5": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "CRM sign-in callbacks handle non-JSON state correctly, and failed plugin authorization shows a warning without continuing through CRM sign-in."
+            },
+            {
+                "type": "Fix",
+                "description": "Background call and message logging no longer repeatedly display the CRM connection warning during a session."
+            },
+            {
+                "type": "Better",
+                "description": "Automatic SMS, voicemail, and fax logging follows unknown-contact and multiple-contact preferences, including the earliest-created contact option."
+            }
+        ]
+    },
     "2.1.4": {
         "global": [
             {

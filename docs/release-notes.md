@@ -1,5 +1,19 @@
 # Release notes
 
+## 2.1.5
+
+- Fix: CRM sign-in callbacks handle non-JSON state correctly, and failed plugin authorization shows a warning without continuing through CRM sign-in.
+- Fix: Background call and message logging no longer repeatedly display the CRM connection warning during a session.
+- Better: Automatic SMS, voicemail, and fax logging follows unknown-contact and multiple-contact preferences, including the earliest-created contact option.
+- Better: Selected SMS logging is available across CRM platforms when enabled in user or administrator settings.
+- Better: Contact widgets load through the dedicated getContactWidget interface when opened or refreshed, keeping contact matching separate from widget content.
+
+## 2.0.5
+
+- Fix: CRM sign-in callbacks handle non-JSON state correctly, and failed plugin authorization shows a warning without continuing through CRM sign-in.
+- Fix: Background call and message logging no longer repeatedly display the CRM connection warning during a session.
+- Better: Automatic SMS, voicemail, and fax logging follows unknown-contact and multiple-contact preferences, including the earliest-created contact option.
+
 ## 2.1.4
 
 - New: Connectors can show a contact widget in the phone's side panel during calls by implementing the new getContactWidget interface.
