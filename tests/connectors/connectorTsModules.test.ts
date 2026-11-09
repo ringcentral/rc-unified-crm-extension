@@ -168,6 +168,9 @@ describe('app connector TypeScript modules', () => {
     test('clio index.ts exposes the source connector API', () => {
         const clio = require('../../src/connectors/clio/index.ts');
 
+        // Keep the contact widget unavailable until Clio explicitly enables it.
+        expect(clio).not.toHaveProperty('getContactWidget');
+
         expect(Object.keys(clio).sort()).toEqual([
             'cancelAppointment',
             'createAppointment',
@@ -178,7 +181,6 @@ describe('app connector TypeScript modules', () => {
             'findContactWithName',
             'getAuthType',
             'getCallLog',
-            'getContactWidget',
             'getLogFormatType',
             'getOauthInfo',
             'getUserInfo',
