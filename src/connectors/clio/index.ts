@@ -1680,7 +1680,7 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
-exports.getContactWidget = getContactWidget;
+// exports.getContactWidget = getContactWidget;
 exports.getLogFormatType = getLogFormatType;
 exports.listAppointments = listAppointments;
 exports.createAppointment = createAppointment;
@@ -1688,4 +1688,4 @@ exports.updateAppointment = updateAppointment;
 exports.refreshAppointment = refreshAppointment;
 exports.cancelAppointment = cancelAppointment;
 
-export {};
+export { };
