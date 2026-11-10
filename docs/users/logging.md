@@ -47,6 +47,8 @@ Some companies have policies that restrict a user's ability to update notes once
 
 ## Taking notes during an active call
 
+Clicking **Log call** during a connected or held call opens the manual form using live call data without waiting for a completed call record. Final duration, recordings, and AI artifacts may still be unavailable. If all-at-once logging or automatic activity completion requires complete data, App Connect opens a temporary notes page instead and keeps the final-data requirement in place.
+
 While a call is active, click the "Notes" icon found in the lower right-hand corner of the dialer to open up a notes page into which you free type notes. When the call is complete, the notes will be saved locally, and when you log the call in the CRM the notes will transmitted to and saved in the CRM.
 
 <figure markdown>
