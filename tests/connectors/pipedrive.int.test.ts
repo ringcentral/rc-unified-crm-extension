@@ -599,6 +599,41 @@ describe('Pipedrive Connector', () => {
             expect(result.logId).toBe(405);
         });
 
+        it('should match admin-configured activity type case-insensitively and use real key_string', async () => {
+            nock.cleanAll();
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/101')
+                .reply(200, { data: { org_id: 201 } }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/activityTypes')
+                .reply(200, {
+                    data: [
+                        { name: 'Task', key_string: 'task', active_flag: true }
+                    ]
+                }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .post('/api/v2/activities', body => body.type === 'task')
+                .reply(201, {
+                    data: { id: 407 }
+                }, mockRateLimitHeaders);
+            AdminConfigModel.findByPk.mockResolvedValueOnce({ userSettings: { pipedriveCallActivityType: { value: ' Task ' } } });
+
+            const result = await pipedrive.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: null,
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(407);
+        });
+
         it('should force refresh when admin-configured activity type is not in cached list', async () => {
             nock.cleanAll();
             nock(`https://${hostname}`)

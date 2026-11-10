@@ -38,13 +38,22 @@ async function resolveActivityType({ user, authHeader, hashedAccountId, settingI
     }
     let activityTypes = await getAccountData({ platform: 'pipedrive', user, authHeader, dataKey: 'activityTypes' });
     if (configuredKeyString) {
-        if (activityTypes.some(t => t.const === configuredKeyString)) {
-            return configuredKeyString;
+        // Exact key_string match first; then tolerate casing/whitespace (e.g. 'Task' vs 'task').
+        // Always return the real key_string from Pipedrive, not the stored value.
+        const findConfigured = (types) => {
+            const wanted = String(configuredKeyString).trim().toLowerCase();
+            return types.find(t => t.const === configuredKeyString)
+                ?? types.find(t => String(t.const).toLowerCase() === wanted);
+        };
+        let configured = findConfigured(activityTypes);
+        if (configured) {
+            return configured.const;
         }
         // configured type no longer exists in cache; it may have been created/renamed recently
         activityTypes = await getAccountData({ platform: 'pipedrive', user, authHeader, dataKey: 'activityTypes', forceRefresh: true });
-        if (activityTypes.some(t => t.const === configuredKeyString)) {
-            return configuredKeyString;
+        configured = findConfigured(activityTypes);
+        if (configured) {
+            return configured.const;
         }
     }
     let matched = activityTypes.find(t => t.title.toLowerCase().includes(keyword));
