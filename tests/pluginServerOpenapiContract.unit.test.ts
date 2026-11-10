@@ -262,6 +262,7 @@ describe('App Connect plugin-server OpenAPI contract', () => {
       'callWithCallback',
       'callUpdateWithCallback',
       'smsFireAndForget',
+      'smsWithCallback',
     ]);
   });
 

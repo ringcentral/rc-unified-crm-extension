@@ -7,6 +7,7 @@ import type {
 const { Op } = require('sequelize');
 const { CacheModel } = require('../models/cacheModel');
 const { AccountDataModel } = require('../models/accountDataModel');
+const { finishPluginExecution } = require('./pluginAnalytics');
 const logger = require('./logger');
 
 const ACCOUNT_CONTACT_DATA_KEY_PATTERN = 'contact-%';
@@ -33,6 +34,16 @@ function getAccountContactDataCutoffDate({ now, retentionMonths }: AccountContac
 }
 
 async function clearExpiredCacheRows({ now }: { now: Date }): Promise<number> {
+    const expiredTasks = await CacheModel.findAll({ where: {
+        cacheKey: { [Op.like]: 'asyncPluginTask-%' }, status: { [Op.in]: ['pending', 'processing'] },
+        expiry: { [Op.lte]: now },
+    } });
+    for (const task of expiredTasks) {
+        const [claimed] = await CacheModel.update({ status: 'timed_out' }, {
+            where: { id: task.id, status: task.status },
+        });
+        if (claimed) finishPluginExecution(task.data?.analytics, 'timeout', 'callback', 'callback_timeout', now.getTime());
+    }
     return CacheModel.destroy({
         where: {
             expiry: {

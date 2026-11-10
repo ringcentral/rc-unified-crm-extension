@@ -96,3 +96,7 @@ Exports:
 - `secondsToHoursMinutesSeconds()`
 - `getMostRecentDate()`
 - `getMediaReaderLinkByPlatformMediaLink()`
+
+### Plugin analytics
+
+`lib/pluginAnalytics.ts` selects safe plugin metadata and emits correlated execution events. `lib/pluginInventory.ts` builds read-only installation snapshots. Async terminal states remain until task expiry; `lib/cacheCleanup.ts` records timeouts before deleting overdue tasks. See [Plugin analytics](../../../docs/developers/plugin-analytics.md).

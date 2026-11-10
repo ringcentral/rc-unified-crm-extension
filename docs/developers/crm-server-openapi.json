@@ -3311,7 +3311,7 @@
           "Plugins"
         ],
         "summary": "Receive an async plugin callback",
-        "description": "Completes a callback-enabled asynchronous call-plugin task identified by its random task UUID. The UUID is a bearer capability and expires after seven days. A successful report appends note to the existing CRM activity and deletes the task; a plugin-reported failure marks the task failed and is acknowledged with HTTP 200.",
+        "description": "Completes an asynchronous call, SMS or fax plugin task identified by its random task UUID. The UUID is a bearer capability and expires after seven days. A successful call report appends note to the CRM activity; SMS/fax reports only record completion. Terminal tasks retain minimal analytics tombstones until expiry to suppress duplicate callbacks. A plugin-reported failure is acknowledged with HTTP 200.",
         "operationId": "postPluginAsyncCallback",
         "parameters": [
           {
@@ -7336,11 +7336,11 @@
         "properties": {
           "successful": {
             "type": "boolean",
-            "description": "JSON boolean describing plugin work: true requests a CRM note update; false records task failure."
+            "description": "JSON boolean describing plugin work: true records completion and requests a CRM note update for call tasks; false records task failure."
           },
           "note": {
             "type": "string",
-            "description": "Text appended to existing CRM Agent notes when successful is true. Ignored when false."
+            "description": "Text appended to existing CRM Agent notes for call tasks when successful is true. Ignored for SMS/fax or when false."
           },
           "message": {
             "type": "string",
@@ -7348,7 +7348,7 @@
           }
         },
         "additionalProperties": true,
-        "description": "Plugin completion report for a callback-enabled asynchronous call task."
+        "description": "Plugin completion report for a callback-enabled asynchronous call, SMS or fax task."
       },
       "AsyncPluginCallbackResponse": {
         "type": "object",

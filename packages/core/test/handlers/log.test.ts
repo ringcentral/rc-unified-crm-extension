@@ -25,6 +25,8 @@ jest.mock('../../models/dynamo/connectorSchema', () => ({
   }
 }));
 jest.mock('axios');
+jest.mock('../../lib/analytics', () => ({ track: jest.fn() }));
+const analytics = require('../../lib/analytics');
 
 const logHandler = require('../../handlers/log');
 const { CallLogModel } = require('../../models/callLogModel');
@@ -125,7 +127,7 @@ describe('Log Handler', () => {
       const originalAppServer = process.env.APP_SERVER;
       process.env.APP_SERVER = 'https://app.example.com';
       try {
-        await UserModel.create(mockUser);
+        await UserModel.create({ ...mockUser, hashedRcExtensionId: 'owner-hash' });
         await AccountDataModel.create({
           rcAccountId: mockUser.rcAccountId,
           platformName: 'asyncPlugin',
@@ -674,6 +676,8 @@ describe('Log Handler', () => {
       expect(cache.status).toBe('pending');
       expect(cache.userId).toBe('test-user-id');
       expect(cache.data.pluginId).toBe('asyncPlugin');
+      expect(analytics.track).toHaveBeenCalledWith(expect.objectContaining({ eventName: 'Plugin Execution Started', extensionId: 'owner-hash', extras: expect.objectContaining({ pluginId: 'asyncPlugin', executionMode: 'async', executionId: cache.id }) }));
+      expect(analytics.track).not.toHaveBeenCalledWith(expect.objectContaining({ eventName: 'Plugin Execution Finished' }));
       expect(cache.data.sessionId).toBe('session-123');
       expect(cache.data.thirdPartyLogId).toBe('new-log-async');
       expect(cache.expiry.getTime() - Date.now()).toBeGreaterThan(6 * 24 * 60 * 60 * 1000);
@@ -688,7 +692,7 @@ describe('Log Handler', () => {
         config: null,
         asyncTaskId: cache.id,
         callbackUrl: `https://app.example.com/plugin/async-callback/${cache.id}`,
-        hashedExtensionId: null
+        hashedExtensionId: 'owner-hash'
       });
       expect(pluginCall[2]).toEqual({
         headers: {
@@ -2251,7 +2255,9 @@ describe('Log Handler', () => {
       );
       expect(axios.post).toHaveBeenCalledWith(
         'https://plugins.example.com/sms',
-        {
+        expect.objectContaining({
+          asyncTaskId: expect.any(String),
+          callbackUrl: expect.stringContaining('/plugin/async-callback/'),
           data: {
             logInfo: expect.objectContaining({
               logInfo: expect.objectContaining({
@@ -2265,7 +2271,7 @@ describe('Log Handler', () => {
           config: {
             ignoredLetters: ['x']
           }
-        },
+        }),
         {
           headers: {
             Authorization: 'Bearer new-plugin-jwt'
@@ -3991,6 +3997,33 @@ describe('Log Handler', () => {
   });
 
   describe('handleAsyncPluginCallback', () => {
+    test('rejects unrelated cache records without changing their state', async () => {
+      await CacheModel.create({ id: 'auth-task', cacheKey: 'auth-session', status: 'pending', data: { token: 'private' } });
+      expect((await logHandler.handleAsyncPluginCallback({ taskId: 'auth-task', body: { successful: true } })).statusCode).toBe(404);
+      expect((await CacheModel.findByPk('auth-task')).status).toBe('pending');
+      expect(analytics.track).not.toHaveBeenCalled();
+    });
+
+    test('records one terminal event for concurrent SMS callbacks without invoking CRM note updates', async () => {
+      await CacheModel.create({ id: 'sms-task', status: 'pending', cacheKey: 'asyncPluginTask-sms',
+        expiry: new Date(Date.now() + 60000), data: { logType: 'sms', analytics: {
+          startedAt: Date.now() - 100, identity: { extensionId: 'owner-hash' },
+          properties: { executionId: 'sms-task', pluginId: 'sms', executionMode: 'async' },
+        } } });
+      await Promise.all([true, true].map(successful => logHandler.handleAsyncPluginCallback({ taskId: 'sms-task', body: { successful } })));
+      expect(analytics.track.mock.calls.filter(([event]) => event.eventName === 'Plugin Execution Finished')).toHaveLength(1);
+      expect(analytics.track).toHaveBeenCalledWith(expect.objectContaining({ eventName: 'Plugin Execution Finished',
+        extras: expect.objectContaining({ outcome: 'success', executionId: 'sms-task' }) }));
+      expect(connectorRegistry.getConnector).not.toHaveBeenCalled();
+    });
+
+    test('does not revive a failed task on a repeated successful callback', async () => {
+      await CacheModel.create({ id: 'failed-task', status: 'failed', cacheKey: 'asyncPluginTask-call', data: {} });
+      expect((await logHandler.handleAsyncPluginCallback({ taskId: 'failed-task', body: { successful: true } })).statusCode).toBe(200);
+      expect(analytics.track).not.toHaveBeenCalled();
+      expect((await CacheModel.findByPk('failed-task')).status).toBe('failed');
+    });
+
     test('should return not found when callback task cache is missing', async () => {
       const result = await logHandler.handleAsyncPluginCallback({
         taskId: 'missing-task',
@@ -4006,7 +4039,7 @@ describe('Log Handler', () => {
       });
     });
 
-    test('should append callback note to call log and remove task cache on success', async () => {
+    test('should append callback note once and retain completed task until expiry', async () => {
       await UserModel.create({
         id: 'test-user-id',
         platform: 'testCRM',
@@ -4091,7 +4124,9 @@ describe('Log Handler', () => {
         composedLogDetails: 'Updated composed log',
         existingCallLogDetails: { id: 'log-1' }
       }));
-      expect(await CacheModel.findByPk('task-1')).toBeNull();
+      expect((await CacheModel.findByPk('task-1')).status).toBe('completed');
+      await logHandler.handleAsyncPluginCallback({ taskId: 'task-1', body: { successful: true, note: 'Callback note' } });
+      expect(mockConnector.updateCallLog).toHaveBeenCalledTimes(1);
     });
 
     test('should mark task cache failed when callback reports failure', async () => {
@@ -4127,7 +4162,7 @@ describe('Log Handler', () => {
       expect(cache.data.message).toBe('Plugin failed');
     });
 
-    test('should destroy expired task cache and return not found', async () => {
+    test('should mark expired task timed out and return not found', async () => {
       await CacheModel.create({
         id: 'task-expired',
         status: 'pending',
@@ -4154,7 +4189,7 @@ describe('Log Handler', () => {
         statusCode: 404,
         body: { successful: false, message: 'Async task not found' }
       });
-      expect(await CacheModel.findByPk('task-expired')).toBeNull();
+      expect((await CacheModel.findByPk('task-expired')).status).toBe('timed_out');
       expect(connectorRegistry.getConnector).not.toHaveBeenCalled();
     });
 

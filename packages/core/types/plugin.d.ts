@@ -69,6 +69,7 @@ export interface ResolvePluginManifestResult {
 
 export interface RegisterPluginAccountResult {
   successful: true;
+  analyticsMetadata?: Record<string, unknown>;
   registerUrl: string;
   jwtToken: string;
 }

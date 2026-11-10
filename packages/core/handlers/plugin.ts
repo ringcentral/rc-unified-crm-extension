@@ -6,6 +6,7 @@ const axios = /** @type {any} */ (require('axios'));
 const { AccountDataModel: AccountDataModelImport } = require('../models/accountDataModel');
 const AccountDataModel = /** @type {any} */ (AccountDataModelImport);
 const logger = require('../lib/logger');
+const { pluginProperties } = require('../lib/pluginAnalytics');
 const userCore = /** @type {any} */ (require('./user'));
 
 /** @typedef {import('../types').InstalledPlugin} InstalledPlugin */
@@ -341,12 +342,13 @@ async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, plu
         successful: true,
         registerUrl,
         jwtToken: pluginJwtToken,
+        analyticsMetadata: pluginProperties({ id: pluginId, data: { ...pluginManifest, version: publishedManifest?.version, access: pluginAccess } }),
     };
 }
 
 /**
  * @param {{ pluginId: string, rcAccountId: string | number }} params
- * @returns {Promise<void>}
+ * @returns {Promise<JsonObject>}
  */
 async function unregisterPluginAccount({ pluginId, rcAccountId }) {
     const accountData = await AccountDataModel.findOne({
@@ -356,9 +358,11 @@ async function unregisterPluginAccount({ pluginId, rcAccountId }) {
             dataKey: 'pluginData'
         },
     });
+    const metadata = pluginProperties({ id: pluginId, data: accountData?.data });
     if (accountData) {
         await accountData.destroy();
     }
+    return metadata;
 }
 
 exports.getPluginsFromRcAccountId = getPluginsFromRcAccountId;

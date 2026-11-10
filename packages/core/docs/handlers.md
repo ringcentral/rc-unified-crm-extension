@@ -74,7 +74,7 @@ Important persistence behavior:
 
 - `CallLogModel` stores the App Connect to CRM mapping for call logs
 - `MessageLogModel` stores the App Connect to CRM mapping for message logs
-- `CacheModel` stores async plugin callback tasks with a one-week expiry; successful callbacks delete the task and failed callbacks keep the task with status `failed`
+- `CacheModel` stores async plugin callback tasks with a one-week expiry; terminal tasks retain a minimal analytics tombstone until expiry to suppress repeated callbacks; overdue pending/processing tasks emit timeout before cleanup
 - `NoteCache` stores temporary notes keyed by session id
 
 ## `admin.ts`

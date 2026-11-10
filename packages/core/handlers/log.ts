@@ -31,6 +31,7 @@ const handleDatabaseError = /** @type {any} */ (rawHandleDatabaseError);
 const { randomUUID } = require('crypto');
 const { AccountDataModel: RawAccountDataModel } = require('../models/accountDataModel');
 const AccountDataModel = /** @type {any} */ (RawAccountDataModel);
+const { startPluginExecution, finishPluginExecution, pluginErrorCode } = require('../lib/pluginAnalytics');
 const pluginCore = /** @type {any} */ (require('./plugin'));
 const {
     getCallLogExtensionNumber: rawGetCallLogExtensionNumber,
@@ -123,57 +124,66 @@ function splitCallPluginsByExecutionMode(callPlugins) {
     };
 }
 
-async function runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform }) {
+async function runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform, operation, analyticsIdentity }) {
     let processedIncomingData = incomingData;
     for (const plugin of syncCallPlugins) {
-        const pluginId = plugin.id;
-        const pluginJwtToken = plugin.data.jwtToken;
-        const pluginManifest = plugin.data;
-        const pluginEndpointUrl = pluginManifest.endpointUrl;
-        if (!pluginEndpointUrl) {
-            throw new Error('Plugin URL is not set');
-        }
-        const userConfig = await pluginCore.getPluginConfigForUser({ user, pluginId });
-        const processedResultResponse = await axios.post(pluginEndpointUrl, {
-            data: processedIncomingData,
-            config: userConfig,
-            hashedExtensionId: user.hashedRcExtensionId,
-        }, {
-            headers: {
-                Authorization: `Bearer ${pluginJwtToken}`,
-            },
-        });
-        const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
-        if (refreshedPluginJwtToken) {
-            pluginCore.persistPluginData({
-                rcAccountId: user.rcAccountId,
-                pluginId,
-                jwtToken: refreshedPluginJwtToken,
+        const execution = startPluginExecution({ plugin, user, platform, logType: 'call', operation, analyticsIdentity });
+        try {
+            const pluginId = plugin.id;
+            const pluginJwtToken = plugin.data.jwtToken;
+            const pluginManifest = plugin.data;
+            const pluginEndpointUrl = pluginManifest.endpointUrl;
+            if (!pluginEndpointUrl) {
+                throw new Error('Plugin URL is not set');
+            }
+            const userConfig = await pluginCore.getPluginConfigForUser({ user, pluginId });
+            const processedResultResponse = await axios.post(pluginEndpointUrl, {
+                data: processedIncomingData,
+                config: userConfig,
+                hashedExtensionId: user.hashedRcExtensionId,
+            }, {
+                headers: {
+                    Authorization: `Bearer ${pluginJwtToken}`,
+                },
             });
+            const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
+            if (refreshedPluginJwtToken) {
+                pluginCore.persistPluginData({
+                    rcAccountId: user.rcAccountId,
+                    pluginId,
+                    jwtToken: refreshedPluginJwtToken,
+                });
+            }
+            processedIncomingData = processedResultResponse.data;
+            finishPluginExecution(execution, 'success');
+        } catch (error) {
+            finishPluginExecution(execution, pluginErrorCode(error) === 'timeout' ? 'timeout' : 'failure', 'processing', pluginErrorCode(error));
+            throw error;
         }
-        processedIncomingData = processedResultResponse.data;
     }
     return processedIncomingData;
 }
 
-async function markAsyncPluginTaskFailed(cache, message) {
+async function markAsyncPluginTaskFailed(cache, message, expectedStatus = 'processing') {
     if (!cache) {
         return;
     }
-    await cache.update({
+    const [changed] = await CacheModel.update({
         status: 'failed',
         data: {
-            ...cache.data,
+            analytics: cache.data?.analytics,
+            logType: cache.data?.logType,
             message,
         },
-    });
+    }, { where: { id: cache.id, status: expectedStatus } });
+    return changed > 0;
 }
 
-async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, operation, existingCallLog, hashedAccountId, isFromSSCL }) {
+async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, operation, existingCallLog, hashedAccountId, isFromSSCL, analyticsIdentity, logType = 'call' }) {
     const pluginId = plugin.id;
     const taskId = randomUUID();
     const callbackUrl = getAsyncPluginCallbackUrl(taskId);
-    const taskData = buildAsyncPluginTaskData({
+    const taskData: any = buildAsyncPluginTaskData({
         taskId,
         callbackUrl,
         pluginId,
@@ -185,6 +195,8 @@ async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, o
         hashedAccountId,
         isFromSSCL,
     });
+    taskData.logType = logType;
+    taskData.analytics = startPluginExecution({ plugin, user, platform, logType, operation, analyticsIdentity, executionId: taskId });
     let taskCache = null;
     try {
         taskCache = await CacheModel.create({
@@ -212,8 +224,8 @@ async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, o
             }
         );
         const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
-        await axios.post(pluginEndpointUrl, {
-            data: getAsyncPluginRequestData({ operation, incomingData }),
+        const dispatch = axios.post(pluginEndpointUrl, {
+            data: logType === 'call' ? getAsyncPluginRequestData({ operation, incomingData }) : { logInfo: incomingData },
             config: await pluginCore.getPluginConfigForUser({ user, pluginId }),
             asyncTaskId: taskId,
             callbackUrl,
@@ -223,6 +235,19 @@ async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, o
                 Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
             },
         });
+        if (logType === 'call') {
+            await dispatch;
+        } else {
+            // Preserve the message path's background dispatch; completion is recorded by callback.
+            void dispatch.catch(async error => {
+                try {
+                    const changed = await markAsyncPluginTaskFailed(taskCache, error.message || 'Async plugin dispatch failed', 'pending');
+                    if (changed) finishPluginExecution(taskData.analytics, 'failure', 'dispatch', pluginErrorCode(error));
+                } catch {
+                    logger.warn('Failed to record background plugin dispatch failure');
+                }
+            });
+        }
         if (syncedPluginJwtToken) {
             pluginCore.persistPluginData({
                 rcAccountId: user.rcAccountId,
@@ -238,7 +263,8 @@ async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, o
             stack: error.stack,
         });
         try {
-            await markAsyncPluginTaskFailed(taskCache, error.message || 'Async plugin dispatch failed');
+            const changed = await markAsyncPluginTaskFailed(taskCache, error.message || 'Async plugin dispatch failed', 'pending');
+            if (!taskCache || changed) finishPluginExecution(taskData.analytics, 'failure', 'dispatch', pluginErrorCode(error));
         }
         catch (cacheError) {
             logger.error('Error marking async plugin task failed', {
@@ -250,7 +276,7 @@ async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, o
     }
 }
 
-async function dispatchAsyncCallPlugins({ asyncCallPlugins, incomingData, user, platform, operation, existingCallLog, hashedAccountId, isFromSSCL }) {
+async function dispatchAsyncCallPlugins({ asyncCallPlugins, incomingData, user, platform, operation, existingCallLog, hashedAccountId, isFromSSCL, analyticsIdentity }) {
     for (const plugin of asyncCallPlugins) {
         await dispatchAsyncCallPlugin({
             plugin,
@@ -261,6 +287,7 @@ async function dispatchAsyncCallPlugins({ asyncCallPlugins, incomingData, user, 
             existingCallLog,
             hashedAccountId,
             isFromSSCL,
+            analyticsIdentity,
         });
     }
 }
@@ -401,7 +428,7 @@ async function appendAsyncPluginNoteToCallLog({ taskCache, note }) {
         ringSenseLink: updateData.ringSenseLink,
     });
 
-    await platformModule.updateCallLog({
+    const updateResult = await platformModule.updateCallLog({
         user,
         existingCallLog,
         authHeader,
@@ -426,6 +453,7 @@ async function appendAsyncPluginNoteToCallLog({ taskCache, note }) {
         isFromSSCL: taskData.isFromSSCL,
         proxyConfig,
     });
+    if (updateResult?.successful === false) throw new Error('Async plugin CRM update failed');
 }
 
 async function handleAsyncPluginCallback({ taskId, body }) {
@@ -436,49 +464,41 @@ async function handleAsyncPluginCallback({ taskId, body }) {
         };
     }
     const taskCache = await CacheModel.findByPk(taskId);
-    if (!taskCache) {
+    if (!taskCache || !taskCache.cacheKey?.startsWith(`${ASYNC_PLUGIN_CACHE_KEY}-`)) {
         return {
             statusCode: 404,
             body: { successful: false, message: 'Async task not found' },
         };
     }
+    if (['completed', 'failed', 'timed_out', 'processing'].includes(taskCache.status)) {
+        return { statusCode: 200, body: { successful: true } };
+    }
+    const [claimed] = await CacheModel.update({ status: 'processing' }, {
+        where: { id: taskId, status: 'pending' },
+    });
+    if (!claimed) return { statusCode: 200, body: { successful: true } };
     if (taskCache.expiry && taskCache.expiry.getTime() <= Date.now()) {
-        await taskCache.destroy();
-        return {
-            statusCode: 404,
-            body: { successful: false, message: 'Async task not found' },
-        };
+        await taskCache.update({ status: 'timed_out' });
+        finishPluginExecution(taskCache.data?.analytics, 'timeout', 'callback', 'callback_timeout');
+        return { statusCode: 404, body: { successful: false, message: 'Async task not found' } };
     }
-
     if (!body.successful) {
-        await markAsyncPluginTaskFailed(taskCache, body.message || 'Async plugin callback failed');
-        return {
-            statusCode: 200,
-            body: { successful: true },
-        };
+        const changed = await markAsyncPluginTaskFailed(taskCache, body.message || 'Async plugin callback failed');
+        if (changed) finishPluginExecution(taskCache.data?.analytics, 'failure', 'processing', 'plugin_failed');
+        return { statusCode: 200, body: { successful: true } };
     }
-
     try {
-        await appendAsyncPluginNoteToCallLog({
-            taskCache,
-            note: typeof body.note === 'string' ? body.note : '',
-        });
-        await taskCache.destroy();
-        return {
-            statusCode: 200,
-            body: { successful: true },
-        };
-    }
-    catch (error) {
-        logger.error('Async plugin callback failed to update call log', {
-            taskId,
-            stack: error.stack,
-        });
-        await markAsyncPluginTaskFailed(taskCache, error.message || body.message || 'Async plugin callback failed');
-        return {
-            statusCode: 500,
-            body: { successful: false, message: error.message || 'Async plugin callback failed' },
-        };
+        if ((taskCache.data?.logType ?? 'call') === 'call') {
+            await appendAsyncPluginNoteToCallLog({ taskCache, note: typeof body.note === 'string' ? body.note : '' });
+        }
+        const [completed] = await CacheModel.update({ status: 'completed', data: { analytics: taskCache.data?.analytics, logType: taskCache.data?.logType } }, { where: { id: taskId, status: 'processing' } });
+        if (completed) finishPluginExecution(taskCache.data?.analytics, 'success');
+        return { statusCode: 200, body: { successful: true } };
+    } catch (error) {
+        logger.error('Async plugin callback failed to update call log', { taskId, stack: error.stack });
+        const changed = await markAsyncPluginTaskFailed(taskCache, error.message || 'Async plugin callback failed');
+        if (changed) finishPluginExecution(taskCache.data?.analytics, 'failure', 'crm_update', 'crm_update_failed');
+        return { statusCode: 500, body: { successful: false, message: error.message || 'Async plugin callback failed' } };
     }
 }
 
@@ -532,7 +552,7 @@ function logConcurrentMessageLogCreate({ platform, messageId, duplicateLogId }) 
     });
 }
 
-async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL, analyticsIdentity = {} }) {
     try {
         const extensionNumber = getCallLogExtensionNumber(incomingData);
         const hashedExtensionId = getCallLogHashedExtensionId(incomingData);
@@ -642,7 +662,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
         const callPlugins = accountPlugins.filter(plugin => plugin.data?.supportedLogTypes?.includes('call'));
         const { syncCallPlugins, asyncCallPlugins } = splitCallPluginsByExecutionMode(callPlugins);
-        incomingData = await runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform });
+        incomingData = await runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform, operation: 'createCallLog', analyticsIdentity });
         note = incomingData.note;
         aiNote = incomingData.aiNote;
         transcript = incomingData.transcript;
@@ -716,6 +736,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 if (asyncCallPlugins.length) {
                     await dispatchAsyncCallPlugins({
                         asyncCallPlugins,
+                        analyticsIdentity,
                         incomingData,
                         user,
                         platform,
@@ -864,7 +885,7 @@ async function getCallLog({ userId, sessionIds, extensionNumber, hashedExtension
     }
 }
 
-async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL, analyticsIdentity = {} }) {
     try {
         const extensionNumber = getCallLogExtensionNumber(incomingData);
         const hashedExtensionId = getCallLogHashedExtensionId(incomingData);
@@ -922,7 +943,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
             const callPlugins = accountPlugins.filter(plugin => plugin.data?.supportedLogTypes?.includes('call'));
             const { syncCallPlugins, asyncCallPlugins } = splitCallPluginsByExecutionMode(callPlugins);
-            incomingData = await runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform });
+            incomingData = await runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform, operation: 'updateCallLog', analyticsIdentity });
 
             // Fetch existing call log details once to avoid duplicate API calls
             let existingCallLogDetails = null;    // Compose updated call log details centrally
@@ -1013,6 +1034,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             if (asyncCallPlugins.length) {
                 await dispatchAsyncCallPlugins({
                     asyncCallPlugins,
+                    analyticsIdentity,
                     incomingData,
                     user,
                     platform,
@@ -1036,7 +1058,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
     }
 }
 
-async function createMessageLog({ platform, userId, incomingData, hashedAccountId }) {
+async function createMessageLog({ platform, userId, incomingData, hashedAccountId, analyticsIdentity = {} }) {
     try {
         let returnMessage = null;
         let extraDataTracking = {};
@@ -1135,67 +1157,30 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
         const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
         const smsPlugins = isSMS ? accountPlugins.filter(plugin => plugin.data?.supportedLogTypes?.includes('sms')) : [];
         const faxPlugins = isFax ? accountPlugins.filter(plugin => plugin.data?.supportedLogTypes?.includes('fax')) : [];
-        const plugins = [...smsPlugins, ...faxPlugins];
-        for (const plugin of plugins) {
-            const pluginId = plugin.id;
-            const pluginJwtToken = plugin.data.jwtToken;
-            const pluginManifest = plugin.data;
-            const pluginEndpointUrl = pluginManifest.endpointUrl;
-            if (!pluginEndpointUrl) {
-                throw new Error('Plugin URL is not set');
-            }
-            const userConfig = await pluginCore.getPluginConfigForUser({ user, pluginId });
+        const plugins = [...smsPlugins.map(plugin => ({ plugin, logType: 'sms' })), ...faxPlugins.map(plugin => ({ plugin, logType: 'fax' }))];
+        for (const { plugin, logType } of plugins) {
             if (plugin.data.isAsync) {
-                try {
-                    const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
-                        {
-                            headers: {
-                                Authorization: `Bearer ${pluginJwtToken}`,
-                            },
-                        }
-                    );
-                    const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
-                    axios.post(pluginEndpointUrl, {
-                        data: { logInfo: incomingData },
-                        config: userConfig,
-                    }, {
-                        headers: {
-                            Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
-                        },
-                    });
-                    if (syncedPluginJwtToken) {
-                        pluginCore.persistPluginData({
-                            rcAccountId: user.rcAccountId,
-                            platformName: platform,
-                            pluginId,
-                            jwtToken: syncedPluginJwtToken,
-                        });
-                    }
-                }
-                catch (error) {
-                    logger.error('Error syncing plugin JWT token', { stack: error.stack });
-                }
+                await dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, operation: 'createMessageLog',
+                    existingCallLog: null, hashedAccountId, isFromSSCL: false, analyticsIdentity, logType });
+                continue;
             }
-            else {
-                const processedResultResponse = await axios.post(pluginEndpointUrl, {
+            const execution = startPluginExecution({ plugin, user, platform, logType, operation: 'createMessageLog', analyticsIdentity });
+            try {
+                if (!plugin.data.endpointUrl) throw new Error('Plugin URL is not set');
+                const response = await axios.post(plugin.data.endpointUrl, {
                     data: incomingData,
-                    config: userConfig,
-                }, {
-                    headers: {
-                        Authorization: `Bearer ${pluginJwtToken}`,
-                    },
-                });
-                const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
-                if (refreshedPluginJwtToken) {
-                    pluginCore.persistPluginData({
-                        rcAccountId: user.rcAccountId,
-                        platformName: platform,
-                        pluginId,
-                        jwtToken: refreshedPluginJwtToken,
-                    });
+                    config: await pluginCore.getPluginConfigForUser({ user, pluginId: plugin.id }),
+                }, { headers: { Authorization: `Bearer ${plugin.data.jwtToken}` } });
+                const refreshedToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: response.headers });
+                if (refreshedToken) {
+                    pluginCore.persistPluginData({ rcAccountId: user.rcAccountId, platformName: platform,
+                        pluginId: plugin.id, jwtToken: refreshedToken });
                 }
-                // eslint-disable-next-line no-param-reassign
-                incomingData = processedResultResponse.data;
+                incomingData = response.data;
+                finishPluginExecution(execution, 'success');
+            } catch (error) {
+                finishPluginExecution(execution, pluginErrorCode(error) === 'timeout' ? 'timeout' : 'failure', 'processing', pluginErrorCode(error));
+                throw error;
             }
         }
 

@@ -54,9 +54,9 @@ Use synchronous plugins for deterministic, fast payload transformations.
 
 ## Asynchronous plugins
 
-Async plugins are currently callback-enabled for call-log create and update flows. App Connect creates a one-week task cache, saves the task id, and sends that task id to the plugin. The task id embedded in the callback URL is the callback validation method. SMS and fax async plugins remain fire-and-forget and do not receive this callback contract yet.
+Async plugins are callback-enabled for call-log create/update, SMS and fax flows. App Connect creates a one-week task cache, saves the task id, and sends that task id to the plugin. The task id embedded in the callback URL is the callback validation method. SMS and fax keep background dispatch, with callback fields added for completion tracking. Their original message payload remains nested at `data.logInfo.logInfo`.
 
-The JavaScript template's `/plugin/async` handler currently requires the call callback fields. If your manifest declares asynchronous SMS or fax support, adapt that handler to accept the fire-and-forget request variant documented in the [Plugin server API reference](../plugin-server-api/index.md).
+The JavaScript template accepts the callback fields for all three log types. See the [Plugin server API reference](../plugin-server-api/index.md) for exact payload envelopes and [Plugin analytics](../plugin-analytics.md) for tracking semantics. Older App Connect servers may still send SMS/fax without callback fields.
 
 Request body:
 
@@ -91,7 +91,7 @@ When background work finishes, post to `callbackUrl`:
 }
 ```
 
-On success, App Connect appends `note` to the call log's Agent notes and removes the task cache. The callback does not re-run plugins.
+On success for call tasks, App Connect appends `note` to the call log's Agent notes. SMS/fax completion does not change CRM content. Terminal tasks retain only minimal analytics state until the one-week expiry to suppress duplicate callbacks. The callback does not re-run plugins.
 
 For failed work:
 

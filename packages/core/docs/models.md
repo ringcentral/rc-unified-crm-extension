@@ -84,8 +84,8 @@ Stores temporary task state, mainly for async plugin work.
 | `status` | Task status such as `pending`, `initialized`, `completed`, or `failed` |
 | `userId` | Owning user |
 | `cacheKey` | Logical task family. Async plugin tasks use `asyncPluginTask-<pluginId>`. |
-| `data` | Optional task payload. Async plugin tasks keep callback URL, plugin id, call-log lookup fields, original plugin input, and failure `message` when a callback fails. |
-| `expiry` | Cleanup cutoff. Async plugin callback tasks expire after one week. |
+| `data` | Optional task payload. Pending async plugin tasks keep callback URL, plugin id, log lookup fields, original input, and analytics context. Terminal tasks keep minimal analytics context/log type and an optional failure `message`. |
+| `expiry` | Cleanup cutoff. Async plugin callback tasks expire after one week; completed/failed tasks remain until then to suppress duplicate callbacks. Cleanup records timeout for overdue pending/processing tasks. |
 
 ### `models/accountDataModel.ts`
 

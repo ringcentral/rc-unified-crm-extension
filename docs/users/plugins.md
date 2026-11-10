@@ -113,3 +113,7 @@ Plugins support two execution modes:
 
 * **Sync**: the plugin runs before the CRM log is saved and can return updated log data
 * **Async**: the plugin runs after App Connect saves the log, so logging does not wait for the plugin to finish. For call logs, an async plugin can report back later and append a note to the Agent notes field.
+
+## Usage measurement
+
+App Connect records plugin installation, configuration, connection and execution outcomes centrally. Plugin authors can find the event contract and async completion requirements in [Plugin analytics](../developers/plugin-analytics.md).

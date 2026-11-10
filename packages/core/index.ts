@@ -74,6 +74,7 @@ const dispositionCore = /** @type {any} */ (require('./handlers/disposition'));
 const mock = /** @type {any} */ (require('./connector/mock'));
 const proxyConnector = /** @type {any} */ (require('./connector/proxy'));
 const releaseNotes = require('./releaseNotes.json');
+const { pluginErrorCode } = require('./lib/pluginAnalytics');
 const analytics = /** @type {any} */ (require('./lib/analytics'));
 const util = /** @type {any} */ (require('./lib/util'));
 const connectorRegistry = /** @type {any} */ (require('./connector/registry'));
@@ -2629,7 +2630,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.createCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
+                const { successful, logId, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.createCallLog({ jwtToken, platform, userId, incomingData: req.body, analyticsIdentity: { accountId: hashedAccountId, extensionId: hashedExtensionId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, eventAddedVia }, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (isRevokeUserSession) {
                     sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
@@ -2695,7 +2696,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, updatedNote, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.updateCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
+                const { successful, logId, updatedNote, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.updateCallLog({ jwtToken, platform, userId, incomingData: req.body, analyticsIdentity: { accountId: hashedAccountId, extensionId: hashedExtensionId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, eventAddedVia }, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (isRevokeUserSession) {
                     sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
@@ -2922,7 +2923,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, logIds, messageLogs, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY) });
+                const { successful, returnMessage, logIds, messageLogs, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body, analyticsIdentity: { accountId: hashedAccountId, extensionId: hashedExtensionId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, eventAddedVia }, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY) });
                 if (isRevokeUserSession) {
                     sendCrmSessionRevokeResponse(res, tracer, { successful, returnMessage });
                     success = false;
@@ -3468,6 +3469,8 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('pluginRegister:start', { body: req.body });
         let success = false;
+        let pluginMetadata = {};
+        let trackingErrorCode;
         const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const { pluginId, rcAccountId, pluginAccess, pluginName, ownerRcAccountId } = req.body || {};
@@ -3490,7 +3493,7 @@ function createCoreRouter() {
                 return;
             }
 
-            await pluginCore.registerPluginAccount({
+            const registration = await pluginCore.registerPluginAccount({
                 pluginId,
                 rcAccessToken,
                 rcAccountId: rcAccountId?.toString(),
@@ -3498,10 +3501,12 @@ function createCoreRouter() {
                 pluginAccess,
                 pluginName,
             });
+            pluginMetadata = registration?.analyticsMetadata ?? { pluginAccess };
             const response = { successful: true } satisfies PluginMutationResponse;
             res.status(200).send(wrapDebugResponse(tracer, response));
             success = true;
         } catch (e) {
+            trackingErrorCode = pluginErrorCode(e);
             logger.error('Plugin register failed', { stack: e.stack });
             res.status(400).send(wrapDebugResponse(tracer, { successful: false, returnMessage: getErrorResponse(e) }));
             tracer?.traceError('pluginRegister:error', e);
@@ -3521,7 +3526,8 @@ function createCoreRouter() {
             userAgent,
             ip,
             author,
-            eventAddedVia
+            eventAddedVia,
+            extras: { pluginId: req.body?.pluginId, ...pluginMetadata, ...(trackingErrorCode ? { errorCode: trackingErrorCode } : {}) }
         });
     });
 
@@ -3530,6 +3536,8 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('pluginUnregister:start', { query: req.query });
         let success = false;
+        let pluginMetadata = {};
+        let trackingErrorCode;
         const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const { pluginId, rcAccountId, pluginName } = req.query || {};
@@ -3552,7 +3560,7 @@ function createCoreRouter() {
                 return;
             }
 
-            await pluginCore.unregisterPluginAccount({
+            pluginMetadata = await pluginCore.unregisterPluginAccount({
                 pluginId,
                 rcAccountId: rcAccountId?.toString(),
                 pluginName,
@@ -3560,6 +3568,7 @@ function createCoreRouter() {
             res.status(200).send(wrapDebugResponse(tracer, { successful: true }));
             success = true;
         } catch (e) {
+            trackingErrorCode = pluginErrorCode(e);
             logger.error('Plugin unregister failed', { stack: e.stack });
             res.status(400).send(wrapDebugResponse(tracer, { successful: false, returnMessage: getErrorResponse(e) }));
             tracer?.traceError('pluginUnregister:error', e);
@@ -3578,7 +3587,8 @@ function createCoreRouter() {
             userAgent,
             ip,
             author,
-            eventAddedVia
+            eventAddedVia,
+            extras: { pluginId: req.query?.pluginId, ...pluginMetadata, ...(trackingErrorCode ? { errorCode: trackingErrorCode } : {}) }
         });
     });
 

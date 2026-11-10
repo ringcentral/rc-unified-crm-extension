@@ -231,6 +231,7 @@ nav:
       - 'Logging SMS': developers/logging-sms.md
       - 'Server-side logging': developers/server-side-logging.md
       - 'Mixpanel raw IDs': developers/mixpanel-raw-ids.md
+      - 'Plugin analytics': developers/plugin-analytics.md
       - 'Viewing contacts and activities': developers/view-details.md
       - 'Returning errors': developers/errors.md
     - 'Interfaces':

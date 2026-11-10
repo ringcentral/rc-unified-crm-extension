@@ -281,7 +281,7 @@
           "Invocation"
         ],
         "summary": "Start asynchronous plugin processing",
-        "description": "Reference path for manifest endpointUrl when isAsync is true. For call create and update, App Connect saves the CRM activity first, creates a one-week callback task, synchronizes the plugin token, and POSTs data, config, asyncTaskId, callbackUrl, and hashedExtensionId. Any 2xx means dispatch completed; App Connect ignores the body and refresh headers. The plugin later reports completion to callbackUrl, and failure does not roll back the activity. For SMS and fax, App Connect synchronizes the token and starts an unawaited fire-and-forget POST before connector logging continues. That variant sends only data and config, with the original message payload nested at data.logInfo.logInfo. The unmodified JavaScript template rejects this variant because it requires callback fields; adapt it when declaring asynchronous SMS or fax support.",
+        "description": "Reference path for manifest endpointUrl when isAsync is true. For call create and update, App Connect saves the CRM activity first, creates a one-week callback task, synchronizes the plugin token, and POSTs data, config, asyncTaskId, callbackUrl, and hashedExtensionId. Any 2xx means dispatch completed; App Connect ignores the body and refresh headers. The plugin later reports completion to callbackUrl, and failure does not roll back the activity. For SMS and fax, App Connect synchronizes the token and starts an unawaited fire-and-forget POST before connector logging continues. SMS/fax dispatch now also includes asyncTaskId, callbackUrl and hashedExtensionId, with the original message payload nested at data.logInfo.logInfo. Older servers may send the legacy data/config-only envelope.",
         "operationId": "invokeAsynchronousPlugin",
         "security": [
           {
@@ -330,7 +330,7 @@
             "description": "The provider accepted asynchronous processing without a response body. App Connect treats this as a successful dispatch."
           },
           "400": {
-            "description": "The unmodified template returns this whenever asyncTaskId or callbackUrl is absent, including for the documented fire-and-forget SMS or fax request unless the handler is adapted.",
+            "description": "The unmodified template returns this whenever asyncTaskId or callbackUrl is absent, including the legacy SMS/fax envelope from older servers.",
             "content": {
               "application/json": {
                 "schema": {
@@ -701,8 +701,8 @@
             "tags": [
               "Invocation"
             ],
-            "summary": "Report asynchronous call-plugin completion",
-            "description": "Callback into App Connect for callback-enabled asynchronous call create and update tasks. The random task UUID embedded in callbackUrl is the callback bearer capability; no Authorization header is required. Tasks expire after one week and are deleted after successful completion. With successful true, App Connect reads the current CRM activity, appends note to existing Agent notes separated by a blank line, updates the activity, and deletes the task. With successful false, App Connect marks the task failed, stores message, ignores note, and still returns HTTP 200 with response successful true to acknowledge that the failure report was recorded.",
+            "summary": "Report asynchronous plugin completion",
+            "description": "Callback into App Connect for callback-enabled asynchronous call create/update, SMS and fax tasks. The random task UUID embedded in callbackUrl is the callback bearer capability; no Authorization header is required. Tasks expire after one week; terminal tasks retain minimal analytics tombstones until expiry to suppress repeated callbacks. With successful true, App Connect reads the current CRM activity, appends note to existing Agent notes separated by a blank line, updates the activity for call tasks, and marks the task completed. SMS/fax callbacks record completion without changing CRM content. With successful false, App Connect marks the task failed, stores message, ignores note, and still returns HTTP 200 with response successful true to acknowledge that the failure report was recorded.",
             "operationId": "postAsyncPluginCompletion",
             "security": [],
             "requestBody": {
@@ -903,7 +903,7 @@
       },
       "AsyncPluginInvocation": {
         "required": true,
-        "description": "Either a callback-enabled call invocation or the current fire-and-forget SMS or fax invocation. Call requests include task and callback fields. SMS and fax omit them and wrap the original message payload under data.logInfo, producing message details at data.logInfo.logInfo.",
+        "description": "Callback-enabled call, SMS or fax invocation. All new requests include task and callback fields. SMS/fax wrap the original message payload under data.logInfo, producing message details at data.logInfo.logInfo. The legacy data/config-only SMS/fax envelope from older servers remains documented.",
         "content": {
           "application/json": {
             "schema": {
@@ -955,7 +955,7 @@
                 }
               },
               "smsFireAndForget": {
-                "summary": "Current asynchronous SMS fire-and-forget payload",
+                "summary": "Legacy asynchronous SMS payload from older App Connect servers",
                 "value": {
                   "data": {
                     "logInfo": {
@@ -983,6 +983,40 @@
                     }
                   },
                   "config": null
+                }
+              },
+              "smsWithCallback": {
+                "summary": "Asynchronous SMS with completion callback",
+                "value": {
+                  "data": {
+                    "logInfo": {
+                      "logInfo": {
+                        "messages": [
+                          {
+                            "id": "message-123",
+                            "type": "SMS",
+                            "subject": "Customer reply",
+                            "direction": "Outbound",
+                            "creationTime": "2026-07-14T09:30:00.000Z"
+                          }
+                        ],
+                        "correspondents": [
+                          {
+                            "phoneNumber": "+14155550101"
+                          }
+                        ],
+                        "conversationId": "conversation-123",
+                        "conversationLogId": "conversation-log-123"
+                      },
+                      "contactId": "contact-123",
+                      "contactName": "Ada Lovelace",
+                      "additionalSubmission": {}
+                    }
+                  },
+                  "config": null,
+                  "asyncTaskId": "4d3e22d7-2764-42d5-9d1c-dae7b45e40b3",
+                  "callbackUrl": "https://app-connect.example.com/plugin/async-callback/4d3e22d7-2764-42d5-9d1c-dae7b45e40b3",
+                  "hashedExtensionId": "6b5d3fcae1f7"
                 }
               }
             }
@@ -1142,7 +1176,7 @@
           "asyncTaskId": {
             "type": "string",
             "format": "uuid",
-            "description": "App Connect task UUID for callback-enabled asynchronous call processing."
+            "description": "App Connect task UUID for callback-enabled asynchronous call, SMS or fax processing."
           },
           "callbackUrl": {
             "type": "string",
@@ -1156,7 +1190,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Asynchronous call create or update invocation with a one-week callback task and bearer-capability callback URL."
+        "description": "Asynchronous call create/update, SMS or fax invocation with a one-week callback task and bearer-capability callback URL. SMS/fax retain the message envelope nested under data.logInfo."
       },
       "AsyncFireAndForgetInvocationRequest": {
         "type": "object",
@@ -1172,7 +1206,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Current asynchronous SMS or fax invocation. It has no task identifier or callback URL, and App Connect does not await its response."
+        "description": "Legacy asynchronous SMS/fax invocation emitted by older App Connect versions. New versions also send task and callback fields using AsyncCallbackInvocationRequest."
       },
       "AsyncAcceptanceResponse": {
         "type": "object",
@@ -1227,11 +1261,11 @@
         "properties": {
           "successful": {
             "type": "boolean",
-            "description": "JSON boolean describing plugin work: true requests a CRM note update; false records task failure."
+            "description": "JSON boolean describing plugin work: true records completion and requests a CRM note update for call tasks; false records task failure."
           },
           "note": {
             "type": "string",
-            "description": "Text appended to existing CRM Agent notes when successful is true. Ignored when false."
+            "description": "Text appended to existing CRM Agent notes for call tasks when successful is true. Ignored for SMS/fax or when false."
           },
           "message": {
             "type": "string",
@@ -1239,7 +1273,7 @@
           }
         },
         "additionalProperties": true,
-        "description": "Plugin completion report for a callback-enabled asynchronous call task."
+        "description": "Plugin completion report for a callback-enabled asynchronous call, SMS or fax task."
       },
       "AsyncPluginCallbackResponse": {
         "type": "object",

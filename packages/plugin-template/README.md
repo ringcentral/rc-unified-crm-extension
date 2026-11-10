@@ -44,3 +44,5 @@ When background processing finishes, post the result to `callbackUrl`:
 ```
 
 For failed work, send `successful: false` and put the failure reason in `message`.
+
+App Connect supplies this callback contract for calls, SMS and fax. The `note` field is appended to CRM Agent notes only for call tasks. Terminal tasks retain a minimal tombstone until the one-week expiry, so repeated callbacks do not append the note again. Completion telemetry is emitted by App Connect Server, not this plugin server. See [Plugin analytics](../../docs/developers/plugin-analytics.md).

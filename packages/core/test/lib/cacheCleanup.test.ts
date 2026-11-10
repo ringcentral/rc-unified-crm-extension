@@ -1,3 +1,5 @@
+jest.mock('../../lib/analytics', () => ({ track: jest.fn() }));
+const { track } = require('../../lib/analytics');
 const { CacheModel } = require('../../models/cacheModel');
 const { AccountDataModel } = require('../../models/accountDataModel');
 const { clearExpiredAccountContactData, clearExpiredCache } = require('../../lib/cacheCleanup');
@@ -11,6 +13,18 @@ describe('cacheCleanup', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  test('emits timeout for overdue plugin tasks before deleting them', async () => {
+    track.mockClear();
+    const now = new Date();
+    await CacheModel.create({ id: 'plugin-timeout', cacheKey: 'asyncPluginTask-p', status: 'pending',
+      expiry: new Date(now.getTime() - 1), data: { analytics: { startedAt: now.getTime() - 100,
+        identity: { extensionId: 'owner' }, properties: { executionId: 'plugin-timeout', pluginId: 'p' } } } });
+    await clearExpiredCache({ now });
+    expect(track).toHaveBeenCalledWith(expect.objectContaining({ eventName: 'Plugin Execution Finished',
+      extras: expect.objectContaining({ outcome: 'timeout', durationMs: 100 }) }));
+    expect(await CacheModel.findByPk('plugin-timeout')).toBeNull();
   });
 
   test('deletes only cache records whose expiry has passed', async () => {

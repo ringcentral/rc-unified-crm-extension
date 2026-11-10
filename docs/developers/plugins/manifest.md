@@ -30,7 +30,7 @@ Current plugin runtime reads these fields from the plugin platform manifest:
 | `licenseStatusUrl` | Optional license endpoint. Called with `Authorization: Bearer <pluginJwtToken>`. |
 | `licensing` | Optional. Pricing information for a paid plugin. See [Pricing and paid listings](licensing.md#pricing-and-paid-listings). A paid plugin must also set `requireLicense` and `licenseStatusUrl`. |
 | `supportedLogTypes` | Activity types that should invoke the plugin: `call`, `sms`, and/or `fax`. |
-| `isAsync` | Marks the plugin as asynchronous. For call logs, App Connect dispatches after create or update succeeds and expects a callback. |
+| `isAsync` | Marks the plugin as asynchronous. For call logs, App Connect dispatches after create or update succeeds. All log types receive completion callback fields; SMS/fax dispatch remains in the background. |
 | `tokenSyncUrl` | Required for async plugins. App Connect calls this before invoking `endpointUrl` so the plugin can refresh its stored token. |
 | `showAuthorizationButton` | Optional. Shows a user-facing **Connect** or **Logout** action on the plugin configuration page. |
 | `authorizationUrl` | Optional. Endpoint that returns the third-party OAuth authorization URL as `{ "authUrl": "..." }`. |

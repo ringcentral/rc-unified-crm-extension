@@ -51,7 +51,7 @@ describe('Plugin Routes', () => {
         isValidated: true,
         rcAccountId: 'validated-account-id',
       });
-      pluginCore.registerPluginAccount.mockResolvedValue({ successful: true });
+      pluginCore.registerPluginAccount.mockResolvedValue({ successful: true, analyticsMetadata: { pluginVersion: '1.2', pluginAccess: 'shared' } });
 
       const requestBody = {
         pluginId: 'plugin-1',
@@ -81,6 +81,7 @@ describe('Plugin Routes', () => {
         eventName: 'Plugin Register',
         interfaceName: 'pluginRegister',
         success: true,
+        extras: expect.objectContaining({ pluginId: 'plugin-1', pluginVersion: '1.2', pluginAccess: 'shared' }),
       }));
     });
 
@@ -110,6 +111,7 @@ describe('Plugin Routes', () => {
         eventName: 'Plugin Register',
         interfaceName: 'pluginRegister',
         success: false,
+        extras: expect.objectContaining({ pluginId: 'plugin-1', errorCode: 'plugin_failed' }),
       }));
     });
 
