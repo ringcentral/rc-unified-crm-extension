@@ -17,6 +17,8 @@ When an admin enables server-side logging for their organization, App Connect su
 
 Your connector's existing `findContact` and `createCallLog` implementations handle server-side logs exactly as they handle client-side logs. No separate code path is required. The shared runtime stores the local call-log linkage by session id plus hashed extension identity; for server-side logging it hashes the incoming `rcExtensionId` with the adapter server's own hash key before checking duplicates or saving `callLogs`. What you do need to implement are the **configuration and management interfaces** described below.
 
+Analytics retain the existing hashed user/account identities and add raw ID attributes for verified event owners. See [Mixpanel raw IDs](mixpanel-raw-ids.md) for the event contract and historical profile migration.
+
 ## Manifest configuration
 
 Declare server-side logging support in your manifest by adding a `serverSideLogging` object to the platform:

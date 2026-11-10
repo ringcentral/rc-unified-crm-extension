@@ -4,6 +4,8 @@ export interface AnalyticsTrackParams {
   connectorName?: string;
   accountId?: string | number;
   extensionId?: string | number;
+  rcAccountIdRaw?: unknown;
+  rcExtensionIdRaw?: unknown;
   success?: boolean;
   requestDuration?: number;
   userAgent?: string;

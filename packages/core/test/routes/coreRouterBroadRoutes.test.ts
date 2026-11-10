@@ -1106,6 +1106,10 @@ describe('Core router broad route coverage', () => {
       .set('X-RC-Access-Token', 'Bearer rc-header-token')
       .set('X-Forwarded-For', '10.0.0.4,203.0.113.10')
       .set('User-Agent', 'Route Test Agent')
+      .set('rc-extension-id', 'legacy-extension')
+      .set('rc-account-id', 'legacy-account')
+      .set('rc-analytics-extension-id', '101')
+      .set('rc-analytics-account-id', '900')
       .set('developer-author-name', 'Route Tester')
       .send({ contactId: 'contact-1' });
 
@@ -1120,6 +1124,10 @@ describe('Core router broad route coverage', () => {
       ip: '203.0.113.10',
       userAgent: 'Route Test Agent',
       author: 'Route Tester',
+      accountId: 'legacy-account',
+      extensionId: 'legacy-extension',
+      rcAccountIdRaw: '900',
+      rcExtensionIdRaw: '101',
       success: true
     }));
   });

@@ -146,6 +146,8 @@ async function initDB() {
 function getAnalyticsVariablesInReqHeaders({ headers }) {
     const hashedExtensionId = headers['rc-extension-id'];
     const hashedAccountId = headers['rc-account-id'];
+    const rcAccountIdRaw = headers['rc-analytics-account-id'];
+    const rcExtensionIdRaw = headers['rc-analytics-extension-id'];
     const ip = headers['x-forwarded-for']?.split(',')?.find(i => !i.startsWith('10.'));
     const userAgent = headers['user-agent'];
     const author = headers['developer-author-name'];
@@ -153,6 +155,8 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
     return {
         hashedAccountId,
         hashedExtensionId,
+        rcAccountIdRaw,
+        rcExtensionIdRaw,
         ip,
         userAgent,
         author,
@@ -406,7 +410,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -452,6 +456,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -472,7 +478,7 @@ function createCoreRouter() {
         let validationPass = false;
         let reason = '';
         let statusCode = 200;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -512,6 +518,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -600,7 +608,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('setAdminSettings:start', { body: req.body });
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
             const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
@@ -628,6 +636,8 @@ function createCoreRouter() {
             interfaceName: 'setAdminSettings',
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -642,7 +652,7 @@ function createCoreRouter() {
         tracer?.trace('getAdminSettings:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -693,6 +703,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -910,7 +922,7 @@ function createCoreRouter() {
         tracer?.trace('getUserMapping:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -959,6 +971,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -973,7 +987,7 @@ function createCoreRouter() {
         tracer?.trace('reinitializeUserMapping:start', { body: req.body });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -1022,6 +1036,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1042,7 +1058,7 @@ function createCoreRouter() {
             res.status(400).send(wrapDebugResponse(tracer, 'Please go to Settings and authorize CRM platform'));
             return;
         }
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const unAuthData = jwt.decodeJwt(jwtToken);
             if (!unAuthData?.id) {
@@ -1073,6 +1089,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1098,7 +1116,7 @@ function createCoreRouter() {
             res.status(400).send(wrapDebugResponse(tracer, 'Missing additionalFieldValues'));
             return;
         }
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const unAuthData = jwt.decodeJwt(jwtToken);
             if (!unAuthData?.id) {
@@ -1130,6 +1148,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1166,7 +1186,7 @@ function createCoreRouter() {
         tracer?.trace('refreshUserInfo:start', { body: req.body });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -1196,6 +1216,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1210,7 +1232,7 @@ function createCoreRouter() {
         tracer?.trace('getUserSettings:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -1255,6 +1277,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1272,7 +1296,7 @@ function createCoreRouter() {
         tracer?.trace('setUserSettings:start', { body: req.body });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -1312,6 +1336,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1353,7 +1379,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let sessionId = null;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             if (!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
                 // case: from mcp
@@ -1457,6 +1483,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1481,7 +1509,7 @@ function createCoreRouter() {
         });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const platform = req.body.platform;
             platformName = platform;
@@ -1549,6 +1577,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1563,7 +1593,7 @@ function createCoreRouter() {
         tracer?.trace('unAuthorize:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -1599,6 +1629,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1634,7 +1666,7 @@ function createCoreRouter() {
         let success = false;
         let resultCount = 0;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -1698,6 +1730,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1716,7 +1750,7 @@ function createCoreRouter() {
         tracer?.trace('getAccountData:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -1772,6 +1806,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1787,7 +1823,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -1832,6 +1868,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1851,7 +1889,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -1917,6 +1955,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -1939,7 +1979,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2007,6 +2047,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2029,7 +2071,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2096,6 +2138,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2118,7 +2162,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2189,6 +2233,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2208,7 +2254,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2264,6 +2310,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2283,7 +2331,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2340,6 +2388,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2359,7 +2409,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2416,6 +2466,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2434,7 +2486,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2467,6 +2519,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2485,7 +2539,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2543,6 +2597,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2561,7 +2617,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2607,6 +2663,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2625,7 +2683,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2670,6 +2728,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2691,7 +2751,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2750,6 +2810,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2771,7 +2833,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2827,6 +2889,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2846,7 +2910,7 @@ function createCoreRouter() {
         let success = false;
         let statusCode = 200;
         let extraData: any = {};
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -2892,6 +2956,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2911,7 +2977,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let statusCode = 200;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
@@ -2936,6 +3002,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2954,7 +3022,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let statusCode = 200;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
@@ -2979,6 +3047,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -2995,7 +3065,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let statusCode = 200;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             const id = req.query.id;
@@ -3027,6 +3097,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -3043,7 +3115,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let statusCode = 200;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
@@ -3074,6 +3146,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -3090,7 +3164,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let statusCode = 200;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -3134,6 +3208,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -3151,7 +3227,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         let statusCode = 200;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
@@ -3199,6 +3275,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -3215,7 +3293,7 @@ function createCoreRouter() {
         tracer?.trace('getAdminReport:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         const jwtToken = req.jwtToken || req.query.jwtToken;
         try {
             if (jwtToken) {
@@ -3247,6 +3325,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -3261,7 +3341,7 @@ function createCoreRouter() {
         tracer?.trace('getUserReport:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         const jwtToken = req.jwtToken || req.query.jwtToken;
         try {
             if (jwtToken) {
@@ -3292,6 +3372,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -3329,7 +3411,7 @@ function createCoreRouter() {
         tracer?.trace('getErrorLogReportURL:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         const jwtToken = req.jwtToken || req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
@@ -3350,6 +3432,8 @@ function createCoreRouter() {
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -3384,7 +3468,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('pluginRegister:start', { body: req.body });
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const { pluginId, rcAccountId, pluginAccess, pluginName, ownerRcAccountId } = req.body || {};
             const rcAccessToken = getRcAccessTokenFromRequest(req);
@@ -3430,6 +3514,8 @@ function createCoreRouter() {
             interfaceName: 'pluginRegister',
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
@@ -3444,7 +3530,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('pluginUnregister:start', { query: req.query });
         let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const { pluginId, rcAccountId, pluginName } = req.query || {};
             const rcAccessToken = getRcAccessTokenFromRequest(req);
@@ -3485,6 +3571,8 @@ function createCoreRouter() {
             interfaceName: 'pluginUnregister',
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
+            rcAccountIdRaw,
+            rcExtensionIdRaw,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
             userAgent,
