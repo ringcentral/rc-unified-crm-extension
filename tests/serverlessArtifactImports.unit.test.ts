@@ -37,8 +37,7 @@ function validateArtifactInChildProcess() {
     'index.js',
     'lambda.js',
     'server.js',
-    'dbAccessor.js',
-    'backfillCallLogAiNotes.js'
+    'dbAccessor.js'
   ]
     .map((name) => path.join(artifactRoot, name))
     .concat(
@@ -97,7 +96,6 @@ describe('flattened serverless artifact imports', () => {
       'lambda.js',
       'server.js',
       'dbAccessor.js',
-      'backfillCallLogAiNotes.js',
       'releaseNotes.json'
     ]) {
       copy(path.join(BUILD_ROOT, 'src', name), path.join(artifactRoot, name));
