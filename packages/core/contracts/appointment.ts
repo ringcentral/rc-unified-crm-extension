@@ -5,7 +5,11 @@ import {
   ReturnMessageSchema,
 } from './common';
 
-const AppointmentDateTimeSchema = z.iso.datetime({ offset: true }).describe(
+// Keep the minute-precision timestamps accepted before the Zod security update.
+const AppointmentDateTimeSchema = z.union([
+  z.iso.datetime({ offset: true }),
+  z.iso.datetime({ offset: true, precision: -1 }),
+]).meta({ type: 'string' }).describe(
   'ISO-8601 appointment timestamp with a UTC offset.',
 );
 

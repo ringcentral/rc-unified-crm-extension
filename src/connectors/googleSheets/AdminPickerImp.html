@@ -28,10 +28,11 @@
     <script type="text/javascript">
         // Replace with your actual API key and OAuth token
         
-        const key = '{key}';
-        const ACCESS_TOKEN = '{accessToken}';
-        const project_id = '{projectId}';
-        const RC_ACCESS_TOKEN = '{rcAccessToken}';
+        const key = {key};
+        const ACCESS_TOKEN = {accessToken};
+        const project_id = {projectId};
+        const RC_ACCESS_TOKEN = {rcAccessToken};
+        const SERVER_URL = {serverUrl};
 
         let pickerApiLoaded = false;
 
@@ -69,7 +70,7 @@
        async function pickerCallback(data) {    
             if (data.action === google.picker.Action.PICKED) {
                 const field = data.docs[0].id;
-                await axios.post('{serverUrl}/admin/googleSheets/selectedSheet?rcAccessToken=' + RC_ACCESS_TOKEN, {
+                await axios.post(SERVER_URL + '/admin/googleSheets/selectedSheet?rcAccessToken=' + encodeURIComponent(RC_ACCESS_TOKEN), {
                     accessToken: ACCESS_TOKEN,
                     sheetData: data.docs[0],
                     customizable: false // Default to non-customizable, admin can change this in UI

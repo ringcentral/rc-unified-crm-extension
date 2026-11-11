@@ -8,31 +8,44 @@ const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/l
 const adminCore = /** @type {any} */ (require('@app-connect/core/handlers/admin'));
 const util = /** @type {any} */ (require('@app-connect/core/lib/util'));
 const GOOGLESHEET_PROJECT_ID = 367818015386;
+
+/** Serialize complete JavaScript literals without allowing HTML script termination. */
+function renderPickerTemplate(filePath: string, values: Record<string, unknown>): string {
+    const template = require('fs').readFileSync(filePath, 'utf8');
+    return template.replace(/\{(clientId|key|accessToken|projectId|serverUrl|rcAccessToken)\}/g, (_match: string, name: string) =>
+        JSON.stringify(String(values[name] ?? ''))
+            .replace(/</g, '\\u003c')
+            .replace(/>/g, '\\u003e')
+            .replace(/&/g, '\\u0026')
+            .replace(/\u2028/g, '\\u2028')
+            .replace(/\u2029/g, '\\u2029'));
+}
+
 async function renderPickerFile({ user }) {
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
     const filePath = path.join(__dirname, 'GooglePickerImp.html');
-    let fileContent = require('fs').readFileSync(filePath, 'utf8');
-    fileContent = fileContent.replace('{clientId}', process.env.GOOGLESHEET_CLIENT_ID);
-    fileContent = fileContent.replace('{key}', process.env.GOOGLESHEET_KEY);
-    fileContent = fileContent.replace('{accessToken}', user.accessToken);
-    fileContent = fileContent.replace('{projectId}', String(GOOGLESHEET_PROJECT_ID));
-    fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
-    return fileContent;
+    return renderPickerTemplate(filePath, {
+        clientId: process.env.GOOGLESHEET_CLIENT_ID,
+        key: process.env.GOOGLESHEET_KEY,
+        accessToken: user.accessToken,
+        projectId: GOOGLESHEET_PROJECT_ID,
+        serverUrl: process.env.APP_SERVER,
+    });
 }
 
 async function renderAdminPickerFile({ user, rcAccessToken }) {
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
     const filePath = path.join(__dirname, 'AdminPickerImp.html');
-    let fileContent = require('fs').readFileSync(filePath, 'utf8');
-    fileContent = fileContent.replace('{clientId}', process.env.GOOGLESHEET_CLIENT_ID);
-    fileContent = fileContent.replace('{key}', process.env.GOOGLESHEET_KEY);
-    fileContent = fileContent.replace('{accessToken}', user.accessToken);
-    fileContent = fileContent.replace('{projectId}', String(GOOGLESHEET_PROJECT_ID));
-    fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
-    fileContent = fileContent.replace('{rcAccessToken}', rcAccessToken);
-    return fileContent;
+    return renderPickerTemplate(filePath, {
+        clientId: process.env.GOOGLESHEET_CLIENT_ID,
+        key: process.env.GOOGLESHEET_KEY,
+        accessToken: user.accessToken,
+        projectId: GOOGLESHEET_PROJECT_ID,
+        serverUrl: process.env.APP_SERVER,
+        rcAccessToken,
+    });
 }
 async function createNewSheet({ user, data }) {
     const newSheetName = data.name ?? 'RingCentral App Connect Sheet';

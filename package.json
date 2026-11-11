@@ -57,11 +57,11 @@
   "license": "MIT",
   "dependencies": {
     "awesome-phonenumber": "^5.6.0",
-    "axios": "^1.12.2",
+    "axios": "^1.21.0",
     "dotenv": "^16.0.3",
-    "express": "^4.22.1",
+    "express": "^4.22.3",
     "googleapis": "^148.0.0",
-    "moment": "^2.29.4",
+    "moment": "^2.31.0",
     "moment-timezone": "^0.5.39",
     "pg": "^8.8.0",
     "sequelize": "^6.29.0",
@@ -97,11 +97,15 @@
   "overrides": {
     "@tootallnate/once": "2.0.1",
     "dynamodb-local": {
-      "tar": "7.5.19"
+      "tar": "7.5.22"
     },
-    "fast-xml-parser": "5.9.3",
+    "fast-xml-parser": "5.12.0",
     "js-object-utilities": "2.2.1",
-    "qs": "6.15.2"
+    "qs": "6.17.1",
+    "proxy-addr@2": "2.0.8",
+    "nanoid@3": "3.3.20",
+    "fast-uri@3": "3.1.9",
+    "follow-redirects@1": "1.16.2"
   },
   "bugs": {
     "url": "https://github.com/ringcentral/rc-unified-crm-extension/issues"

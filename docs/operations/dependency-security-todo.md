@@ -16,6 +16,18 @@ This document tracks the dependency advisories deliberately left open after appl
 
 These items require parent-package or workflow migrations. They MUST NOT be closed with untested major-version overrides because the affected packages participate in deployment, archive extraction, native module installation, and developer tunneling.
 
+## Checkmarx follow-up
+
+Compatible dependency fixes are carried in the owning manifests and qualified overrides; unused protocol SDK dependencies MUST NOT remain in the runtime graph. The MCP handler uses the repository's own protocol implementation. A successful install alone does not close an advisory: inspect the resolved deployment graph and rerun the affected test, build, and security checks.
+
+Appointment contracts MUST preserve existing minute-, second-, and fractional-second timestamps with explicit UTC offsets across validator updates. Verification: `packages/core/test/appointmentDateTimeContract.test.ts` checks create, both patch representations, response records, and rejection of invalid dates or missing offsets. Generated OpenAPI schemas MUST match the validators (`npm run generate:openapi` and `npm run lint:openapi`).
+
+The Google Sheets picker MUST treat OAuth tokens and configuration as data in both the HTML script and callback URL contexts. Tokens containing quotes, script terminators, replacement-string syntax, or query delimiters MUST retain their exact value without creating executable markup or extra query parameters. Verification: `tests/connectors/googleSheetsExtra.int.test.ts`, including its actual-template script and callback regression cases.
+
+The migration items below remain open until their own acceptance criteria pass. Plugin SSRF findings also remain NEEDS_REVIEW: manifests support developer-hosted endpoints, so a RingCentral-only hostname allowlist would break supported plugins. An outbound-request policy must cover public destinations, DNS rebinding, stored snapshots, redirects, credentials, and any intentionally supported internal endpoints before enforcement is changed. Verification: Missing — the supported internal-plugin/network policy is not established.
+
+Reviewer focus: preserve picker token round-tripping, inspect dependency API/Node-engine compatibility, and confirm that no major-version override replaces a required migration. Rollback MUST restore a compatible manifest and lock snapshot together; it MUST NOT remove the picker serialization regression coverage.
+
 ## Required security outcome
 
 - Build and deployment tooling MUST NOT allow an archive to create or overwrite files outside its extraction target.

@@ -130,6 +130,52 @@ describe('Google Sheets Extra Module', () => {
     });
 
     // ==================== createNewSheet ====================
+    describe('picker script security and callback compatibility', () => {
+        const payloads = [
+            "';globalThis.injected=true;//",
+            '</script><script>globalThis.injected=true</script>',
+            "$&$`$'\\\"{key}{accessToken}\u2028\u2029&other=value#fragment",
+        ];
+
+        test.each(payloads)('keeps an admin token as data: %s', async (token) => {
+            const fs = require('fs');
+            const actualFs = jest.requireActual('fs');
+            fs.readFileSync.mockImplementationOnce((file, encoding) => actualFs.readFileSync(file, encoding));
+            require('@app-connect/core/lib/oauth').checkAndRefreshAccessToken.mockResolvedValue(mockUser);
+            const html = await googleSheetsExtra.renderAdminPickerFile({ user: mockUser, rcAccessToken: token });
+            const script = /<script type="text\/javascript">([\s\S]*?)<\/script>/.exec(html)[1];
+            expect(html).not.toContain('<script>globalThis.injected');
+            const axios = { post: jest.fn().mockResolvedValue({}) };
+            const context = require('vm').createContext({
+                axios, google: { picker: { Action: { PICKED: 'picked' } } },
+                alert: jest.fn(), window: { close: jest.fn() },
+            });
+            require('vm').runInContext(script, context);
+            expect(context.injected).toBeUndefined();
+            expect(require('vm').runInContext('RC_ACCESS_TOKEN', context)).toBe(token);
+            await context.pickerCallback({ action: 'picked', docs: [{ id: 'sheet', name: 'Sheet' }] });
+            const url = new URL(axios.post.mock.calls[0][0]);
+            expect(url.searchParams.get('rcAccessToken')).toBe(token);
+            expect(axios.post.mock.calls[0][1].accessToken).toBe(mockUser.accessToken);
+        });
+
+        test.each(['renderPickerFile', 'renderAdminPickerFile'])('serializes all script settings in %s', async (method) => {
+            const token = '</script>\'\\$&{serverUrl}';
+            process.env.GOOGLESHEET_KEY = token;
+            process.env.APP_SERVER = token;
+            mockUser.accessToken = token;
+            require('@app-connect/core/lib/oauth').checkAndRefreshAccessToken.mockResolvedValue(mockUser);
+            require('fs').readFileSync.mockImplementationOnce((file, encoding) => jest.requireActual('fs').readFileSync(file, encoding));
+            const html = await googleSheetsExtra[method]({ user: mockUser, rcAccessToken: token });
+            const script = /<script type="text\/javascript">([\s\S]*?)<\/script>/.exec(html)[1];
+            const context = require('vm').createContext({});
+            require('vm').runInContext(script, context);
+            for (const name of ['key', 'ACCESS_TOKEN', 'SERVER_URL']) {
+                expect(require('vm').runInContext(name, context)).toBe(token);
+            }
+        });
+    });
+
     describe('createNewSheet', () => {
         it('should create a new sheet when it does not exist', async () => {
             // Reset oauth mock to return the same user object (so save is called on it)
