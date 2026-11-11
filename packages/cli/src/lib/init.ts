@@ -141,6 +141,8 @@ async function downloadTemplate(projectName: string | undefined, options: any, c
     const files = fs.readdirSync(extractedDir);
 
     for (const file of files) {
+      // A generated application needs its own lock for its manifest and registry.
+      if (file === 'package-lock.json') continue;
       const sourcePath = path.join(extractedDir, file);
       const targetPath = path.join(fullPath, file);
 

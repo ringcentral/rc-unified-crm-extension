@@ -13,7 +13,10 @@ let _widgetSessionToken: string | null = null;
  */
 function rpcRequest(method: string, params: unknown, timeoutMs = 10_000): Promise<unknown> {
   return new Promise((resolve, reject) => {
-    const id = `${method}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const entropy = new Uint8Array(16)
+    window.crypto.getRandomValues(entropy)
+    const suffix = Array.from(entropy, byte => byte.toString(16).padStart(2, '0')).join('')
+    const id = `${method}-${Date.now()}-${suffix}`
 
     const timer = setTimeout(() => {
       window.removeEventListener('message', onMessage)

@@ -12,11 +12,11 @@
     "build": "npm run clean && tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "axios": "^1.8.1",
+    "axios": "^1.21.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
+    "express": "^4.22.3",
+    "jsonwebtoken": "^9.0.3",
     "serverless-http": "^3.0.3"
   },
   "devDependencies": {
@@ -30,5 +30,23 @@
     "template"
   ],
   "author": "Developer name",
-  "license": "ISC"
+  "license": "ISC",
+  "overrides": {
+    "express@4": {
+      "debug": "4.4.3",
+      ".": "$express"
+    },
+    "body-parser": {
+      "debug": "4.4.3"
+    },
+    "send@0.19": {
+      "debug": "4.4.3"
+    },
+    "finalhandler@1": {
+      "debug": "4.4.3"
+    },
+    "proxy-addr@2": "2.0.8",
+    "qs@6": "6.17.1",
+    "follow-redirects@1": "1.16.2"
+  }
 }

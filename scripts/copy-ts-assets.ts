@@ -139,12 +139,25 @@ function syncCoreDistPackage() {
     });
 }
 
+function copyWidgetBuild() {
+    const widgetPath = path.join(ROOT_DIR, 'packages', 'core', 'mcp', 'ui', 'dist', 'index.html');
+    for (const coreRoot of [
+        path.join(OUT_DIR, 'packages', 'core'),
+        path.join(ROOT_DIR, 'packages', 'core', 'dist')
+    ]) {
+        const outputPath = path.join(coreRoot, 'mcp', 'ui', 'dist', 'index.html');
+        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+        fs.copyFileSync(widgetPath, outputPath);
+    }
+}
+
 function main() {
     cleanStaleGeneratedArtifacts();
     copyAssetsFrom(path.join(ROOT_DIR, 'src'), path.join(ROOT_DIR, 'src'), 'src');
     copyAssetsFrom(path.join(ROOT_DIR, 'packages', 'core'), path.join(ROOT_DIR, 'packages', 'core'), 'packages/core');
     rewriteCompiledCorePackageJson();
     syncCoreDistPackage();
+    copyWidgetBuild();
 }
 
 main();

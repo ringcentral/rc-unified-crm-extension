@@ -105,7 +105,7 @@ module.exports = {
     getCacheKey(sourceText, sourcePath, transformOptions) {
         const transformerSource = fs.readFileSync(__filename, 'utf8');
         return crypto
-            .createHash('sha1')
+            .createHash('sha256')
             .update(sourceText)
             .update(sourcePath)
             .update(transformerSource)

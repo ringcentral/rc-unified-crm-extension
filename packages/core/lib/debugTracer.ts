@@ -5,6 +5,7 @@ import type {
     TraceEntry,
     TraceOptions
 } from '../types';
+import { randomBytes } from 'crypto';
 
 class DebugTracer {
     traces: TraceEntry[];
@@ -18,7 +19,7 @@ class DebugTracer {
     }
 
     _generateRequestId(): string {
-        return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        return `req_${Date.now()}_${randomBytes(16).toString('hex')}`;
     }
 
     _captureStackTrace(skipFrames = 2): string[] {

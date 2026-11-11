@@ -18,6 +18,14 @@ These items require parent-package or workflow migrations. They MUST NOT be clos
 
 ## Checkmarx follow-up
 
+The root, connector template, plugin template, and CLI MUST carry compatible security minimums at their own installation boundaries. Root workspace overrides do not propagate into applications generated from a standalone template. The CLI therefore does not copy the repository's template development `package-lock.json`; the generated application creates its own lock during installation. Verification: `tests/cliTemplateSecurity.unit.test.ts` exercises both archive-based generation paths and preserves manifest dependencies/overrides.
+
+Runtime UUID and Debug upgrades MUST remain scoped to their inspected consumers. Verification: `tests/dependencySecurity.unit.test.ts` covers UUID buffer bounds, Sequelize defaults/transactions, Google multipart boundaries and HTTP middleware behavior. Transformer cache keys use SHA-256; diagnostic request IDs use cryptographic entropy without changing their prefix envelope. Verification: `tests/transformerCache.unit.test.ts` and `packages/core/test/lib/debugTracer.test.ts`.
+
+Standalone registry verification of the connector template still depends on the configured mirror making its requested Core version available. A local pack of the current workspace can validate source compatibility, but MUST NOT be represented as evidence that a registry release exists. Publishing and registry synchronization remain separate release checks.
+
+Widget security changes MUST reach the compiled/published Core artifact, not only the source checkout. Verification: `tests/compiledWidgetAsset.unit.test.ts` binds both compiled widget copies to the tracked UI build; inspect the corresponding `dist/mcp/ui/dist/index.html` entry in the local npm pack before release.
+
 Compatible dependency fixes are carried in the owning manifests and qualified overrides; unused protocol SDK dependencies MUST NOT remain in the runtime graph. The MCP handler uses the repository's own protocol implementation. A successful install alone does not close an advisory: inspect the resolved deployment graph and rerun the affected test, build, and security checks.
 
 Appointment contracts MUST preserve existing minute-, second-, and fractional-second timestamps with explicit UTC offsets across validator updates. Verification: `packages/core/test/appointmentDateTimeContract.test.ts` checks create, both patch representations, response records, and rejection of invalid dates or missing offsets. Generated OpenAPI schemas MUST match the validators (`npm run generate:openapi` and `npm run lint:openapi`).

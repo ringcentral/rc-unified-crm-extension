@@ -35,7 +35,7 @@ const path = require('path');
  * Increment this to bust ChatGPT's widget resource cache after every UI build.
  * This is the single source of truth — injected into getPublicConnectors _meta at response time.
  */
-const WIDGET_VERSION = 11;
+const WIDGET_VERSION = 12;
 const WIDGET_URI = `ui://widget/ConnectorList-v${WIDGET_VERSION}.html`;
 const RC_EXTENSION_CACHE_KEY = 'rcExtensionId';
 const RC_EXTENSION_CACHE_STATUS = 'resolved';

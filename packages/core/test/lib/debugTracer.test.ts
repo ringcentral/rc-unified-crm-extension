@@ -63,6 +63,19 @@ describe('DebugTracer', () => {
       const tracerWithHeaders = new DebugTracer(headers);
       expect(tracerWithHeaders.requestId).toBeDefined();
     });
+
+    test('uses cryptographic entropy without changing the request ID envelope', () => {
+      const weakRandom = jest.spyOn(Math, 'random').mockImplementation(() => {
+        throw new Error('weak random source must not be used');
+      });
+      try {
+        const secureTracer = new DebugTracer();
+        expect(secureTracer.requestId).toMatch(/^req_\d+_[0-9a-f]{32}$/);
+        expect(weakRandom).not.toHaveBeenCalled();
+      } finally {
+        weakRandom.mockRestore();
+      }
+    });
   });
 
   describe('trace', () => {

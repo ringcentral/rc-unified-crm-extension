@@ -82,6 +82,8 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 
 ### Widget Version Management
 
+RPC correlation IDs use browser cryptographic entropy while preserving their method/timestamp envelope. Reply matching still requires the parent window and the exact request ID; timeout/error cleanup and the existing context-message fallback remain part of the bridge contract. There is no weak-random fallback. Regression coverage is in `test/mcp/uiBridgeEntropy.test.ts`.
+
 `WIDGET_VERSION` in `mcpHandler.ts` is the **only place** that needs to change when bumping the widget version:
 
 ```js
@@ -318,6 +320,8 @@ npm run dev
 ```
 
 **Cache busting after a build:** Increment `WIDGET_VERSION` in `mcpHandler.ts` and restart the server. That is the only file that needs to change — `getPublicConnectors.ts` and the README do not contain a version number.
+
+The root TypeScript build copies the reviewed widget HTML into both compiled Core distributions, including the npm package. Release packaging must retain that exact artifact rather than rely on the development HTML fallback. Verification: `tests/compiledWidgetAsset.unit.test.ts` and a local `npm pack` content check.
 
 ## API Integration
 
