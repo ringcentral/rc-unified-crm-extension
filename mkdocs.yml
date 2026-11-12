@@ -14,6 +14,7 @@ not_in_nav: |
   users/calldown-lists.md
   operations/index.md
   operations/dependency-security-todo.md
+  operations/security-remediation-verification.md
 
 theme:
   name: material

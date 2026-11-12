@@ -126,15 +126,77 @@ describe('public HTTPS plugin transport', () => {
       await expect(pluginHttp.get('https://plugins.example.com/start')).rejects.toThrow(/public HTTPS/);
     });
 
-  test('retains HTTPS 307 method, body and same-origin authorization semantics', async () => {
+  test.each([301, 302, 303])('retains POST-to-GET semantics for HTTPS %s redirects', async (status) => {
     nock.disableNetConnect();
     const body = { token: 'opaque', note: 'unchanged' };
     const server = nock('https://plugins.example.com')
-      .post('/start', body).reply(307, '', { Location: '/finish' })
+      .post('/start', body).reply(status, '', { Location: '/finish' })
+      .get('/finish').reply(function (this: any, _uri, requestBody) {
+        expect(requestBody).toBe('');
+        expect(this.req.headers['content-type']).toBeUndefined();
+        expect(this.req.headers['content-length']).toBeUndefined();
+        expect(this.req.headers.authorization).toBe('Bearer opaque');
+        return [200, { ok: true }];
+      });
+    const response = await pluginHttp.post('https://plugins.example.com/start', body, { headers: { Authorization: 'Bearer opaque' } });
+    expect(response.data).toEqual({ ok: true });
+    expect(server.isDone()).toBe(true);
+  });
+
+  test.each([307, 308])('retains HTTPS %s method, body and same-origin authorization semantics', async (status) => {
+    nock.disableNetConnect();
+    const body = { token: 'opaque', note: 'unchanged' };
+    const server = nock('https://plugins.example.com')
+      .post('/start', body).reply(status, '', { Location: '/finish' })
       .post('/finish', body).matchHeader('authorization', 'Bearer opaque').reply(200, { ok: true });
     const response = await pluginHttp.post('https://plugins.example.com/start', body, { headers: { Authorization: 'Bearer opaque' } });
     expect(response.data).toEqual({ ok: true });
     expect(server.isDone()).toBe(true);
+  });
+
+  test('uses the guarded HTTP transport despite shared Axios defaults and proxy environment variables', async () => {
+    nock.disableNetConnect();
+    const unsafeAgent = new (require('https').Agent)({ rejectUnauthorized: false });
+    const unsafeTransport = { request: jest.fn(() => { throw new Error('Unexpected shared transport'); }) };
+    const unsafeLookup = jest.fn();
+    const overrides = {
+      adapter: 'fetch', httpVersion: 2, baseURL: 'https://127.0.0.1', allowAbsoluteUrls: false,
+      auth: { username: 'test-user', password: require('crypto').randomBytes(16).toString('hex') },
+      proxy: { protocol: 'http:', host: '127.0.0.1', port: 9 },
+      socketPath: '/private/socket', transport: unsafeTransport,
+      httpsAgent: unsafeAgent, lookup: unsafeLookup,
+    };
+    const savedDefaults = Object.keys(overrides).map(key => ({ key, own: Object.prototype.hasOwnProperty.call(axios.defaults, key), value: axios.defaults[key] }));
+    const proxyKeys = ['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'ALL_PROXY', 'all_proxy'];
+    const savedEnvironment = proxyKeys.map(key => ({ key, value: process.env[key] }));
+    const body = { note: 'preserved' };
+    const server = nock('https://plugins.example.com')
+      .post('/direct', body).matchHeader('authorization', 'Bearer opaque').reply(200, { ok: true });
+    const send = jest.spyOn(axios, 'post');
+    try {
+      Object.assign(axios.defaults, overrides);
+      for (const key of proxyKeys) process.env[key] = 'http://127.0.0.1:9';
+      await expect(pluginHttp.post('https://plugins.example.com/direct', body, { headers: { Authorization: 'Bearer opaque' } }))
+        .resolves.toMatchObject({ data: { ok: true } });
+      expect(server.isDone()).toBe(true);
+      expect(unsafeTransport.request).not.toHaveBeenCalled();
+      expect(unsafeLookup).not.toHaveBeenCalled();
+      const options = send.mock.calls[0][2] as any;
+      expect(options).toMatchObject({ adapter: 'http', httpVersion: 1, baseURL: '', allowAbsoluteUrls: true, auth: null, proxy: false, socketPath: null, transport: null });
+      expect(options.httpsAgent).not.toBe(unsafeAgent);
+      expect(options.httpsAgent.options.rejectUnauthorized).toBe(true);
+      expect(options.lookup).not.toBe(unsafeLookup);
+    } finally {
+      for (const { key, own, value } of savedDefaults) {
+        if (own) axios.defaults[key] = value;
+        else delete axios.defaults[key];
+      }
+      for (const { key, value } of savedEnvironment) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+      unsafeAgent.destroy();
+    }
   });
 
   test('does not restore authorization stripped by a cross-origin HTTPS redirect', async () => {
