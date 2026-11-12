@@ -196,9 +196,15 @@ async function uploadToGoogleDrive({ user, data, taskId }) {
         await cache.save();
     }
     try {
+        const telephonySessionId = data?.logInfo?.telephonySessionId;
+        if (!data || typeof data !== 'object' || Array.isArray(data)
+            || !data.logInfo || typeof data.logInfo !== 'object' || Array.isArray(data.logInfo)
+            || typeof telephonySessionId !== 'string' || !telephonySessionId.trim()) {
+            throw new Error('Invalid telephony session ID');
+        }
         const existingGoogleDriveFile = await GoogleDriveFileModel.findOne({
             where: {
-                telephonySessionId: data.logInfo.telephonySessionId
+                telephonySessionId
             }
         });
         if (existingGoogleDriveFile) {
@@ -293,7 +299,7 @@ async function uploadToGoogleDrive({ user, data, taskId }) {
         await GoogleDriveFileModel.create({
             id: uploadResponse.data.id,
             userId: user.id,
-            telephonySessionId: data.logInfo.telephonySessionId
+            telephonySessionId
         });
         cache.status = 'completed';
         await cache.save();

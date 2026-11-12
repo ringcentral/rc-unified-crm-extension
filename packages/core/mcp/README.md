@@ -323,6 +323,8 @@ npm run dev
 
 The root TypeScript build copies the reviewed widget HTML into both compiled Core distributions, including the npm package. Release packaging must retain that exact artifact rather than rely on the development HTML fallback. Verification: `tests/compiledWidgetAsset.unit.test.ts` and a local `npm pack` content check.
 
+UI dependency overrides apply to every math-renderer path in the standalone UI installation. Renderer trust options MUST come from explicit own properties; an inherited trust setting must not enable trusted rendering. Verification: `npm test` in `ui/` runs `test/dependencySecurity.test.cjs` against both renderer parents, exercises inherited trust forms, and preserves ordinary math and explicitly trusted links. CI installs and verifies this standalone UI separately from the server workspace. Dependency changes still require the UI build and packaged-artifact check above.
+
 ## API Integration
 
 ### Endpoints

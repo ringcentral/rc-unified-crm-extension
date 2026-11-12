@@ -1,3 +1,17 @@
+const storageKeys = ['ERROR_REPORT_S3_LOCAL', 'ERROR_REPORT_S3_BUCKET', 'MINIO_ROOT_USER', 'MINIO_ROOT_PASSWORD'];
+const originalStorageEnv = Object.fromEntries(storageKeys.map(key => [key, process.env[key]]));
+process.env.ERROR_REPORT_S3_LOCAL = 'true';
+delete process.env.ERROR_REPORT_S3_BUCKET;
+process.env.MINIO_ROOT_USER = require('crypto').randomBytes(8).toString('hex');
+process.env.MINIO_ROOT_PASSWORD = require('crypto').randomBytes(24).toString('hex');
+
+afterAll(() => {
+  for (const key of storageKeys) {
+    if (originalStorageEnv[key] === undefined) delete process.env[key];
+    else process.env[key] = originalStorageEnv[key];
+  }
+});
+
 const mockS3Send = jest.fn();
 const mockGetSignedUrl = jest.fn();
 const mockShortIdGenerate = jest.fn();

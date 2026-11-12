@@ -35,9 +35,12 @@ cp('-r', `${compiledSourcePath}/*`, `${deployPath}/`);
 async function run() {
     const installCmd = 'npm i --production';
     console.log(`run cmd: ${installCmd}`);
-    const installRes = await execAsync(installCmd).catch((e) => console.log(e));
+    const installRes = await execAsync(installCmd);
     console.log(installRes);
     echo('build done');
 }
 
-run();
+run().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+});

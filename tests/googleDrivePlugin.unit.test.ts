@@ -206,6 +206,36 @@ describe('googleDrivePlugin', () => {
     });
 
     describe('uploadToGoogleDrive', () => {
+        test('preserves an opaque session ID containing whitespace and SQL-like text', async () => {
+            const telephonySessionId = " session' OR 1=1 -- ";
+            await CacheModel.create({ id: 'opaque-upload', status: 'initialized', userId: 'user', cacheKey: 'pluginTask-googleDrive' });
+            await GoogleDriveFileModel.create({ id: 'opaque-file', userId: 'user', telephonySessionId });
+            const result = await googleDrivePlugin.uploadToGoogleDrive({ user: { id: 'user' }, data: { logInfo: { telephonySessionId } }, taskId: 'opaque-upload' });
+            expect(result).toEqual({ successful: true, message: 'File already uploaded to Google Drive' });
+            expect(await CacheModel.findByPk('opaque-upload')).toBeNull();
+        });
+
+        test.each([
+            null, [], {}, { logInfo: null }, { logInfo: [] },
+            { logInfo: { telephonySessionId: null } },
+            { logInfo: { telephonySessionId: { $ne: null } } },
+            { logInfo: { telephonySessionId: ['session'] } },
+            { logInfo: { telephonySessionId: 123 } },
+            { logInfo: { telephonySessionId: '' } },
+            { logInfo: { telephonySessionId: '   ' } }
+        ])('rejects malformed upload data before ORM lookup: %p', async (data) => {
+            await CacheModel.create({ id: 'invalid-upload', status: 'initialized', userId: 'user', cacheKey: 'pluginTask-googleDrive' });
+            const lookup = jest.spyOn(GoogleDriveFileModel, 'findOne');
+            try {
+                const result = await googleDrivePlugin.uploadToGoogleDrive({ user: { id: 'user' }, data, taskId: 'invalid-upload' });
+                expect(result).toEqual({ successful: false, message: 'Failed to upload to Google Drive' });
+                expect(lookup).not.toHaveBeenCalled();
+                expect((await CacheModel.findByPk('invalid-upload')).status).toBe('failed');
+            } finally {
+                lookup.mockRestore();
+            }
+        });
+
         const mockUploadData = {
             logInfo: {
                 telephonySessionId: 'tel-session-123',

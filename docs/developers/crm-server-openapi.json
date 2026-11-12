@@ -3569,6 +3569,25 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "description": "Error-report storage is unavailable or is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "unavailable": {
+                    "summary": "Optional report storage unavailable",
+                    "value": {
+                      "successful": false,
+                      "message": "Error report storage is unavailable"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "security": [

@@ -413,7 +413,7 @@ app.post('/plugin/:pluginId', async function (req, res) {
                 return;
         }
 
-        res.status(200).send(result);
+        res.status(200).json(result);
     }
     catch (e) {
         console.log(e.stack);

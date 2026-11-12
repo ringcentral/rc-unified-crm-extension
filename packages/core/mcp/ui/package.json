@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test": "node --test test/dependencySecurity.test.cjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
@@ -23,6 +24,7 @@
     "vite-plugin-singlefile": "^2.3.0"
   },
   "overrides": {
-    "lodash": "4.18.1"
+    "lodash": "4.18.1",
+    "katex": "0.18.2"
   }
 }

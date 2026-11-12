@@ -24,6 +24,17 @@ jobs:
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/ --replace-registry-host=always
 
+      - name: Install widget dependencies
+        working-directory: packages/core/mcp/ui
+        run: npm ci --registry=https://registry.npmjs.org/ --replace-registry-host=always
+
+      - name: Verify widget
+        working-directory: packages/core/mcp/ui
+        run: |
+          npm test
+          npx tsc --noEmit
+          npm run build
+
       - name: Lint OpenAPI contract
         run: npm run lint:openapi
 

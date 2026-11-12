@@ -18,6 +18,10 @@ These items require parent-package or workflow migrations. They MUST NOT be clos
 
 ## Checkmarx follow-up
 
+Object API responses MUST retain their JSON data and MIME type, including debug envelopes; do not HTML-escape CRM fields to silence a reflected-XSS query. Google Drive upload session identifiers MUST be nonempty strings in the structured ORM query and persisted record, with malformed tasks retaining their failed-state transition. Verification: `packages/core/test/routes/jsonResponseSecurity.test.ts`, `tests/pluginRoutes.int.test.ts`, and `tests/googleDrivePlugin.unit.test.ts`.
+
+Local report storage MUST require explicit opt-in and externally configured MinIO credentials. Missing optional storage MUST NOT prevent unrelated server startup or leave an upload-URL request unanswered. Deployment configuration and verification are documented in [the deployment guide](../developers/deploy.md#environment-variables).
+
 The root, connector template, plugin template, and CLI MUST carry compatible security minimums at their own installation boundaries. Root workspace overrides do not propagate into applications generated from a standalone template. The CLI therefore does not copy the repository's template development `package-lock.json`; the generated application creates its own lock during installation. Verification: `tests/cliTemplateSecurity.unit.test.ts` exercises both archive-based generation paths and preserves manifest dependencies/overrides.
 
 Runtime UUID and Debug upgrades MUST remain scoped to their inspected consumers. Verification: `tests/dependencySecurity.unit.test.ts` covers UUID buffer bounds, Sequelize defaults/transactions, Google multipart boundaries and HTTP middleware behavior. Transformer cache keys use SHA-256; diagnostic request IDs use cryptographic entropy without changing their prefix envelope. Verification: `tests/transformerCache.unit.test.ts` and `packages/core/test/lib/debugTracer.test.ts`.

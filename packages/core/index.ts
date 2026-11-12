@@ -1444,7 +1444,7 @@ function createCoreRouter() {
                     success = true;
                 }
                 else {
-                    res.status(200).send(wrapDebugResponse(tracer, {
+                    res.status(200).json(wrapDebugResponse(tracer, {
                         successful: true,
                         jwtToken,
                         name: userInfo.name,
@@ -1695,7 +1695,7 @@ function createCoreRouter() {
                 }
                 else {
                     tracer?.trace('findContact:result', { successful, returnMessage, contact, errorCode });
-                    res.status(200).send(wrapDebugResponse(tracer, {
+                    res.status(200).json(wrapDebugResponse(tracer, {
                         successful,
                         returnMessage,
                         contact,
@@ -2565,7 +2565,7 @@ function createCoreRouter() {
                     success = false;
                 }
                 else {
-                    res.status(200).send(wrapDebugResponse(tracer, {
+                    res.status(200).json(wrapDebugResponse(tracer, {
                         successful,
                         logs,
                         returnMessage,
@@ -2640,7 +2640,7 @@ function createCoreRouter() {
                         extraData = extraDataTracking;
                     }
                     const response = { successful, logId, returnMessage } satisfies CallLogMutationResponse;
-                    res.status(200).send(wrapDebugResponse(tracer, response));
+                    res.status(200).json(wrapDebugResponse(tracer, response));
                     success = true;
                 }
             }
@@ -2705,7 +2705,7 @@ function createCoreRouter() {
                     if (extraDataTracking) {
                         extraData = extraDataTracking;
                     }
-                    res.status(200).send(wrapDebugResponse(tracer, { successful, logId, updatedNote, returnMessage }));
+                    res.status(200).json(wrapDebugResponse(tracer, { successful, logId, updatedNote, returnMessage }));
                     success = true;
                 }
             }
@@ -2787,7 +2787,7 @@ function createCoreRouter() {
                         extraData = extraDataTracking;
                     }
                     const response = { successful, returnMessage } satisfies BasicMutationResponse;
-                    res.status(200).send(wrapDebugResponse(tracer, response));
+                    res.status(200).json(wrapDebugResponse(tracer, response));
                     success = true;
                 }
             }
@@ -2933,7 +2933,7 @@ function createCoreRouter() {
                         extraData = extraDataTracking;
                     }
                     const response = { successful, returnMessage, logIds, messageLogs } satisfies MessageLogResponse;
-                    res.status(200).send(wrapDebugResponse(tracer, response));
+                    res.status(200).json(wrapDebugResponse(tracer, response));
                     success = true;
                 }
             }
@@ -3416,10 +3416,15 @@ function createCoreRouter() {
         const jwtToken = req.jwtToken || req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            const uploadUrl = await s3ErrorLogReport.getUploadUrl({ userId: unAuthData?.id, platform: unAuthData?.platform });
-            const response = { presignedUrl: uploadUrl } satisfies DebugReportUrlResponse;
-            res.status(200).send(wrapDebugResponse(tracer, response));
-            success = true;
+            try {
+                const uploadUrl = await s3ErrorLogReport.getUploadUrl({ userId: unAuthData?.id, platform: unAuthData?.platform });
+                const response = { presignedUrl: uploadUrl } satisfies DebugReportUrlResponse;
+                res.status(200).json(wrapDebugResponse(tracer, response));
+                success = true;
+            } catch (error) {
+                logger.error('Error report storage is unavailable', { stack: error.stack });
+                res.status(503).json(wrapDebugResponse(tracer, { successful: false, message: 'Error report storage is unavailable' }));
+            }
         }
         else {
             tracer?.trace('getErrorLogReportURL:invalidRequest', {});

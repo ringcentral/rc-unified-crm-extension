@@ -91,6 +91,10 @@ Common variables:
 | `DATABASE_SSL` | Optional Postgres SSL override. When unset, localhost database hosts use SSL off and other Postgres hosts use SSL on. |
 | `DISABLE_SYNC_DB_TABLE` | Set when table sync should be skipped. |
 | `DYNAMODB_LOCALHOST` | Local DynamoDB endpoint for local Dynamo-backed models. |
+| `ERROR_REPORT_S3_BUCKET` | Error-report bucket for cloud storage, or an optional custom bucket in explicit local mode. |
+| `ERROR_REPORT_S3_LOCAL` | Set to `true` to enable local MinIO/LocalStack report storage. An absent cloud bucket does not enable local storage. |
+| `LOCALSTACK_ENDPOINT` | Optional endpoint for explicit local report storage, including container hostnames. |
+| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | Credentials shared by the local MinIO process and local report storage. Both are required in local mode. |
 | `DEVELOPER_DYNAMODB_TABLE_PREFIX` | Prefix for Developer Console connector/proxy DynamoDB tables. |
 | `DEVELOPER_APP_SERVER_SECRET_KEY` | Secret used to decrypt stored connector secrets. |
 | CRM OAuth variables | Connector-specific client IDs, client secrets, token URLs, and redirect URIs used by `getOauthInfo()`. |
@@ -98,6 +102,10 @@ Common variables:
 | `RINGCENTRAL_MCP_CLIENT_ID` | Public RingCentral OAuth client ID used by MCP clients with PKCE. Do not use a client secret for MCP OAuth. |
 
 Keep CRM client secrets and app secrets in environment variables, not in the manifest.
+
+Before using local error-report uploads, enable local mode and supply the MinIO credentials in the same environment used by `npm run s3-local`. There is no embedded default account. Cloud mode uses the AWS credential provider chain and does not apply the local endpoint or credentials. Storage configuration is validated when first used, so an unused, unconfigured report feature does not prevent server startup; unavailable report storage returns a generic 503 response. Verification: `packages/core/test/lib/s3ErrorLogConfig.test.ts` and `packages/core/test/routes/jsonResponseSecurity.test.ts`.
+
+Serverless builds MUST fail if dependency installation fails, and MUST NOT report successful completion or proceed to deployment with an incomplete dependency graph. Verification: `tests/serverlessInstallFailure.unit.test.ts` covers all root build variants and the generated-app build script.
 
 For local Postgres, use a localhost URL so SSL is disabled automatically:
 
