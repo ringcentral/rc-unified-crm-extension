@@ -45,6 +45,18 @@ describe('Plugin Handler', () => {
   });
 
   describe('registerPluginAccount', () => {
+    test.each(['endpointUrl', 'userRegisterEndpointUrl', 'licenseStatusUrl', 'tokenSyncUrl'])
+      ('rejects a non-public %s before registration transfers credentials', async (field) => {
+        const manifest = { endpointUrl: 'https://plugins.example.com/run', userRegisterEndpointUrl: 'https://plugins.example.com/register' };
+        manifest[field] = 'https://127.0.0.1/private';
+        axios.get.mockResolvedValue({ data: { platforms: { sample: manifest } } });
+        axios.post.mockResolvedValue({ data: { jwtToken: 'opaque-token' } });
+        await expect(pluginHandler.registerPluginAccount({ pluginId: 'blocked', pluginName: 'sample', pluginAccess: 'public', rcAccessToken: 'rc-token', rcAccountId: 'account' }))
+          .rejects.toThrow(/public HTTPS/);
+        expect(axios.post).not.toHaveBeenCalled();
+        expect(await AccountDataModel.count()).toBe(0);
+      });
+
     test('should register plugin account and persist plugin jwt token in account data', async () => {
       const rcAccountId = '12345';
       const pluginId = 'sync-all-caps';
@@ -79,7 +91,8 @@ describe('Plugin Handler', () => {
         {
           rcAccessToken: 'rc-access-token',
           rcAccountId
-        }
+        },
+        expect.objectContaining({ proxy: false, httpsAgent: expect.anything() })
       );
 
       const accountData = await AccountDataModel.findOne({
@@ -348,6 +361,23 @@ describe('Plugin Handler', () => {
       return row.data;
     }
 
+    test.each(['endpointUrl', 'userRegisterEndpointUrl', 'licenseStatusUrl', 'tokenSyncUrl'])
+      ('keeps the previous snapshot when a newer %s violates the network policy', async (field) => {
+        await installSnapshot({});
+        axios.get.mockResolvedValue(publishedManifest('2.0.0', { [field]: 'https://127.0.0.1/private' }));
+        const [plugin] = await pluginHandler.getPluginsFromRcAccountId({ rcAccountId });
+        expect(plugin.data.version).toBe('1.0.0');
+        expect((await storedSnapshot()).version).toBe('1.0.0');
+      });
+
+    test('refreshes a valid legacy manifest without an optional registration URL', async () => {
+      await installSnapshot({});
+      axios.get.mockResolvedValue(publishedManifest('2.0.0', { userRegisterEndpointUrl: undefined }));
+      const [plugin] = await pluginHandler.getPluginsFromRcAccountId({ rcAccountId });
+      expect(plugin.data.version).toBe('2.0.0');
+      expect(plugin.data.jwtToken).toBe('plugin-jwt-token');
+    });
+
     test('should refresh the stored snapshot and keep the jwt when a newer version is published', async () => {
       await installSnapshot({});
       axios.get.mockResolvedValue(publishedManifest('2.0.0'));
@@ -496,6 +526,14 @@ describe('Plugin Handler', () => {
   });
 
   describe('getPluginLicenseStatus', () => {
+    test.each(['http://127.0.0.1/license', 'https://127.0.0.1/license', 'https://[::1]/license', 'https://localhost/license'])
+      ('rejects a stored non-public license URL %s without sending its token', async (licenseStatusUrl) => {
+        await AccountDataModel.create({ rcAccountId: 'account', platformName: 'blocked', dataKey: 'pluginData', data: { jwtToken: 'opaque-token', licenseStatusUrl } });
+        axios.get.mockResolvedValue({ data: { licenseStatus: true } });
+        await expect(pluginHandler.getPluginLicenseStatus({ rcAccountId: 'account', pluginId: 'blocked' })).rejects.toThrow(/public HTTPS/);
+        expect(axios.get).not.toHaveBeenCalled();
+      });
+
     test.each(pluginLicenseCases)('$label', async (...args: any[]) => {
       const {
         installed,
@@ -537,11 +575,12 @@ describe('Plugin Handler', () => {
       }
       expect(axios.get).toHaveBeenCalledTimes(expectedProviderCalls);
       if (installed) {
-        expect(axios.get).toHaveBeenCalledWith(licenseStatusUrl, {
+        expect(axios.get).toHaveBeenCalledWith(licenseStatusUrl, expect.objectContaining({
+          proxy: false,
           headers: {
             Authorization: 'Bearer plugin-jwt-token',
           },
-        });
+        }));
       }
     });
   });

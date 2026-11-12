@@ -17,6 +17,16 @@ This guide registers a plugin in the Developer Console, scaffolds a plugin serve
 - A RingCentral account for the Developer Console and App Connect extension, with App Connect admin rights for the install step
 - A public tunnel for local testing, such as ngrok
 
+## Plugin server network policy
+
+Server-to-server plugin URLs MUST use absolute HTTPS URLs without embedded credentials and resolve exclusively to public Internet unicast addresses. This applies to registration, processing, token synchronization and license checks, including endpoints retained in old installation snapshots. Use a public HTTPS tunnel for local development.
+
+The transport enforces the policy when connecting and at every redirect. It uses the checked DNS addresses for the connection, supports IPv4 and IPv6, and does not route through ambient HTTP proxies or alternate transports. HTTPS redirect method/body behavior and the HTTP client's existing credential stripping remain intact; callbacks do not restore removed credentials. No new application timeout or port-443-only restriction is imposed.
+
+`private` and `shared` describe catalog visibility; their server URLs follow the same network policy. Browser pricing, purchase and subscription links keep their separate [licensing URL contract](licensing.md). A rejected snapshot update retains the previous snapshot, and every invocation is checked again.
+
+Verification: `packages/core/test/lib/pluginHttp.test.ts`, `packages/core/test/handlers/plugin.test.ts`, and `packages/core/test/handlers/log.test.ts`. Review the production plugin DNS/redirect paths and Node address-family behavior before rollout. The address classification follows [IANA IPv6 allocation](https://www.iana.org/assignments/ipv6-address-space/) and also excludes [Azure's virtual platform address](https://learn.microsoft.com/en-us/azure/virtual-network/what-is-ip-address-168-63-129-16).
+
 ## 1. Register a plugin profile
 
 Open the [Developer Console](https://appconnect.labs.ringcentral.com/console), create a plugin, and note its secret key from the plugin's **Quick setup** section. Configure the plugin's URLs later, once you have a tunnel URL.

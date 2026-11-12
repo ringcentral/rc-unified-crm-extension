@@ -23,7 +23,7 @@ const Connector = /** @type {any} */ (RawConnector);
 const moment = /** @type {any} */ (require('moment'));
 const { getMediaReaderLinkByPlatformMediaLink: rawGetMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 const getMediaReaderLinkByPlatformMediaLink = /** @type {any} */ (rawGetMediaReaderLinkByPlatformMediaLink);
-const axios = /** @type {any} */ (require('axios'));
+const pluginHttp = require('../lib/pluginHttp');
 const logger = /** @type {any} */ (require('../lib/logger'));
 const { handleApiError: rawHandleApiError, handleDatabaseError: rawHandleDatabaseError } = require('../lib/errorHandler');
 const handleApiError = /** @type {any} */ (rawHandleApiError);
@@ -137,7 +137,7 @@ async function runSyncCallPlugins({ syncCallPlugins, incomingData, user, platfor
                 throw new Error('Plugin URL is not set');
             }
             const userConfig = await pluginCore.getPluginConfigForUser({ user, pluginId });
-            const processedResultResponse = await axios.post(pluginEndpointUrl, {
+            const processedResultResponse = await pluginHttp.post(pluginEndpointUrl, {
                 data: processedIncomingData,
                 config: userConfig,
                 hashedExtensionId: user.hashedRcExtensionId,
@@ -216,7 +216,7 @@ async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, o
         if (!plugin.data.tokenSyncUrl) {
             throw new Error('Plugin token sync URL is not set');
         }
-        const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
+        const syncPluginTokenResponse = await pluginHttp.post(plugin.data.tokenSyncUrl, {},
             {
                 headers: {
                     Authorization: `Bearer ${pluginJwtToken}`,
@@ -224,7 +224,7 @@ async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, o
             }
         );
         const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
-        const dispatch = axios.post(pluginEndpointUrl, {
+        const dispatch = pluginHttp.post(pluginEndpointUrl, {
             data: logType === 'call' ? getAsyncPluginRequestData({ operation, incomingData }) : { logInfo: incomingData },
             config: await pluginCore.getPluginConfigForUser({ user, pluginId }),
             asyncTaskId: taskId,
@@ -1167,7 +1167,7 @@ async function createMessageLog({ platform, userId, incomingData, hashedAccountI
             const execution = startPluginExecution({ plugin, user, platform, logType, operation: 'createMessageLog', analyticsIdentity });
             try {
                 if (!plugin.data.endpointUrl) throw new Error('Plugin URL is not set');
-                const response = await axios.post(plugin.data.endpointUrl, {
+                const response = await pluginHttp.post(plugin.data.endpointUrl, {
                     data: incomingData,
                     config: await pluginCore.getPluginConfigForUser({ user, pluginId: plugin.id }),
                 }, { headers: { Authorization: `Bearer ${plugin.data.jwtToken}` } });

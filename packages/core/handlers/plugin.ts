@@ -2,7 +2,7 @@
 
 const { CacheModel } = require('../models/cacheModel');
 const { Op } = require('sequelize');
-const axios = /** @type {any} */ (require('axios'));
+const pluginHttp = require('../lib/pluginHttp');
 const { AccountDataModel: AccountDataModelImport } = require('../models/accountDataModel');
 const AccountDataModel = /** @type {any} */ (AccountDataModelImport);
 const logger = require('../lib/logger');
@@ -66,6 +66,16 @@ function getUrlOrigin(url) {
     }
 }
 
+function validateManifestUrls(manifest: any, requireRegistration = false) {
+    pluginHttp.validateUrl(manifest.endpointUrl);
+    if (requireRegistration || manifest.userRegisterEndpointUrl) {
+        pluginHttp.validateUrl(manifest.userRegisterEndpointUrl);
+    }
+    for (const optionalUrl of [manifest.licenseStatusUrl, manifest.tokenSyncUrl]) {
+        if (optionalUrl) pluginHttp.validateUrl(optionalUrl);
+    }
+}
+
 /**
  * Bring an account's stored plugin snapshot up to the published manifest version.
  * Keeps the existing plugin JWT. Any failure leaves the stored snapshot untouched.
@@ -90,6 +100,7 @@ async function refreshPluginSnapshotIfStale({ rcAccountId, pluginId, data }) {
         if (!latestManifest?.endpointUrl) {
             return data;
         }
+        validateManifestUrls(latestManifest);
         const previousRegisterOrigin = getUrlOrigin(data?.userRegisterEndpointUrl);
         const latestRegisterOrigin = getUrlOrigin(latestManifest.userRegisterEndpointUrl);
         if (previousRegisterOrigin && latestRegisterOrigin && previousRegisterOrigin !== latestRegisterOrigin) {
@@ -194,7 +205,7 @@ async function getPluginLicenseStatus({ rcAccountId, pluginId }) {
         return null;
     }
     const licenseStatusUrl = accountData.data.licenseStatusUrl;
-    const licenseStatusResponse = await axios.get(licenseStatusUrl, {
+    const licenseStatusResponse = await pluginHttp.get(licenseStatusUrl, {
         headers: {
             'Authorization': `Bearer ${accountData.data.jwtToken}`
         }
@@ -239,7 +250,7 @@ async function resolvePluginManifest({ pluginId, pluginAccess, ownerRcAccountId,
     let lastError = null;
     for (const url of manifestFetchers) {
         try {
-            const pluginDataResponse = await axios.get(url);
+            const pluginDataResponse = await pluginHttp.get(url);
             pluginData = pluginDataResponse.data;
             break;
         } catch (error) {
@@ -313,7 +324,8 @@ async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, plu
     }
 
     const registerUrl = pluginManifest.userRegisterEndpointUrl;
-    const registerResponse = await axios.post(registerUrl, {
+    validateManifestUrls(pluginManifest, true);
+    const registerResponse = await pluginHttp.post(registerUrl, {
         rcAccessToken,
         rcAccountId: rcAccountId?.toString(),
     });

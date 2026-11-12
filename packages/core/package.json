@@ -47,6 +47,7 @@
     "sequelize": "^6.29.0"
   },
   "dependencies": {
+    "ipaddr.js": "^2.5.0",
     "@aws-sdk/client-dynamodb": "^3.1163.0",
     "@aws-sdk/client-s3": "^3.1086.0",
     "@aws-sdk/s3-request-presigner": "^3.1086.0",

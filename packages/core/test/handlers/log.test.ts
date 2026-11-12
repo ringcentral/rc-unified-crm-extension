@@ -123,7 +123,10 @@ describe('Log Handler', () => {
       activityCompletionReady: true
     };
 
-    async function runAsyncCallPluginLog() {
+    async function runAsyncCallPluginLog(overrides: any = {}) {
+      const endpointUrl = overrides.endpointUrl ?? 'https://plugins.example.com/plugin/asyncPlugin';
+      const tokenSyncUrl = overrides.tokenSyncUrl ?? 'https://plugins.example.com/plugin/asyncPlugin/token';
+      const isAsync = overrides.isAsync ?? true;
       const originalAppServer = process.env.APP_SERVER;
       process.env.APP_SERVER = 'https://app.example.com';
       try {
@@ -135,9 +138,9 @@ describe('Log Handler', () => {
           data: {
             name: 'plugin.async',
             supportedLogTypes: ['call'],
-            isAsync: true,
-            endpointUrl: 'https://plugins.example.com/plugin/asyncPlugin',
-            tokenSyncUrl: 'https://plugins.example.com/plugin/asyncPlugin/token',
+            isAsync,
+            endpointUrl,
+            tokenSyncUrl,
             jwtToken: 'plugin-jwt-token'
           }
         });
@@ -161,7 +164,7 @@ describe('Log Handler', () => {
               }
             });
           }
-          return Promise.resolve({ data: { accepted: true }, headers: {} });
+          return Promise.resolve({ data: isAsync ? { accepted: true } : mockIncomingData, headers: {} });
         });
 
         const result = await logHandler.createCallLog({
@@ -181,7 +184,8 @@ describe('Log Handler', () => {
         return {
           result,
           cache,
-          pluginCall
+          pluginCall,
+          connector: mockConnector
         };
       } finally {
         if (originalAppServer) {
@@ -191,6 +195,22 @@ describe('Log Handler', () => {
         }
       }
     }
+
+    test.each(['endpointUrl', 'tokenSyncUrl'])('blocks a stored async %s without rolling back CRM logging', async (field) => {
+      const url = 'https://127.0.0.1/private';
+      const { result, cache } = await runAsyncCallPluginLog({ [field]: url });
+      expect(result.successful).toBe(true);
+      expect(cache.status).toBe('failed');
+      expect(axios.post.mock.calls.some(([target]) => target === url)).toBe(false);
+    });
+
+    test('blocks a stored synchronous private endpoint before primary CRM logging', async () => {
+      const url = 'https://127.0.0.1/private';
+      const { result, connector } = await runAsyncCallPluginLog({ endpointUrl: url, isAsync: false });
+      expect(result.successful).toBe(false);
+      expect(connector.createCallLog).not.toHaveBeenCalled();
+      expect(axios.post.mock.calls.some(([target]) => target === url)).toBe(false);
+    });
 
     test('should return warning when call log already exists for session', async () => {
       // Arrange
@@ -601,11 +621,12 @@ describe('Log Handler', () => {
       expect(axios.post).toHaveBeenCalledWith(
         'https://plugins.example.com/plugin/testPlugin',
         { data: mockIncomingData, config: null, hashedExtensionId: null },
-        {
+        expect.objectContaining({
+          proxy: false,
           headers: {
             Authorization: 'Bearer plugin-jwt-token'
           }
-        }
+        })
       );
     });
 
@@ -694,7 +715,8 @@ describe('Log Handler', () => {
         callbackUrl: `https://app.example.com/plugin/async-callback/${cache.id}`,
         hashedExtensionId: 'owner-hash'
       });
-      expect(pluginCall[2]).toEqual({
+      expect(pluginCall[2]).toMatchObject({
+        proxy: false,
         headers: {
           Authorization: 'Bearer synced-plugin-jwt'
         }
@@ -1621,6 +1643,40 @@ describe('Log Handler', () => {
   });
 
   describe('createMessageLog', () => {
+    test.each([
+      { type: 'SMS', isAsync: false }, { type: 'Fax', isAsync: false },
+      { type: 'SMS', isAsync: true }, { type: 'Fax', isAsync: true },
+    ])('blocks a stored $type endpoint with isAsync=$isAsync and preserves dispatch semantics', async ({ type, isAsync }) => {
+      const originalServer = process.env.APP_SERVER;
+      process.env.APP_SERVER = 'https://app.example.com';
+      try {
+        await UserModel.create({ id: 'private-message-user', platform: 'testCRM', rcAccountId: 'private-message-account', accessToken: 'token', platformAdditionalInfo: {} });
+        const incomingData = { logInfo: { messages: [{ id: 'private-message', type, subject: 'Message', direction: 'Outbound', creationTime: new Date() }], correspondents: [{ phoneNumber: '+15550000001' }], conversationId: 'private-conversation', conversationLogId: 'private-log' }, contactId: 'contact', contactName: 'Contact', additionalSubmission: {} };
+        await AccountDataModel.create({ rcAccountId: 'private-message-account', platformName: 'private-message-plugin', dataKey: 'pluginData', data: { supportedLogTypes: [type.toLowerCase()], isAsync, endpointUrl: 'https://127.0.0.1/private', tokenSyncUrl: 'https://plugins.example.com/token', jwtToken: 'opaque-token' } });
+        const connector = { getAuthType: jest.fn().mockResolvedValue('apiKey'), getBasicAuth: jest.fn().mockReturnValue('credentials'), createMessageLog: jest.fn().mockResolvedValue({ logId: 'private-message-crm-log' }), updateMessageLog: jest.fn() };
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        axios.post.mockResolvedValue({ data: incomingData, headers: {} });
+        const result = await logHandler.createMessageLog({ platform: 'testCRM', userId: 'private-message-user', incomingData });
+        expect(axios.post.mock.calls.some(([target]) => target === 'https://127.0.0.1/private')).toBe(false);
+        expect(result.successful).toBe(isAsync);
+        if (isAsync) {
+          expect(connector.createMessageLog).toHaveBeenCalledTimes(1);
+          let task;
+          for (let attempt = 0; attempt < 20; attempt++) {
+            task = await CacheModel.findOne({ where: { cacheKey: 'asyncPluginTask-private-message-plugin' } });
+            if (task?.status === 'failed') break;
+            await new Promise(setImmediate);
+          }
+          expect(task.status).toBe('failed');
+        } else {
+          expect(connector.createMessageLog).not.toHaveBeenCalled();
+        }
+      } finally {
+        if (originalServer === undefined) delete process.env.APP_SERVER;
+        else process.env.APP_SERVER = originalServer;
+      }
+    });
+
     test('should return warning when no messages to log', async () => {
       // Act
       const result = await logHandler.createMessageLog({
@@ -2247,11 +2303,12 @@ describe('Log Handler', () => {
       expect(axios.post).toHaveBeenCalledWith(
         'https://plugins.example.com/sms/token',
         {},
-        {
+        expect.objectContaining({
+          proxy: false,
           headers: {
             Authorization: 'Bearer old-plugin-jwt'
           }
-        }
+        })
       );
       expect(axios.post).toHaveBeenCalledWith(
         'https://plugins.example.com/sms',
@@ -2272,11 +2329,12 @@ describe('Log Handler', () => {
             ignoredLetters: ['x']
           }
         }),
-        {
+        expect.objectContaining({
+          proxy: false,
           headers: {
             Authorization: 'Bearer new-plugin-jwt'
           }
-        }
+        })
       );
 
       const pluginRecord = await AccountDataModel.findOne({
