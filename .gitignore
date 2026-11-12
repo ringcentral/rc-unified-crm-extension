@@ -42,3 +42,7 @@ __pycache__/
 .venv/
 venv/
 /.npmrc
+
+# Repository-local dependency snapshots; keep UI and generated application locks trackable.
+/package-lock.json
+/packages/template/package-lock.json

@@ -12,11 +12,15 @@ tags: [security, dependencies, dependabot]
 
 ## Purpose
 
-This document tracks the dependency advisories deliberately left open after applying compatible patch and minor updates to the three tracked npm lockfiles. The remaining 12 advisories occur in the root and template lockfiles; the MCP UI lockfile has no remaining OSV findings.
+This document tracks dependency migrations and the evidence required to verify them. Historical root/template lock snapshots are not the current installation graph; reassess remaining advisories against freshly resolved workspace and production-artifact graphs. The standalone MCP UI lock remains versioned.
 
 These items require parent-package or workflow migrations. They MUST NOT be closed with untested major-version overrides because the affected packages participate in deployment, archive extraction, native module installation, and developer tunneling.
 
 ## Checkmarx follow-up
+
+The root workspace lock and the repository template's development lock MUST remain local, following `AGENTS.md`. The root `.gitignore` excludes only those two repository paths; it MUST NOT exclude the standalone UI lock or force generated applications to ignore their own locks. Verification: `git check-ignore --no-index` for all three paths and `tests/cliTemplateSecurity.unit.test.ts` for generated-project behavior.
+
+SCA inputs MUST retain the generated lock from the verified installation, even though that lock is not committed. Keep the source revision, Node/npm versions, registry identity, resolved dependency output, and production-artifact lock or SBOM together. A source-only archive without these generated records does not establish the deployed graph. Install before building; existing root builders copy the generated local lock into their artifact, and the production install updates that artifact's graph. The template builder copies an application lock when present and also supports a repository workspace without its own nested lock. Verification: `tests/serverlessInstallFailure.unit.test.ts`, a fresh root install, and dependency inspection in the built artifact.
 
 Object API responses MUST retain their JSON data and MIME type, including debug envelopes; do not HTML-escape CRM fields to silence a reflected-XSS query. Google Drive upload session identifiers MUST be nonempty strings in the structured ORM query and persisted record, with malformed tasks retaining their failed-state transition. Verification: `packages/core/test/routes/jsonResponseSecurity.test.ts`, `tests/pluginRoutes.int.test.ts`, and `tests/googleDrivePlugin.unit.test.ts`.
 
@@ -38,7 +42,7 @@ The Google Sheets picker MUST treat OAuth tokens and configuration as data in bo
 
 The migration items below remain open until their own acceptance criteria pass. Plugin SSRF findings also remain NEEDS_REVIEW: manifests support developer-hosted endpoints, so a RingCentral-only hostname allowlist would break supported plugins. An outbound-request policy must cover public destinations, DNS rebinding, stored snapshots, redirects, credentials, and any intentionally supported internal endpoints before enforcement is changed. Verification: Missing — the supported internal-plugin/network policy is not established.
 
-Reviewer focus: preserve picker token round-tripping, inspect dependency API/Node-engine compatibility, and confirm that no major-version override replaces a required migration. Rollback MUST restore a compatible manifest and lock snapshot together; it MUST NOT remove the picker serialization regression coverage.
+Reviewer focus: preserve picker token round-tripping, inspect dependency API/Node-engine compatibility, and confirm that no major-version override replaces a required migration. Rollback MUST restore compatible manifests and the validated artifact/lock snapshot together; it MUST NOT remove the picker serialization regression coverage.
 
 ## Required security outcome
 
@@ -121,14 +125,14 @@ Until the migrations are complete:
 
 ## Verification
 
-The current dependency graph was validated with `npm ls --package-lock-only --all` in the root, template, and MCP UI directories. An OSV `querybatch` scan of every npm package/version pair in those lockfiles found 12 unique advisories in the root and template locks and zero in the MCP UI lock.
+Resolve the root workspace with `npm install` and inspect its generated lock and `npm ls --all --json` output. Build the production artifact and inspect its post-install lock and production dependency output separately. The standalone UI uses its committed lock with `npm ci`. Historical advisory counts from earlier root/template snapshots MUST NOT be reported as current installation or deployment results.
 
 For each future migration:
 
-1. Run `npm ci` with the repository's supported Node version on the CI platform matrix.
+1. Run `npm install` in a clean root workspace with the supported Node version and registry; run `npm ci` in the standalone UI. Generated applications resolve and retain their own root locks.
 2. Run `npm run typecheck`, `npm run typecheck:core`, `npm test`, `npm run test-coverage`, `npm run test:e2e`, `npm run lint:openapi`, and `npm run typecheck:contracts`.
 3. Run the MCP UI build and tests.
-4. Repeat the OSV batch scan across all three lockfiles and read back the private Dependabot alert page.
+4. Scan the generated workspace/artifact locks and committed UI lock, and read back the current Checkmarx and private Dependabot reports. Keep generated scan inputs as build evidence rather than committing environment-specific development locks.
 
 Verification: Missing — authenticated readback of the private Dependabot alert page is still required after these migrations.
 

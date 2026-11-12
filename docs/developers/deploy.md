@@ -4,6 +4,8 @@ Deploy the connector server anywhere that can run Node.js and expose HTTPS. The 
 
 ## Local Development
 
+Install dependencies with `npm install` before building this repository. Its root lock is generated locally for the configured registry; the repository template also does not ship a development lock. Generated applications create their own lock during installation and may commit that application lock. The independent MCP UI retains its committed lock and uses `npm ci`.
+
 Run the template server locally:
 
 ```bash
@@ -38,6 +40,8 @@ npm run deploy
 ```
 
 Test/beta deployment variants are available through scripts such as `build-test`, `deploy-test`, `build-test-beta`, and `deploy-test-beta`.
+
+Retain the production artifact's post-install lock and dependency inventory with its source revision and Node/npm versions for SCA and rollback. Root development locks are not committed, so an external scan job must resolve the current manifests or consume the generated, verified lock instead of reusing an old checkout snapshot. See [dependency verification](../operations/dependency-security-todo.md#verification).
 
 ## Heroku Deployment
 

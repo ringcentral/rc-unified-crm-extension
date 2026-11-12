@@ -1,6 +1,7 @@
 const { rm, echo, cp, mkdir } = require('shelljs');
 const { resolve } = require('path');
 const { exec } = require('child_process');
+const { existsSync } = require('fs');
 
 const projectPath = resolve(__dirname, '..', '..');
 const deployPath = resolve(projectPath, 'serverless-deploy');
@@ -29,7 +30,10 @@ rm('-rf', `${deployPath}/connectors`);
 echo('building...');
 mkdir(deployPath);
 cp(`${projectPath}/package.json`, `${deployPath}/package.json`);
-cp(`${projectPath}/package-lock.json`, `${deployPath}/package-lock.json`);
+const lockPath = resolve(projectPath, 'package-lock.json');
+if (existsSync(lockPath)) {
+    cp(lockPath, `${deployPath}/package-lock.json`);
+}
 cp('-r', `${compiledSourcePath}/*`, `${deployPath}/`);
 
 async function run() {
