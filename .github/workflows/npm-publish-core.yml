@@ -113,7 +113,11 @@ jobs:
               ;;
           esac
 
-      - name: Publish @app-connect/core
-        run: npm publish --workspace=@app-connect/core --access public --provenance --tag "${{ steps.release.outputs.dist_tag }}"
+      - name: Verify Core tarball in an independent npm consumer
+        timeout-minutes: 10
+        run: npm run test:package -- --output-dir "$RUNNER_TEMP/core-package"
+
+      - name: Publish verified @app-connect/core tarball
+        run: npm publish "$RUNNER_TEMP/core-package/core.tgz" --access public --provenance --tag "${{ steps.release.outputs.dist_tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
