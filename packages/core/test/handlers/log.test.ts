@@ -41,6 +41,11 @@ const { NoteCache } = require('../../models/dynamo/noteCacheSchema');
 const { Connector } = require('../../models/dynamo/connectorSchema');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
+const originalNodeEnv = process.env.NODE_ENV;
+afterEach(() => {
+  if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = originalNodeEnv;
+});
 const { getHashValue } = require('../../lib/util');
 const { MessageLogResponseSchema } = require('../../contracts');
 const {
@@ -196,7 +201,18 @@ describe('Log Handler', () => {
       }
     }
 
+    test.each([false, true])('runs an installed local HTTP call plugin in development with isAsync=%s', async (isAsync) => {
+      process.env.NODE_ENV = 'development';
+      const endpointUrl = 'http://localhost:6067/plugin';
+      const { result, cache, connector } = await runAsyncCallPluginLog({ endpointUrl, tokenSyncUrl: 'http://localhost:6067/token', isAsync });
+      expect(result.successful).toBe(true);
+      expect(connector.createCallLog).toHaveBeenCalledTimes(1);
+      expect(axios.post.mock.calls.some(([target]) => target === endpointUrl)).toBe(true);
+      if (isAsync) expect(cache.status).not.toBe('failed');
+    });
+
     test.each(['endpointUrl', 'tokenSyncUrl'])('blocks a stored async %s without rolling back CRM logging', async (field) => {
+      process.env.NODE_ENV = 'production';
       const url = 'https://127.0.0.1/private';
       const { result, cache } = await runAsyncCallPluginLog({ [field]: url });
       expect(result.successful).toBe(true);
@@ -205,6 +221,7 @@ describe('Log Handler', () => {
     });
 
     test('blocks a stored synchronous private endpoint before primary CRM logging', async () => {
+      process.env.NODE_ENV = 'production';
       const url = 'https://127.0.0.1/private';
       const { result, connector } = await runAsyncCallPluginLog({ endpointUrl: url, isAsync: false });
       expect(result.successful).toBe(false);
@@ -1647,6 +1664,7 @@ describe('Log Handler', () => {
       { type: 'SMS', isAsync: false }, { type: 'Fax', isAsync: false },
       { type: 'SMS', isAsync: true }, { type: 'Fax', isAsync: true },
     ])('blocks a stored $type endpoint with isAsync=$isAsync and preserves dispatch semantics', async ({ type, isAsync }) => {
+      process.env.NODE_ENV = 'production';
       const originalServer = process.env.APP_SERVER;
       process.env.APP_SERVER = 'https://app.example.com';
       try {

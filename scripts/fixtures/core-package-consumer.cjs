@@ -36,13 +36,21 @@ async function main() {
         const custom = await fetch(`${base}/package-consumer-check`, { signal: AbortSignal.timeout(5_000) });
         assert.equal(custom.status, 200);
         assert.deepEqual(await custom.json(), { successful: true });
+        const pluginHttp = require('@app-connect/core/lib/pluginHttp');
+        process.env.NODE_ENV = 'production';
+        await assert.rejects(pluginHttp.get(`${base}/package-consumer-check`), { code: 'ERR_PLUGIN_NETWORK_POLICY' });
+        process.env.NODE_ENV = 'development';
+        const pluginResponse = await pluginHttp.get(`${base}/package-consumer-check`);
+        assert.deepEqual(pluginResponse.data, { successful: true });
     } finally {
+        process.env.NODE_ENV = 'test';
         await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     }
     const manifest = require('@app-connect/core/package.json');
     fs.writeFileSync(path.join(__dirname, 'smoke-result.json'), JSON.stringify({
         name: manifest.name, version: manifest.version, node: process.version,
         commonjs: true, esm: true, health: true, customRoute: true,
+        productionPluginPolicy: true, developmentHttpPlugin: true,
     }, null, 2) + '\n');
     console.log(`Independent Core consumer passed: ${manifest.name}@${manifest.version}`);
 }

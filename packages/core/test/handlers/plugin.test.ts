@@ -18,12 +18,14 @@ const { AdminConfigModel } = require('../../models/adminConfigModel');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 const logger = require('../../lib/logger');
+const originalNodeEnv = process.env.NODE_ENV;
 const {
   pluginManifestAccessCases,
   pluginLicenseCases,
 } = require('../data/pluginServiceCases');
 
 describe('Plugin Handler', () => {
+  beforeEach(() => { process.env.NODE_ENV = 'production'; });
   beforeAll(async () => {
     process.env.HASH_KEY = 'unit-test-hash-key';
     await CacheModel.sync({ force: true });
@@ -32,6 +34,8 @@ describe('Plugin Handler', () => {
   });
 
   afterEach(async () => {
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
     pluginHandler.clearPluginManifestRefreshCache();
     await CacheModel.destroy({ where: {} });
     await AccountDataModel.destroy({ where: {} });
@@ -45,6 +49,19 @@ describe('Plugin Handler', () => {
   });
 
   describe('registerPluginAccount', () => {
+    test('registers and invokes the license endpoint of a local HTTP plugin in development', async () => {
+      process.env.NODE_ENV = 'development';
+      const manifest = { endpointUrl: 'http://localhost:6067/plugin', userRegisterEndpointUrl: 'http://localhost:6067/register', licenseStatusUrl: 'http://localhost:6067/license', tokenSyncUrl: 'http://localhost:6067/token' };
+      axios.get.mockResolvedValueOnce({ data: { platforms: { sample: manifest } } });
+      axios.post.mockResolvedValueOnce({ data: { jwtToken: 'opaque-token' } });
+      await expect(pluginHandler.registerPluginAccount({ pluginId: 'local', pluginName: 'sample', pluginAccess: 'private', ownerRcAccountId: 'local-account', rcAccessToken: 'rc-token', rcAccountId: 'local-account' }))
+        .resolves.toMatchObject({ successful: true });
+      expect(axios.post).toHaveBeenCalledWith(manifest.userRegisterEndpointUrl, { rcAccessToken: 'rc-token', rcAccountId: 'local-account' }, expect.anything());
+      axios.get.mockResolvedValueOnce({ data: { licenseStatus: true } });
+      await expect(pluginHandler.getPluginLicenseStatus({ rcAccountId: 'local-account', pluginId: 'local' })).resolves.toEqual({ licenseStatus: true });
+      expect(axios.get).toHaveBeenLastCalledWith(manifest.licenseStatusUrl, expect.objectContaining({ headers: { Authorization: 'Bearer opaque-token' } }));
+    });
+
     test.each(['endpointUrl', 'userRegisterEndpointUrl', 'licenseStatusUrl', 'tokenSyncUrl'])
       ('rejects a non-public %s before registration transfers credentials', async (field) => {
         const manifest = { endpointUrl: 'https://plugins.example.com/run', userRegisterEndpointUrl: 'https://plugins.example.com/register' };

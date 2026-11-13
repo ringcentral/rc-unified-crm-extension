@@ -13,6 +13,8 @@ tags: [security, regression, verification]
 
 本清单覆盖本轮 Server 修复已识别的兼容性风险。自动化验证代码行为；手测验证实际发布包、网络、凭据、浏览器和第三方服务的组合。所有已识别风险都有验证路径，不代表覆盖所有输入、所有插件实现或未来依赖版本。
 
+本清单中公网 HTTPS、私有地址和危险重定向的拦截验收，要求 **Core 服务设置 `NODE_ENV=production`**。其他值（包括未设置）允许 HTTP 和本地/内网地址，因此本地功能测试通过不能代替生产策略验收。环境值取自 Core 进程，与插件自身的 `NODE_ENV` 无关。开发环境仍检查 URL 格式、HTTP(S) 协议、URL 内嵌凭据及 HTTPS 证书；验证路径为 `packages/core/test/lib/pluginHttp.test.ts`。
+
 在预发布环境使用专用测试账号、CRM 记录和插件。先记录部署源码 SHA、Core 包来源、Node/npm 版本和实际安装依赖。仅看到包版本号不能证明部署包含本轮修复；通过 registry 安装时，还要确认内部镜像已同步所需版本。
 
 每项记录 `PASS / FAIL / BLOCKED / N/A`、环境、部署 SHA、操作、预期与实际结果及脱敏证据。未执行项保持待验证，不能视为通过。N/A 必须注明该环境不使用此功能。存在 FAIL 或必测项 BLOCKED 时，不据此清单宣告可发布。
@@ -50,7 +52,7 @@ tags: [security, regression, verification]
 
 3. 执行 B、C 的真实操作。预期 Core 能直接建立 HTTPS 连接，插件收到请求，证书正常校验。仅 DNS 正确或 `curl` 成功还不能判定通过。
 4. 如果环境依赖 `HTTPS_PROXY`、全局自定义 Agent、mTLS 或只支持 HTTP/2，标为待验证的部署依赖。当前插件 transport 强制直连 HTTP/1 并使用自己的 HTTPS Agent，不继承这些定制。测试发现必须依赖它们时，记录 BLOCKED，交由部署/安全负责人决定兼容方案；不要关闭证书校验来通过测试。
-5. 仅对专用测试插件，把一个已配置服务 URL 改成 HTTP 或 localhost，重新尝试安装/调用。预期拒绝、目标服务未收到请求。恢复公网 HTTPS 配置后重试成功。无需手工重复测试中所有 IP 编码变体。
+5. Core 设置 `NODE_ENV=production` 后，仅对专用测试插件，把一个已配置服务 URL 改成 HTTP 或 localhost，重新尝试安装/调用。预期拒绝、目标服务未收到请求。恢复公网 HTTPS 配置后重试成功。另在 Core 设置 `NODE_ENV=development` 的本地实例中，使用本机 HTTP 插件测试注册、同步/异步调用及许可证；预期可用。无需手工重复测试中所有 IP 编码变体。
 
 如果真实插件使用重定向，还需在 C 中确认业务请求最终成功。301/302/303 会把 POST 改成 GET 并去掉正文；307/308 保留正文。同源认证头保留，跨域跳转可能按原有 Axios/follow-redirects 规则剥离认证头，不能依赖跨域跳转继续携带令牌。
 

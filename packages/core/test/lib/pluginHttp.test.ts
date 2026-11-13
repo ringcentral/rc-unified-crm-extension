@@ -2,6 +2,15 @@ const dns = require('dns');
 const axios = require('axios');
 const nock = require('nock');
 const pluginHttp = require('../../lib/pluginHttp');
+const originalNodeEnv = process.env.NODE_ENV;
+
+afterEach(() => {
+  if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = originalNodeEnv;
+  jest.restoreAllMocks();
+  nock.cleanAll();
+  nock.enableNetConnect();
+});
 
 const blocked = [
   'http://example.com/path', 'ftp://example.com', '/relative', 'https://user:password@example.com',
@@ -17,7 +26,7 @@ const blocked = [
 ];
 
 describe('public HTTPS plugin transport', () => {
-  afterEach(() => { jest.restoreAllMocks(); nock.cleanAll(); nock.enableNetConnect(); });
+  beforeEach(() => { process.env.NODE_ENV = 'production'; });
 
   test.each(blocked)('rejects %s before creating an HTTP request', async (url) => {
     const send = jest.spyOn(axios, 'get').mockResolvedValue({ data: {} });
@@ -248,6 +257,110 @@ describe('public HTTPS plugin transport', () => {
   ])('rejects redirect transport options inconsistent with the checked URL: %p', async (changed) => {
     const options = await connectionOptions();
     expect(() => options.beforeRedirect({ href: 'https://plugins.example.com/path', protocol: 'https:', hostname: 'plugins.example.com', port: 443, ...changed })).toThrow(/public HTTPS/);
+  });
+});
+
+describe('non-production plugin transport', () => {
+  test.each(['development', 'test', 'staging', undefined])('allows local HTTP and private HTTPS when NODE_ENV=%s', async (environment) => {
+    if (environment === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = environment;
+    const send = jest.spyOn(axios, 'post').mockResolvedValue({ data: { ok: true } });
+    for (const url of ['http://localhost:6067/plugin', 'http://127.0.0.1/plugin', 'https://10.0.0.1/plugin']) {
+      await expect(pluginHttp.post(url, { note: 'unchanged' })).resolves.toMatchObject({ data: { ok: true } });
+    }
+    const options = send.mock.calls[0][2] as any;
+    expect(options.httpAgent.options.lookup).toBe(options.lookup);
+    expect(options.httpsAgent.options.lookup).toBe(options.lookup);
+    expect(options.httpsAgent.options.rejectUnauthorized).toBe(true);
+    expect(options).toMatchObject({ proxy: false, auth: null, transport: null });
+  });
+
+  test.each(['production', 'development', 'test', undefined])('always rejects malformed URLs, unsupported protocols and URL credentials with NODE_ENV=%s', async (environment) => {
+    if (environment === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = environment;
+    const send = jest.spyOn(axios, 'get').mockResolvedValue({ data: {} });
+    for (const url of [null, 123, '/relative', 'file:///etc/hosts', 'ftp://localhost', 'http://user:password@localhost', 'https://user:password@example.com']) {
+      await expect(pluginHttp.get(url)).rejects.toMatchObject({ code: 'ERR_PLUGIN_NETWORK_POLICY' });
+    }
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  test('accepts valid mixed public/private DNS records outside production', async () => {
+    process.env.NODE_ENV = 'development';
+    const send = jest.spyOn(axios, 'get').mockResolvedValue({ data: {} });
+    await pluginHttp.get('http://local-plugin.example/path');
+    const options = send.mock.calls[0][1] as any;
+    const records = [{ address: '127.0.0.1', family: 4 }, { address: '8.8.8.8', family: 4 }];
+    jest.spyOn(dns, 'lookup').mockImplementation((_host, _options, callback: any) => callback(null, records));
+    const result = await new Promise(resolve => options.lookup('local-plugin.example', { all: true }, (error, addresses) => resolve({ error, addresses })));
+    expect(result).toEqual({ error: null, addresses: records });
+  });
+
+  test('still rejects malformed DNS records outside production', async () => {
+    process.env.NODE_ENV = 'development';
+    const send = jest.spyOn(axios, 'get').mockResolvedValue({ data: {} });
+    await pluginHttp.get('http://local-plugin.example/path');
+    const options = send.mock.calls[0][1] as any;
+    jest.spyOn(dns, 'lookup').mockImplementation((_host, _options, callback: any) => callback(null, [{ address: 'not-an-address', family: 4 }]));
+    const error = await new Promise<any>(resolve => options.lookup('local-plugin.example', {}, resolve));
+    expect(error.code).toBe('ERR_PLUGIN_NETWORK_POLICY');
+  });
+
+  test('allows HTTPS-to-local-HTTP redirects with the HTTP default port outside production', async () => {
+    process.env.NODE_ENV = 'development';
+    nock.disableNetConnect();
+    const origin = nock('https://plugins.example.com').get('/start').reply(302, '', { Location: 'http://localhost/finish' });
+    const target = nock('http://localhost').get('/finish').reply(200, { ok: true });
+    await expect(pluginHttp.get('https://plugins.example.com/start')).resolves.toMatchObject({ data: { ok: true } });
+    expect(origin.isDone()).toBe(true);
+    expect(target.isDone()).toBe(true);
+  });
+
+  test('retains the captured production policy across DNS lookup and redirects after NODE_ENV changes', async () => {
+    process.env.NODE_ENV = 'production';
+    const send = jest.spyOn(axios, 'get').mockResolvedValue({ data: {} });
+    await pluginHttp.get('https://plugins.example.com/path');
+    const options = send.mock.calls[0][1] as any;
+    process.env.NODE_ENV = 'development';
+    await pluginHttp.get('http://localhost/plugin');
+    const development = send.mock.calls[1][1] as any;
+    expect(development.httpAgent).not.toBe(options.httpAgent);
+    expect(development.httpsAgent).not.toBe(options.httpsAgent);
+    expect(() => options.beforeRedirect({ href: 'http://localhost/next', protocol: 'http:', hostname: 'localhost', port: 80 }))
+      .toThrow(/public HTTPS/);
+    jest.spyOn(dns, 'lookup').mockImplementation((_host, _options, callback: any) => callback(null, [{ address: '127.0.0.1', family: 4 }]));
+    const error = await new Promise<any>(resolve => options.lookup('plugins.example.com', {}, resolve));
+    expect(error.message).toMatch(/public HTTPS/);
+  });
+
+  test('can GET, POST and follow a redirect to a real local HTTP plugin only outside production', async () => {
+    const http = require('http');
+    const requests: string[] = [];
+    const server = http.createServer((req, res) => {
+      requests.push(req.method + ' ' + req.url);
+      if (req.url === '/redirect') { res.writeHead(307, { Location: '/plugin' }); res.end(); return; }
+      const chunks: Buffer[] = [];
+      req.on('data', chunk => chunks.push(chunk));
+      req.on('end', () => {
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ method: req.method, body: Buffer.concat(chunks).toString() }));
+      });
+    });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    nock.enableNetConnect(/127\.0\.0\.1/);
+    const url = `http://127.0.0.1:${server.address().port}`;
+    try {
+      process.env.NODE_ENV = 'production';
+      await expect(pluginHttp.get(url + '/plugin')).rejects.toThrow(/public HTTPS/);
+      expect(requests).toEqual([]);
+      process.env.NODE_ENV = 'development';
+      await expect(pluginHttp.get(url + '/plugin')).resolves.toMatchObject({ data: { method: 'GET', body: '' } });
+      await expect(pluginHttp.post(url + '/redirect', { note: 'unchanged' })).resolves.toMatchObject({ data: { method: 'POST', body: '{"note":"unchanged"}' } });
+      expect(requests).toEqual(['GET /plugin', 'POST /redirect', 'POST /plugin']);
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>(resolve => server.close(resolve));
+    }
   });
 });
 

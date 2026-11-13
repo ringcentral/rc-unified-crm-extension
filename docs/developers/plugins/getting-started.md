@@ -15,13 +15,22 @@ This guide registers a plugin in the Developer Console, scaffolds a plugin serve
 
 - Node.js 20 or newer
 - A RingCentral account for the Developer Console and App Connect extension, with App Connect admin rights for the install step
-- A public tunnel for local testing, such as ngrok
+- A public HTTPS tunnel when the Core server runs in production, or when it cannot reach the local plugin directly
 
 ## Plugin server network policy
 
-Server-to-server plugin URLs MUST use absolute HTTPS URLs without embedded credentials and resolve exclusively to public Internet unicast addresses. This applies to registration, processing, token synchronization and license checks, including endpoints retained in old installation snapshots. Use a public HTTPS tunnel for local development.
+The network policy is selected by the **Core server's** `NODE_ENV`, not the plugin server's environment or catalog visibility:
 
-The transport enforces the policy when connecting and at every redirect. It uses the checked DNS addresses for the connection, supports IPv4 and IPv6, and does not route through ambient HTTP proxies or alternate transports. HTTPS redirect method/body behavior and the HTTP client's existing credential stripping remain intact; callbacks do not restore removed credentials. No new application timeout or port-443-only restriction is imposed.
+| Core environment | Plugin server URLs |
+| --- | --- |
+| Exactly `NODE_ENV=production` | Absolute HTTPS URLs resolving exclusively to public Internet unicast addresses. |
+| Any other value, including `development`, `test`, `staging` or an unset variable | Absolute HTTP or HTTPS URLs; localhost and private-network destinations are allowed for local testing. |
+
+All environments reject malformed URLs, unsupported protocols and embedded URL credentials. HTTPS certificate verification remains enabled. Set `NODE_ENV=production` explicitly in production **before starting Core**; an absent value does not enable production network restrictions. The connector deployment environment template includes this setting.
+
+The same policy applies to registration, processing, token synchronization and license checks, including endpoints retained in old installation snapshots. When both Core and the plugin run locally, start Core with `NODE_ENV=development` and configure the plugin URLs with the local host and port. A production Core still requires a public HTTPS tunnel to reach a developer's plugin. `localhost` always refers to the machine running Core.
+
+Each request retains the selected policy for its connection and redirects. The transport uses the checked DNS addresses for the connection, supports IPv4 and IPv6, and does not route through ambient HTTP proxies or alternate transports. Redirect method/body behavior and the HTTP client's existing credential stripping remain intact; callbacks do not restore removed credentials. No new application timeout or port-443-only restriction is imposed.
 
 `private` and `shared` describe catalog visibility; their server URLs follow the same network policy. Browser pricing, purchase and subscription links keep their separate [licensing URL contract](licensing.md). A rejected snapshot update retains the previous snapshot, and every invocation is checked again.
 
@@ -29,7 +38,7 @@ Verification: `packages/core/test/lib/pluginHttp.test.ts`, `packages/core/test/h
 
 ## 1. Register a plugin profile
 
-Open the [Developer Console](https://appconnect.labs.ringcentral.com/console), create a plugin, and note its secret key from the plugin's **Quick setup** section. Configure the plugin's URLs later, once you have a tunnel URL.
+Open the [Developer Console](https://appconnect.labs.ringcentral.com/console), create a plugin, and note its secret key from the plugin's **Quick setup** section. Configure the plugin's URLs later, once the plugin server is reachable from Core.
 
 ## 2. Scaffold a plugin server
 
@@ -66,7 +75,7 @@ npx @app-connect/cli env --secret-key <your-plugin-secret-key>
 npm run dev
 ```
 
-The plugin template listens on port `6067` by default. Expose it with a tunnel, for example `ngrok http 6067`, then update **all URLs** in the plugin settings in the Developer Console to the tunnel URL.
+The plugin template listens on port `6067` by default. If Core also runs locally with `NODE_ENV=development`, use a local address reachable from Core, such as `http://localhost:6067`, for the configured plugin URLs, retaining each endpoint's path. When Core runs in production or on another machine without direct access, expose the plugin with a public HTTPS tunnel, for example `ngrok http 6067`, and update **all configured URLs** in the Developer Console to its HTTPS address.
 
 !!! note
     The plugin `dev` script rebuilds and starts the server once. Restart it after changing code.
