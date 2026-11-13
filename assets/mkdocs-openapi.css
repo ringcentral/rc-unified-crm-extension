@@ -1,0 +1,137 @@
+:root {
+  /* GET, POST, PUT, and DELETE match the Swagger Petstore defaults. */
+  --api-method-get-color: #61affe;
+  --api-method-post-color: #49cc90;
+  --api-method-put-color: #fca130;
+  --api-method-delete-color: #f93e3e;
+  --api-method-patch-color: #50e3c2;
+  --api-method-head-color: #9012fe;
+  --api-method-options-color: #0d5aa7;
+  --api-method-trace-color: #6b7280;
+  --api-method-text-color: #ffffff;
+}
+
+.md-typeset code.http-method {
+  border: 0;
+  border-radius: 0.25rem;
+  color: var(--api-method-text-color);
+  display: inline-block;
+  font-family: var(--md-code-font-family, monospace);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  min-width: 3.9rem;
+  padding: 0.1rem 0.45rem;
+  text-align: center;
+}
+
+.http-method.get { background: var(--api-method-get-color); }
+.http-method.post { background: var(--api-method-post-color); }
+.http-method.put { background: var(--api-method-put-color); }
+.http-method.delete { background: var(--api-method-delete-color); }
+.http-method.patch { background: var(--api-method-patch-color); }
+.http-method.head { background: var(--api-method-head-color); }
+.http-method.options { background: var(--api-method-options-color); }
+.http-method.trace { background: var(--api-method-trace-color); }
+
+.operation-path {
+  font-size: 0.82rem;
+  margin-left: 0.35rem;
+  word-break: break-word;
+}
+
+/*
+ * MkDocs nav labels are plain text, so generated filenames expose the method
+ * as "operation-{method}-". The pseudo-element adds the visual badge without
+ * requiring HTML in mkdocs.yml.
+ */
+.md-nav--primary .md-nav__link[href*="operation-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-"])
+  > label.md-nav__link::before {
+  border-radius: 0.2rem;
+  color: var(--api-method-text-color);
+  flex: 0 0 2.35rem;
+  font-family: var(--md-code-font-family, monospace);
+  font-size: 0.44rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  margin-right: 0.3rem;
+  padding: 0.03rem 0.1rem;
+  text-align: center;
+}
+
+.md-nav--primary .md-nav__link[href*="operation-get-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-get-"])
+  > label.md-nav__link::before {
+  background: var(--api-method-get-color);
+  content: "GET";
+}
+
+.md-nav--primary .md-nav__link[href*="operation-post-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-post-"])
+  > label.md-nav__link::before {
+  background: var(--api-method-post-color);
+  content: "POST";
+}
+
+.md-nav--primary .md-nav__link[href*="operation-put-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-put-"])
+  > label.md-nav__link::before {
+  background: var(--api-method-put-color);
+  content: "PUT";
+}
+
+.md-nav--primary .md-nav__link[href*="operation-delete-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-delete-"])
+  > label.md-nav__link::before {
+  background: var(--api-method-delete-color);
+  content: "DELETE";
+}
+
+.md-nav--primary .md-nav__link[href*="operation-patch-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-patch-"])
+  > label.md-nav__link::before {
+  background: var(--api-method-patch-color);
+  content: "PATCH";
+}
+
+.md-nav--primary .md-nav__link[href*="operation-head-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-head-"])
+  > label.md-nav__link::before {
+  background: var(--api-method-head-color);
+  content: "HEAD";
+}
+
+.md-nav--primary .md-nav__link[href*="operation-options-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-options-"])
+  > label.md-nav__link::before {
+  background: var(--api-method-options-color);
+  content: "OPTIONS";
+}
+
+.md-nav--primary .md-nav__link[href*="operation-trace-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-trace-"])
+  > label.md-nav__link::before {
+  background: var(--api-method-trace-color);
+  content: "TRACE";
+}
+
+
+/* Hide HTTP method badges in generated primary navigation. */
+.md-nav--primary .md-nav__link[href*="operation-"]::before,
+.md-nav--primary
+  .md-nav__item--active:has(> a[href*="operation-"])
+  > label.md-nav__link::before {
+  display: none;
+}
