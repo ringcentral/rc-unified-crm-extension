@@ -96,7 +96,7 @@
     },
     {
       "name": "Google Integrations",
-      "description": "Bundled legacy Google Sheets and Google Drive flows; these routes are omitted from the public connector reference."
+      "description": "Bundled legacy Google Sheets flows; these routes are omitted from the public connector reference."
     },
     {
       "name": "Pipedrive",
@@ -4098,162 +4098,6 @@
         "description": "Returns account-level Google Sheets configuration after validating the App Connect CRM user and RingCentral administrator token."
       }
     },
-    "/googleDrive/oauthUrl": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Get Google Drive OAuth URL",
-        "operationId": "getGoogleDriveOauthUrl",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "pluginId",
-            "in": "query",
-            "required": false,
-            "description": "Plugin identifier included in OAuth state.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "description": "Returns the bundled Google Drive plugin's provider authorization URL for the App Connect user. pluginId is preserved in OAuth state for the browser callback."
-      }
-    },
-    "/googleDrive/oauthCallback": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Google Drive OAuth callback",
-        "operationId": "getGoogleDriveOauthCallback",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "description": "The user JWT is missing, malformed, or expired. Re-authorize the CRM connection to obtain a new token.",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "callbackUri",
-            "in": "query",
-            "required": true,
-            "description": "Original OAuth callback URI containing encoded state.",
-            "schema": {
-              "type": "string",
-              "format": "uri"
-            }
-          },
-          {
-            "name": "code",
-            "in": "query",
-            "required": true,
-            "description": "Google OAuth authorization code.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "scope",
-            "in": "query",
-            "required": false,
-            "description": "Granted Google OAuth scopes.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "description": "Completes the bundled Google Drive OAuth flow by reconstructing the provider callback URI, resolving the App Connect user from state, storing Google credentials, and returning the plugin identifier."
-      }
-    },
-    "/googleDrive/checkAuth": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Check Google Drive auth state",
-        "operationId": "getGoogleDriveCheckAuth",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "description": "The user JWT is missing, malformed, or expired. Re-authorize the CRM connection to obtain a new token.",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": []
-          }
-        ],
-        "description": "Checks whether the bundled Google Drive plugin has stored authorization for the App Connect user identified by the legacy session token."
-      }
-    },
-    "/googleDrive/logout": {
-      "post": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Disconnect Google Drive",
-        "operationId": "postGoogleDriveLogout",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "description": "The user JWT is missing, malformed, or expired. Re-authorize the CRM connection to obtain a new token.",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "$ref": "#/components/requestBodies/GoogleDriveLogout"
-        },
-        "description": "Disconnects the bundled Google Drive plugin user identified by the App Connect CRM-session JWT in the body. The token is sensitive and must not be logged."
-      }
-    },
     "/pipedrive-redirect": {
       "get": {
         "tags": [
@@ -5410,29 +5254,6 @@
           }
         },
         "description": "Tool name and arguments authorized by the signed widget-session token."
-      },
-      "GoogleDriveLogout": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "required": [
-                "jwtToken"
-              ],
-              "properties": {
-                "jwtToken": {
-                  "type": "string",
-                  "description": "Sensitive App Connect CRM-session JWT. It is not a RingCentral OAuth token.",
-                  "format": "password",
-                  "writeOnly": true
-                }
-              },
-              "additionalProperties": false
-            }
-          }
-        },
-        "description": "Legacy bundled Google Drive logout body containing an App Connect CRM-session JWT."
       },
       "PluginRegister": {
         "x-app-connect-generated-contract": true,

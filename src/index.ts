@@ -20,7 +20,6 @@ const vinsolutions = /** @type {any} */ (require('./connectors/vinsolutions'));
 const googleSheetsExtra = /** @type {any} */ (require('./connectors/googleSheets/extra'));
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const adminCore = /** @type {any} */ (require('@app-connect/core/handlers/admin'));
-const googleDrivePlugin = /** @type {any} */ (require('./plugins/googleDrivePlugin'));
 const allCapPlugin = /** @type {any} */ (require('./plugins/allCapPlugin'));
 const supportAuth = /** @type {any} */ (require('./support/auth'));
 const supportCrm = /** @type {any} */ (require('./support/crm'));
@@ -60,18 +59,6 @@ connectorRegistry.registerConnector('proxy', proxyConnector);
 
 // Create Express app with core functionality
 const app = createCoreApp();
-
-const { PluginUserModel } = /** @type {any} */ (require('./plugins/models/pluginUserModel'));
-const { GoogleDriveFileModel } = /** @type {any} */ (require('./plugins/models/googleDriveFileModel'));
-async function initDB() {
-    if (!process.env.DISABLE_SYNC_DB_TABLE) {
-        console.log('creating db tables if not exist...');
-        await PluginUserModel.sync();
-        await GoogleDriveFileModel.sync();
-    }
-}
-
-initDB();
 
 // Add custom routes for specific connectors
 // Google Sheets specific routes
@@ -356,20 +343,6 @@ app.get('/plugin/licenseStatus/:pluginId', async function (req, res) {
         }
         const pluginId = req.params.pluginId;
         switch (pluginId) {
-            case 'googleDrive':
-                const { isSuccessful } = await googleDrivePlugin.checkAuth({ userId });
-                const errorMessage = [
-                    'License is invalid'
-                ]
-                if (!isSuccessful) {
-                    errorMessage.push('Google Drive user is not authorized')
-                }
-                res.status(200).send({
-                    licenseStatus: false,
-                    errorMessage: errorMessage.join(' AND '),
-                    licenseStatusDescription: 'Invalid. Please go [here](https://www.google.com)'
-                });
-                break;
             case 'allCap':
                 res.status(200).send({
                     licenseStatus: true,
@@ -402,9 +375,6 @@ app.post('/plugin/:pluginId', async function (req, res) {
         }
         let result;
         switch (req.params.pluginId) {
-            case 'googleDrive':
-                result = googleDrivePlugin.uploadToGoogleDrive({ user, data: req.body.data });
-                break;
             case 'all_cap':
                 result = allCapPlugin.allCap({ user, data: req.body.data });
                 break;
@@ -414,94 +384,6 @@ app.post('/plugin/:pluginId', async function (req, res) {
         }
 
         res.status(200).json(result);
-    }
-    catch (e) {
-        console.log(e.stack);
-        res.status(400).send();
-    }
-});
-
-app.get('/googleDrive/oauthUrl', async function (req, res) {
-    try {
-        const jwtToken = req.query.jwtToken;
-        if (!jwtToken) {
-            res.status(400).send('JWT token is required');
-            return;
-        }
-        const result = await googleDrivePlugin.getOAuthUrl({ jwtToken, pluginId: req.query.pluginId });
-        res.status(200).send(result);
-    }
-    catch (e) {
-        console.log(e.stack);
-        res.status(400).send();
-    }
-});
-
-app.get('/googleDrive/oauthCallback', async function (req, res) {
-    try {
-        const state = req.query.callbackUri.split('state=')[1];
-        // add params back to callbackUri
-        const callbackUri = `${req.query.callbackUri}&code=${req.query.code}&scope=${req.query.scope}`;
-        const stateJson = JSON.parse(decodeURIComponent(state));
-        const jwtToken = stateJson.jwtToken;
-        const pluginId = stateJson.pluginId;
-        const decodedToken = jwt.decodeJwt(jwtToken);
-        if (!decodedToken?.id) {
-            res.status(401).send('Invalid or expired token');
-            return;
-        }
-        const { id: userId, platform } = decodedToken;
-        const user = await UserModel.findByPk(userId);
-        if (!user) {
-            res.status(400).send('User not found');
-            return;
-        }
-        await googleDrivePlugin.onOAuthCallback({ user, callbackUri });
-        res.status(200).send({ pluginId });
-    }
-    catch (e) {
-        console.log(e.stack);
-        res.status(400).send();
-    }
-});
-
-app.get('/googleDrive/checkAuth', async function (req, res) {
-    try {
-        const jwtToken = req.query.jwtToken;
-        if (!jwtToken) {
-            res.status(400).send('JWT token is required');
-            return;
-        }
-        const decodedToken = jwt.decodeJwt(jwtToken);
-        if (!decodedToken?.id) {
-            res.status(401).send('Invalid or expired token');
-            return;
-        }
-        const { id: userId, platform } = decodedToken;
-        const result = await googleDrivePlugin.checkAuth({ userId });
-        res.status(200).send(result);
-    }
-    catch (e) {
-        console.log(e.stack);
-        res.status(400).send();
-    }
-});
-
-app.post('/googleDrive/logout', async function (req, res) {
-    try {
-        const jwtToken = req.body.jwtToken;
-        if (!jwtToken) {
-            res.status(400).send('JWT token is required');
-            return;
-        }
-        const decodedToken = jwt.decodeJwt(jwtToken);
-        if (!decodedToken?.id) {
-            res.status(401).send('Invalid or expired token');
-            return;
-        }
-        const { id: userId, platform } = decodedToken;
-        const result = await googleDrivePlugin.logout({ userId });
-        res.status(200).send(result);
     }
     catch (e) {
         console.log(e.stack);

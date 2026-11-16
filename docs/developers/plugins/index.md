@@ -21,6 +21,12 @@ Plugins run during call, SMS, or fax logging. They can transform logging payload
 | [Synchronous](endpoints.md#synchronous-plugins) | Inline, before the connector saves the activity. | Fast, deterministic payload transformations such as redaction or enrichment. |
 | [Asynchronous](endpoints.md#asynchronous-plugins) | After the connector save succeeds, in the background. | Side effects or delayed enrichment such as uploading recordings or generating summaries. |
 
+## Bundled examples
+
+The server retains the all-cap synchronous example. The unused Google Drive recording-upload example, its OAuth endpoints, and its plugin-specific database models have been removed. Google Sheets connector functionality continues to use its own Google authorization and Drive API integration.
+
+Removing the example does not drop existing `plugin_users` or `google_drive_files` tables or delete their data. Any cleanup of those tables is a separate operator action. Verification: `tests/pluginRoutes.int.test.ts` covers unavailable routes and rejected plugin dispatch; `tests/e2e/pluginServices.test.ts` covers the retained all-cap example.
+
 ## Documentation map
 
 | Page | What it covers |

@@ -31,7 +31,7 @@ tags: [security, regression, verification]
 | 同步/异步 call、SMS、fax，令牌轮换及失败状态 | `packages/core/test/handlers/log.test.ts`、`tests/pluginRoutes.int.test.ts` | C：实际 CRM、插件、回调和凭据 |
 | MinIO 显式配置、延迟初始化、存储失败返回、签名参数 | `packages/core/test/lib/s3ErrorLogConfig.test.ts`、`packages/core/test/lib/s3ErrorLogReport.test.ts`、`packages/core/test/routes/jsonResponseSecurity.test.ts` | D：真实 PUT、IAM、浏览器 CORS |
 | 依赖兼容、SQLite/Sequelize UUID、Google multipart、Express 行为 | `tests/dependencySecurity.unit.test.ts` | E：使用中的真实 CRM/Google 流程 |
-| Google Drive 输入校验与失败状态 | `tests/googleDrivePlugin.unit.test.ts` | E：实际录音文件上传（如使用） |
+| 移除旧 Google Drive 示例后的路由与其他插件 | `tests/pluginRoutes.int.test.ts`、`tests/e2e/pluginServices.test.ts` | F：新部署产物与 Checkmarx 复扫 |
 | 日期格式和偏移量、JSON MIME/正文与 debug 响应 | `packages/core/test/appointmentDateTimeContract.test.ts`、`packages/core/test/routes/jsonResponseSecurity.test.ts` | E：日期显示、现有客户端消费 |
 | Google Sheets picker 的脚本嵌入与参数编码 | `tests/googleSheetsRoutes.int.test.ts` | E：真实 OAuth 与文件选择器 |
 | 加密请求 ID 与 widget 产物一致性 | `packages/core/test/lib/debugTracer.test.ts`、`packages/core/test/mcp/uiBridgeEntropy.test.ts`、`tests/compiledWidgetAsset.unit.test.ts` | E：自定义日志解析器；widget 实际加载 |
@@ -100,7 +100,6 @@ tags: [security, regression, verification]
 ## E. 使用中的客户端与连接器
 
 - Google Sheets：用测试 Google 账号完成 OAuth，打开文件选择器，选表并保存，刷新后仍能正常读取。包含空格、`&` 或非 ASCII 字符的文件名可用于兼容性检查；不要用真实用户数据做注入实验。
-- Google Drive 录音：如果启用，使用已有可工作的业务入口上传一份测试录音，确认正确文件和 CRM 关联。输入验证的单测不证明现有业务入口本身没有其他问题；若失败，保留脱敏证据，并与上一部署比较后归因。
 - 日期与 JSON：从现有客户端创建、修改带时区的测试预约，刷新后核对时间；打开一次 debug 流程确认客户端能处理 JSON 包装及错误状态。
 - Widget：刷新实际 MCP 会话/页面，确认加载本轮构建产物，文字、数学公式和工具交互正常。自动测试已验证两处编译 widget 与源码产物一致；浏览器缓存和部署路径仍需检查。
 - 自定义日志解析器：如果依赖 request ID 格式，触发一次 debug 请求，确认能按完整 ID 关联请求。随机后缀已变为 32 位十六进制；没有自定义解析器可记 N/A。
