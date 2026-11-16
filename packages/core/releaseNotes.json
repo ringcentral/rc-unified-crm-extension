@@ -1,4 +1,72 @@
 {
+    "2.1.6": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Call history and standalone call notes use the current CRM sign-in token after reauthorization."
+            },
+            {
+                "type": "Fix",
+                "description": "Opening the manual logging form during a connected or held call no longer waits for a completed call record."
+            },
+            {
+                "type": "Fix",
+                "description": "Automatically created placeholder contacts open when the open-contact-after-creation setting is enabled."
+            },
+            {
+                "type": "Fix",
+                "description": "Installed plugin lists continue to load when a previously installed plugin is no longer available."
+            },
+            {
+                "type": "Fix",
+                "description": "Notes and loading overlays remain visible above the popup dialer."
+            },
+            {
+                "type": "Fix",
+                "description": "Asynchronous plugin callbacks avoid duplicate processing and detect failed CRM updates."
+            },
+            {
+                "type": "Better",
+                "description": "Improved security for plugin connections, server responses, and server dependencies."
+            },
+            {
+                "type": "New",
+                "description": "RingCX wrap-up displays the CRM call logging form without leaving the wrap-up page and reports save failures."
+            }
+        ]
+    },
+    "2.0.6": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Call history and standalone call notes use the current CRM sign-in token after reauthorization."
+            },
+            {
+                "type": "Fix",
+                "description": "Opening the manual logging form during a connected or held call no longer waits for a completed call record."
+            },
+            {
+                "type": "Fix",
+                "description": "Automatically created placeholder contacts open when the open-contact-after-creation setting is enabled."
+            },
+            {
+                "type": "Fix",
+                "description": "Installed plugin lists continue to load when a previously installed plugin is no longer available."
+            },
+            {
+                "type": "Fix",
+                "description": "Notes and loading overlays remain visible above the popup dialer."
+            },
+            {
+                "type": "Fix",
+                "description": "Asynchronous plugin callbacks avoid duplicate processing and detect failed CRM updates."
+            },
+            {
+                "type": "Better",
+                "description": "Improved security for plugin connections, server responses, and server dependencies."
+            }
+        ]
+    },
     "2.1.5": {
         "global": [
             {

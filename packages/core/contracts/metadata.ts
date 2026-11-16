@@ -82,7 +82,7 @@ export type UserInfoHashResponse = z.input<typeof UserInfoHashResponseSchema>;
 export type DebugReportUrlResponse = z.input<typeof DebugReportUrlResponseSchema>;
 
 export const serverVersionInfoResponseExample = {
-  version: '2.0.5',
+  version: '2.0.6',
 } satisfies ServerVersionInfoResponse;
 
 export const healthResponseExample = 'OK' satisfies HealthResponse;

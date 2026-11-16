@@ -103,7 +103,7 @@ Rules enforced by core:
 
 ## Example
 
-The Clio connector (`src/connectors/clio/index.ts`, `getContactWidget` and `buildContactWidget`) builds each widget from the cached contact: a heading, a one-line summary (type, created and updated dates), an **Open in Clio** button and the matters list, each matter linking to its Clio page. It makes no extra Clio request.
+The Clio connector (`src/connectors/clio/index.ts`, `getContactWidget` and `buildContactWidget`) contains an example built from the cached contact: a heading, a one-line summary (type, created and updated dates), an **Open in Clio** button and the matters list, each matter linking to its Clio page. It makes no extra Clio request. The connector currently does not export `getContactWidget`, so interface discovery reports it as unavailable and the beta client does not show the Clio contact side panel.
 
 ## Reference
 

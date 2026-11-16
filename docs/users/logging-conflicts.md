@@ -59,6 +59,8 @@ To help users maximize the efficacy of automated call logging and to log as many
 
 For example, when a contact cannot be found, users can elect to have App Connect create a contact automatically. When doing so a user selects the default name and contact type (if applicable) of the contact that will be created. 
 
+Automatically created placeholder contacts also open in a CRM browser tab when the open-contact-after-creation setting is enabled.
+
 When multiple contacts are matched, users can select a policy by which one of those contacts will be selected automatically. We currently support the following policies:
 
 * Select the last updated contact record

@@ -56,6 +56,10 @@ While a call is active, click the "Notes" icon found in the lower right-hand cor
   <figcaption>Users can take notes during a phone call that can later be logged into a CRM.</figcaption>
 </figure>
 
+## RingCX wrap-up (beta)
+
+Starting with beta 2.1.6, the RingCX wrap-up page can display the CRM call logging form directly. It prepares a create or edit form without navigating to the separate log page and shows an error if saving fails. When contact matching fails or extension-number logging is unavailable, the CRM section displays the reason instead of a form.
+
 ## Controlling what information gets logged
 
 There is a lot of potential information about a call that can be logged. Depending upon your needs you may wish to modify what information is summarized and displayed in the logged call's record. Below is a list of the data available to be logged:
