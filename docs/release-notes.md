@@ -2,25 +2,18 @@
 
 ## 2.1.6
 
-- Fix: Call history and standalone call notes use the current CRM sign-in token after reauthorization.
 - Fix: Opening the manual logging form during a connected or held call no longer waits for a completed call record.
 - Fix: Automatically created placeholder contacts open when the open-contact-after-creation setting is enabled.
-- Fix: Installed plugin lists continue to load when a previously installed plugin is no longer available.
-- Fix: Notes and loading overlays remain visible above the popup dialer.
 - Fix: Asynchronous plugin callbacks avoid duplicate processing and detect failed CRM updates.
 - Better: Improved security for plugin connections, server responses, and server dependencies.
 - New: RingCX wrap-up displays the CRM call logging form without leaving the wrap-up page and reports save failures.
 - Fix: Pipedrive uses the configured activity type even when its saved value differs in capitalization or surrounding whitespace.
 - Fix: Google Sheets file pickers safely handle special characters in authorization values.
-- Fix: Unavailable Clio contact widgets no longer appear in the phone's side panel.
 
 ## 2.0.6
 
-- Fix: Call history and standalone call notes use the current CRM sign-in token after reauthorization.
 - Fix: Opening the manual logging form during a connected or held call no longer waits for a completed call record.
 - Fix: Automatically created placeholder contacts open when the open-contact-after-creation setting is enabled.
-- Fix: Installed plugin lists continue to load when a previously installed plugin is no longer available.
-- Fix: Notes and loading overlays remain visible above the popup dialer.
 - Fix: Asynchronous plugin callbacks avoid duplicate processing and detect failed CRM updates.
 - Better: Improved security for plugin connections, server responses, and server dependencies.
 - Fix: Pipedrive uses the configured activity type even when its saved value differs in capitalization or surrounding whitespace.
