@@ -43,6 +43,6 @@ __pycache__/
 venv/
 /.npmrc
 
-# Repository-local dependency snapshots; keep UI and generated application locks trackable.
-/package-lock.json
+# The root workspace lock is committed so CI can use `npm ci`; the repository template's
+# development lock stays local, and generated applications create their own lock.
 /packages/template/package-lock.json

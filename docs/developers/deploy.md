@@ -4,7 +4,7 @@ Deploy the connector server anywhere that can run Node.js and expose HTTPS. The 
 
 ## Local Development
 
-Install dependencies with `npm install` before building this repository. Its root lock is generated locally for the configured registry; the repository template also does not ship a development lock. Generated applications create their own lock during installation and may commit that application lock. The independent MCP UI retains its committed lock and uses `npm ci`.
+Install dependencies with `npm ci` in CI, or `npm install` locally when you intend to change dependencies, before building this repository. The root workspace lock is committed; `.npmrc` sets `omit-lockfile-registry-resolved=true` so it does not embed a registry URL. The repository template does not ship a development lock. Generated applications create their own lock during installation and may commit that application lock. The independent MCP UI retains its committed lock and uses `npm ci`.
 
 Run the template server locally:
 

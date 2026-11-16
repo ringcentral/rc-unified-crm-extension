@@ -22,7 +22,7 @@ This project is `rc-unified-crm-extension/`. It contains the root App Connect Se
 - If no focused test exists for changed behavior, add or update one in `packages/core/test/` or `tests/`, unless the behavior is explicitly documented as not testable in the final summary.
 - Mock external services with Nock, Jest mocks, local SQLite, local DynamoDB, or existing test fixtures. Do not call live RingCentral, CRM, AWS, analytics, or Customer.io services from tests.
 - Keep coverage stable or improving for changed areas. CI runs `npm run test-coverage`; do not claim CI-equivalent confidence unless the local equivalent passed or the reason for skipping is stated.
-- Root `package-lock.json` is intentionally ignored because developers may use environment-specific registries; use `npm.cmd install` and do not commit the generated lockfile.
+- Root `package-lock.json` is committed so CI (Jenkins) can use `npm ci`. `.npmrc` sets `omit-lockfile-registry-resolved=true`, so the lock must not embed environment-specific registry URLs; verify with `grep -i nexus package-lock.json` before committing. Do not commit `packages/template/package-lock.json`.
 - Final summaries must list the exact verification commands run and any skipped commands with the reason.
 
 ## MCP Changes

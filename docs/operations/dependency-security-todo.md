@@ -12,15 +12,17 @@ tags: [security, dependencies, dependabot]
 
 ## Purpose
 
-This document tracks dependency migrations and the evidence required to verify them. Historical root/template lock snapshots are not the current installation graph; reassess remaining advisories against freshly resolved workspace and production-artifact graphs. The standalone MCP UI lock remains versioned.
+This document tracks dependency migrations and the evidence required to verify them. The root workspace lock and the standalone MCP UI lock are versioned; the repository template's development lock is not. Reassess remaining advisories against the committed root lock and the production-artifact graph, and do not reuse advisory counts from earlier lock snapshots as current results.
 
 These items require parent-package or workflow migrations. They MUST NOT be closed with untested major-version overrides because the affected packages participate in deployment, archive extraction, native module installation, and developer tunneling.
 
 ## Checkmarx follow-up
 
-The root workspace lock and the repository template's development lock MUST remain local, following `AGENTS.md`. The root `.gitignore` excludes only those two repository paths; it MUST NOT exclude the standalone UI lock or force generated applications to ignore their own locks. Verification: `git check-ignore --no-index` for all three paths and `tests/cliTemplateSecurity.unit.test.ts` for generated-project behavior.
+The root workspace lock is committed so CI can install with `npm ci` and so scanners see the exact resolved graph; the repository template's development lock MUST remain local, following `AGENTS.md`. The root `.gitignore` excludes only the template lock; it MUST NOT exclude the root lock or the standalone UI lock, or force generated applications to ignore their own locks. Verification: `git check-ignore --no-index` for all three paths and `tests/cliTemplateSecurity.unit.test.ts` for generated-project behavior.
 
-SCA inputs MUST retain the generated lock from the verified installation, even though that lock is not committed. Keep the source revision, Node/npm versions, registry identity, resolved dependency output, and production-artifact lock or SBOM together. A source-only archive without these generated records does not establish the deployed graph. Install before building; existing root builders copy the generated local lock into their artifact, and the production install updates that artifact's graph. The template builder copies an application lock when present and also supports a repository workspace without its own nested lock. Verification: `tests/serverlessInstallFailure.unit.test.ts`, a fresh root install, and dependency inspection in the built artifact.
+When regenerating the root lock against the internal Nexus mirror, the mirror may lag the public registry for some `@aws-sdk/*` packages, so a plain `npm install` can fail with `ETARGET`. In that case resolve with `npm install --package-lock-only --ignore-scripts --before=<timestamp>`, choosing a timestamp at which every required package exists in the mirror, in a clean directory containing only the manifests (a populated `node_modules` produces a lock without `integrity` values). Keep `omit-lockfile-registry-resolved=true`, confirm the lock contains no mirror host names and has `integrity` entries, and confirm `npm ci --dry-run` succeeds against the mirror. Re-resolve with a newer timestamp once the mirror catches up.
+
+SCA inputs MUST retain the lock from the verified installation: the committed root lock, plus the production-artifact lock generated during the build. Keep the source revision, Node/npm versions, registry identity, resolved dependency output, and production-artifact lock or SBOM together. A source-only archive without these generated records does not establish the deployed graph. Install before building; existing root builders copy the generated local lock into their artifact, and the production install updates that artifact's graph. The template builder copies an application lock when present and also supports a repository workspace without its own nested lock. Verification: `tests/serverlessInstallFailure.unit.test.ts`, a fresh root install, and dependency inspection in the built artifact.
 
 Object API responses MUST retain their JSON data and MIME type, including debug envelopes; do not HTML-escape CRM fields to silence a reflected-XSS query. Verification: `packages/core/test/routes/jsonResponseSecurity.test.ts` and `tests/pluginRoutes.int.test.ts`.
 
@@ -127,14 +129,14 @@ Until the migrations are complete:
 
 ## Verification
 
-Resolve the root workspace with `npm install` and inspect its generated lock and `npm ls --all --json` output. Build the production artifact and inspect its post-install lock and production dependency output separately. The standalone UI uses its committed lock with `npm ci`. Historical advisory counts from earlier root/template snapshots MUST NOT be reported as current installation or deployment results.
+Install the root workspace with `npm ci` and inspect the committed lock and `npm ls --all --json` output. Build the production artifact and inspect its post-install lock and production dependency output separately. The standalone UI uses its committed lock with `npm ci`. Historical advisory counts from earlier root/template snapshots MUST NOT be reported as current installation or deployment results.
 
 For each future migration:
 
-1. Run `npm install` in a clean root workspace with the supported Node version and registry; run `npm ci` in the standalone UI. Generated applications resolve and retain their own root locks.
+1. Run `npm ci` in a clean root workspace with the supported Node version and registry; run `npm ci` in the standalone UI. Generated applications resolve and retain their own root locks.
 2. Run `npm run typecheck`, `npm run typecheck:core`, `npm test`, `npm run test-coverage`, `npm run test:e2e`, `npm run lint:openapi`, and `npm run typecheck:contracts`.
 3. Run the MCP UI build and tests.
-4. Scan the generated workspace/artifact locks and committed UI lock, and read back the current Checkmarx and private Dependabot reports. Keep generated scan inputs as build evidence rather than committing environment-specific development locks.
+4. Scan the committed root and UI locks and the generated artifact lock, and read back the current Checkmarx and private Dependabot reports. Keep the scan inputs as build evidence.
 
 Verification: Missing — authenticated readback of the private Dependabot alert page is still required after these migrations.
 
