@@ -10,6 +10,7 @@ const { getMostRecentDate } = /** @type {any} */ (require('@app-connect/core/lib
 const { encode, decoded } = /** @type {any} */ (require('@app-connect/core/lib/encode'));
 const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
 const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
+const { findMappedCrmUserIdBySubmission } = /** @type {any} */ (require('@app-connect/core/lib/userMapping'));
 const { Lock } = /** @type {any} */ (require('@app-connect/core/models/dynamo/lockSchema'));
 const { getAccountData } = /** @type {any} */ (require('@app-connect/core/lib/accountData'));
 const {
@@ -1215,7 +1216,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     if (additionalSubmission?.isAssignedToUser) {
         if (!assigneeId) {
             const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-            assigneeId = adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+            assigneeId = findMappedCrmUserIdBySubmission(adminConfig?.userMappings, additionalSubmission);
         }
 
         if (!assigneeId && additionalSubmission.adminAssignedUserToken) {
@@ -1345,7 +1346,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
         const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-        assigneeId = adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+        assigneeId = findMappedCrmUserIdBySubmission(adminConfig?.userMappings, additionalSubmission);
     }
 
 

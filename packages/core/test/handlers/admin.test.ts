@@ -696,6 +696,103 @@ describe('Admin Handler', () => {
       expect(result).toHaveLength(1);
       expect(result[0].rcUser[0].extensionId).toBe('ext-existing');
     });
+
+    describe('RingCX agent IDs', () => {
+      const user = {
+        id: 'agent-mapping-user',
+        platform: 'testCRM',
+        accessToken: 'token',
+        platformAdditionalInfo: {}
+      };
+
+      function mockCrmUsers(crmUsers) {
+        connectorRegistry.getConnector.mockReturnValue({
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('base64'),
+          getUserList: jest.fn().mockResolvedValue(crmUsers)
+        });
+      }
+
+      test('returns discovered agent IDs on rcUser and stores them on new mappings', async () => {
+        await AdminConfigModel.create({ id: 'hashed-agent-new', userMappings: [] });
+        mockCrmUsers([
+          { id: 'crm-1', name: 'John Doe', email: 'john@example.com' },
+          { id: 'crm-2', name: 'Bob Wilson', email: 'bob@example.com' }
+        ]);
+
+        const result = await adminHandler.getUserMapping({
+          user,
+          hashedRcAccountId: 'hashed-agent-new',
+          rcExtensionList: [
+            { id: 'ext-1', name: 'John Doe', email: 'john@example.com', agentIds: [9001, '9002', '9001'] },
+            { id: 'ext-2', name: 'Bob Wilson', email: 'bob@example.com', agentIds: [] }
+          ]
+        });
+
+        expect(result.find(m => m.crmUser.id === 'crm-1').rcUser[0].agentIds).toEqual(['9001', '9002']);
+        expect(result.find(m => m.crmUser.id === 'crm-2').rcUser[0].agentIds).toEqual([]);
+        const persistedConfig = await AdminConfigModel.findByPk('hashed-agent-new');
+        expect(persistedConfig.userMappings).toEqual([
+          { crmUserId: 'crm-1', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': ['9001', '9002'] } },
+          { crmUserId: 'crm-2', rcExtensionId: ['ext-2'] }
+        ]);
+      });
+
+      test('keeps stored agent IDs for existing mappings when the extension list has no agentIds', async () => {
+        await AdminConfigModel.create({
+          id: 'hashed-agent-stored',
+          userMappings: [
+            { crmUserId: 'crm-1', rcExtensionId: ['ext-1', 'ext-2'], rcxAgentIds: { 'ext-1': ['9001'] } }
+          ]
+        });
+        mockCrmUsers([{ id: 'crm-1', name: 'John Doe', email: 'john@example.com' }]);
+
+        const result = await adminHandler.getUserMapping({
+          user,
+          hashedRcAccountId: 'hashed-agent-stored',
+          rcExtensionList: [
+            { id: 'ext-1', name: 'John Doe', email: 'john@example.com' },
+            { id: 'ext-2', name: 'John Desk', email: 'desk@example.com' }
+          ]
+        });
+
+        expect(result[0].rcUser.map(rcUser => rcUser.agentIds)).toEqual([['9001'], []]);
+      });
+
+      test('prefers discovered agent IDs over stored agent IDs for existing mappings', async () => {
+        await AdminConfigModel.create({
+          id: 'hashed-agent-discovered',
+          userMappings: [
+            { crmUserId: 'crm-1', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': ['9001'] } }
+          ]
+        });
+        mockCrmUsers([{ id: 'crm-1', name: 'John Doe', email: 'john@example.com' }]);
+
+        const result = await adminHandler.getUserMapping({
+          user,
+          hashedRcAccountId: 'hashed-agent-discovered',
+          rcExtensionList: [{ id: 'ext-1', name: 'John Doe', email: 'john@example.com', agentIds: ['9005'] }]
+        });
+
+        expect(result[0].rcUser[0].agentIds).toEqual(['9005']);
+      });
+
+      test('reinitializeUserMapping stores discovered agent IDs', async () => {
+        mockCrmUsers([{ id: 'crm-1', name: 'John Doe', email: 'john@example.com' }]);
+
+        const result = await adminHandler.reinitializeUserMapping({
+          user,
+          hashedRcAccountId: 'hashed-agent-reinit',
+          rcExtensionList: [{ id: 'ext-1', name: 'John Doe', email: 'john@example.com', agentIds: ['9001'] }]
+        });
+
+        expect(result[0].rcUser[0].agentIds).toEqual(['9001']);
+        const persistedConfig = await AdminConfigModel.findByPk('hashed-agent-reinit');
+        expect(persistedConfig.userMappings).toEqual([
+          { crmUserId: 'crm-1', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': ['9001'] } }
+        ]);
+      });
+    });
   });
 
   describe('reports and mapping branch coverage', () => {

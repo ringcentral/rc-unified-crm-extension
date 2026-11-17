@@ -8,6 +8,7 @@ const { parsePhoneNumber } = /** @type {any} */ (require('awesome-phonenumber'))
 const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
 const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
 const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
+const { findMappedCrmUserIdBySubmission } = /** @type {any} */ (require('@app-connect/core/lib/userMapping'));
 const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/lib/errorHandler'));
@@ -565,7 +566,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
 
         if (!assigneeId) {
             const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-            assigneeId = toInsightlyUserId(adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId);
+            assigneeId = toInsightlyUserId(findMappedCrmUserIdBySubmission(adminConfig?.userMappings, additionalSubmission));
         }
     }
 
@@ -684,7 +685,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, subject, start
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
         const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-        assigneeId = toInsightlyUserId(adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId);
+        assigneeId = toInsightlyUserId(findMappedCrmUserIdBySubmission(adminConfig?.userMappings, additionalSubmission));
     }
 
     const putBody: any = {
