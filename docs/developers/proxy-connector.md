@@ -101,7 +101,6 @@ Operations can override auth with their own `auth` object.
       "url": "/contacts",
       "headers": {},
       "query": {},
-      "body": {},
       "responseMapping": {}
     }
   }
@@ -114,7 +113,7 @@ Operations can override auth with their own `auth` object.
 | `url` | Absolute URL or path joined to `requestDefaults.baseUrl`. |
 | `headers` | Operation-specific headers. |
 | `query` | Query parameters. |
-| `body` | JSON request body. |
+| `body` | JSON request body. `GET` and `HEAD` operations send no body unless `body` is configured; other methods send `{}` when it is omitted. |
 | `auth` | Optional per-operation auth override. |
 | `responseMapping` | Dot-path mapping from response JSON to App Connect data. |
 

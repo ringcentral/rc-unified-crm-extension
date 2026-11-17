@@ -162,7 +162,10 @@ async function performRequest({ config, opName, inputs, user, authHeader }) {
   const method = (op.method || 'GET').toUpperCase();
   const headers = buildHeaders({ config, operation: op, authHeader, context });
   const params = renderDeep(op.query || {}, context);
-  const data = renderDeep(op.body || {}, context);
+  // GET/HEAD without a configured body must not carry one: axios would otherwise serialize the
+  // default `{}` and send a JSON body plus a Content-Type header, which some gateways/WAFs reject.
+  const omitBody = (method === 'GET' || method === 'HEAD') && op.body === undefined;
+  const data = omitBody ? undefined : renderDeep(op.body || {}, context);
   const timeout = (config.requestDefaults?.timeoutSeconds || 30) * 1000;
   const axiosParams = { url, method, headers, params, data, timeout };
   const requestStartTime = Date.now();

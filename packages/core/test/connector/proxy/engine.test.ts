@@ -110,6 +110,34 @@ describe('proxy engine utilities', () => {
     expect(args.headers.Authorization).toMatch(/^Basic /);
   });
 
+  test('performRequest sends no body on GET without a configured body but keeps other defaults', async () => {
+    axios.mockResolvedValue({ data: {} });
+    const config = {
+      auth: { type: 'apiKey', scheme: 'Bearer', credentialTemplate: '{{apiKey}}', encode: 'none' },
+      requestDefaults: { baseUrl: 'https://api.example.com' },
+      operations: {
+        getUserInfo: { method: 'GET', url: '/me' },
+        explicitGetBody: { method: 'GET', url: '/search', body: { q: '{{q}}' } },
+        deleteThing: { method: 'DELETE', url: '/things/1' },
+        postNoBody: { method: 'POST', url: '/things' }
+      }
+    };
+    const run = (opName: string) => performRequest({ config, opName, inputs: { apiKey: 'k', q: 'x' }, user: {} });
+
+    await run('getUserInfo');
+    expect(axios.mock.calls[0][0].data).toBeUndefined();
+    expect(axios.mock.calls[0][0].headers.Authorization).toBe('Bearer k');
+
+    await run('explicitGetBody');
+    expect(axios.mock.calls[1][0].data).toEqual({ q: 'x' });
+
+    await run('deleteThing');
+    expect(axios.mock.calls[2][0].data).toEqual({});
+
+    await run('postNoBody');
+    expect(axios.mock.calls[3][0].data).toEqual({});
+  });
+
   test('performRequest returns null for missing operations', async () => {
     await expect(performRequest({
       config: { operations: {} },
