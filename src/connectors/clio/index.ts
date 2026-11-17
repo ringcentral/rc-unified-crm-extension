@@ -623,7 +623,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
 
         if (!assigneeId) {
             const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-            assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+            assigneeId = adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
         }
     }
 
@@ -792,7 +792,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, subject, start
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
         const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-        assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+        assigneeId = adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
     }
 
     if (assigneeId) {
