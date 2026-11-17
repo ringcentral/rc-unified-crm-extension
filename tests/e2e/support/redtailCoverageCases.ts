@@ -220,6 +220,7 @@ const userMapping = {
       name: legacyExtension.name,
       extensionNumber: legacyExtension.extensionNumber,
       email: legacyExtension.email,
+      agentIds: [],
     }],
   }],
   expectedReinitializedRead: [{
@@ -229,6 +230,7 @@ const userMapping = {
       name: 'Riley Advisor',
       extensionNumber: currentExtension.extensionNumber,
       email: currentExtension.email,
+      agentIds: [],
     }],
   }],
   expectedPersistedMappings: [{

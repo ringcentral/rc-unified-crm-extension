@@ -296,6 +296,7 @@ const userMapping = {
         name: 'Ada Mapping',
         extensionNumber: '71601',
         email: 'ada.clio.mapping@example.test',
+        agentIds: [],
       }],
     },
     {

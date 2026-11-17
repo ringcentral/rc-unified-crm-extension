@@ -354,6 +354,7 @@ const userMapping = {
       name: 'Bailey Recruiter',
       extensionNumber: '6201',
       email: 'bailey.recruiter@example.test',
+      agentIds: [],
     }],
   }],
   expectedPersistedMappings: [{
