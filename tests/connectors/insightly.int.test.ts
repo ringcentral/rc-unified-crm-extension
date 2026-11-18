@@ -89,6 +89,7 @@ describe('Insightly Connector', () => {
                 .get('/v3.1/users/me')
                 .reply(200, {
                     USER_ID: 12345,
+                    INSTANCE_ID: 81,
                     FIRST_NAME: 'Test',
                     LAST_NAME: 'User',
                     TIMEZONE_ID: 'Eastern Standard Time'
@@ -102,6 +103,7 @@ describe('Insightly Connector', () => {
             expect(result.successful).toBe(true);
             expect(result.platformUserInfo.id).toBe('12345-insightly');
             expect(result.platformUserInfo.name).toBe('Test User');
+            expect(result.platformUserInfo.platformAdditionalInfo.insightlyInstanceId).toBe(81);
             expect(result.returnMessage.messageType).toBe('success');
         });
 
@@ -110,6 +112,7 @@ describe('Insightly Connector', () => {
                 .get('/v3.1/users/me')
                 .reply(200, {
                     USER_ID: 12345,
+                    INSTANCE_ID: 81,
                     FIRST_NAME: 'Test',
                     LAST_NAME: 'User',
                     TIMEZONE_ID: 'UTC'
@@ -137,11 +140,57 @@ describe('Insightly Connector', () => {
             expect(result.returnMessage.messageType).toBe('warning');
         });
 
+        it('rejects a caller-selected host without requesting user identity', async () => {
+            const outside = nock('https://other.example.test').get('/v3.1/users/me').reply(400);
+            const result = await insightly.getUserInfo({
+                authHeader,
+                additionalInfo: { apiUrl: 'https://other.example.test' }
+            });
+            expect(result.successful).toBe(false);
+            expect(outside.isDone()).toBe(false);
+        });
+
+        it('blocks identity lookup redirects outside Insightly', async () => {
+            const first = nock(apiUrl).get('/v3.1/users/me')
+                .reply(302, '', { location: 'https://other.example.test/v3.1/users/me' });
+            const outside = nock('https://other.example.test').get('/v3.1/users/me').reply(400);
+            const result = await insightly.getUserInfo({ authHeader, additionalInfo: { apiUrl } });
+            expect(result.successful).toBe(false);
+            first.done();
+            expect(outside.isDone()).toBe(false);
+        });
+
+        it('retains the canonical origin and authenticated instance on a regional redirect', async () => {
+            const regionalOrigin = 'https://api.na1.insightly.com';
+            const first = nock(apiUrl).get('/v3.1/users/me')
+                .reply(302, '', { location: `${regionalOrigin}/v3.1/Users/Me` });
+            const second = nock(regionalOrigin).matchHeader('authorization', authHeader)
+                .get('/v3.1/Users/Me').reply(200, { USER_ID: 12345, INSTANCE_ID: 81, TIMEZONE_ID: 'UTC' });
+            const result = await insightly.getUserInfo({
+                authHeader, additionalInfo: { apiUrl, insightlyInstanceId: 99 }
+            });
+            expect(result.successful).toBe(true);
+            expect(result.platformUserInfo.platformAdditionalInfo).toMatchObject({
+                apiUrl: regionalOrigin, insightlyInstanceId: 81
+            });
+            first.done();
+            second.done();
+        });
+
+        it('requires an instance ID from the authenticated provider response', async () => {
+            nock(apiUrl).get('/v3.1/users/me').reply(200, { USER_ID: 12345 });
+            const result = await insightly.getUserInfo({
+                authHeader, additionalInfo: { apiUrl, insightlyInstanceId: 81 }
+            });
+            expect(result.successful).toBe(false);
+        });
+
         it('should convert Windows timezone to IANA', async () => {
             nock(apiUrl)
                 .get('/v3.1/users/me')
                 .reply(200, {
                     USER_ID: 12345,
+                    INSTANCE_ID: 81,
                     FIRST_NAME: 'Test',
                     LAST_NAME: 'User',
                     TIMEZONE_ID: 'Pacific Standard Time'
@@ -1311,6 +1360,7 @@ describe('Insightly Connector', () => {
                     USER_ID: 12345,
                     FIRST_NAME: 'Test',
                     LAST_NAME: 'User',
+                    INSTANCE_ID: 81,
                     TIMEZONE_ID: 'Invalid/Timezone/That/Does/Not/Exist'
                 });
 

@@ -25,17 +25,45 @@ function getBasicAuth({ apiKey }) {
     return Buffer.from(`${apiKey}:`).toString('base64');
 }
 
+function requireInsightlyApiUrl(value: unknown): URL {
+    const url = new URL(typeof value === 'string' ? value : '');
+    if (url.protocol !== 'https:'
+        || !/^api(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)?\.insightly\.com$/.test(url.hostname)
+        || url.port || url.username || url.password || url.search || url.hash) {
+        throw new Error('Invalid Insightly API URL');
+    }
+    return url;
+}
+
 async function getUserInfo({ authHeader, additionalInfo }) {
     try {
-        additionalInfo.apiUrl = additionalInfo.apiUrl.split('/v')[0];
-        const userInfoResponse = await axios.get(`${additionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
+        const endpoint = requireInsightlyApiUrl(additionalInfo?.apiUrl);
+        if (!/^\/(?:v\d+(?:\.\d+)?\/?)?$/i.test(endpoint.pathname)) {
+            throw new Error('Invalid Insightly API base path');
+        }
+        const userPath = `/${process.env.INSIGHTLY_API_VERSION}/users/me`;
+        let origin = endpoint.origin;
+        const userInfoResponse = await axios.get(`${origin}${userPath}`, {
             headers: {
                 'Authorization': authHeader
+            },
+            maxRedirects: 3,
+            beforeRedirect: (options: { href?: string; headers: Record<string, string> }) => {
+                const destination = requireInsightlyApiUrl(options.href);
+                if (destination.pathname.toLowerCase() !== userPath.toLowerCase()) {
+                    throw new Error('Invalid Insightly identity endpoint');
+                }
+                origin = destination.origin;
+                options.headers.Authorization = authHeader;
             }
-        });;
+        });
+        const { USER_ID: userId, INSTANCE_ID: instanceId } = userInfoResponse.data;
+        if (!Number.isSafeInteger(userId) || userId <= 0 || !Number.isSafeInteger(instanceId) || instanceId <= 0) {
+            throw new Error('Insightly did not return a valid user and instance identity');
+        }
         // Insightly timezone = server location + non-standard tz area id (eg.'Central Standard Time')
         // We use UTC here for now
-        const id = `${userInfoResponse.data.USER_ID.toString()}-insightly`;
+        const id = `${userId}-insightly`;
         const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
         let timezoneOffset = 0;
         const timezoneName = userInfoResponse.data.TIMEZONE_ID;
@@ -53,7 +81,11 @@ async function getUserInfo({ authHeader, additionalInfo }) {
                 name,
                 timezoneName,
                 timezoneOffset,
-                platformAdditionalInfo: additionalInfo
+                platformAdditionalInfo: {
+                    ...additionalInfo,
+                    apiUrl: origin,
+                    insightlyInstanceId: instanceId
+                }
             },
             returnMessage: {
                 messageType: 'success',

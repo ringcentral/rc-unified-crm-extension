@@ -15,6 +15,7 @@ const apiKeyManagedAuth = {
     hashedRcExtensionId: 'e2e-managed-auth-hashed-extension',
     platformAdditionalInfo: {
       apiUrl: 'https://api.e2e-managed-auth.insightly.com',
+      insightlyInstanceId: 90401,
     },
   },
   expectedState: {
@@ -65,6 +66,7 @@ const apiKeyManagedAuth = {
   },
   crmUserResponse: {
     USER_ID: 90301,
+    INSTANCE_ID: 90401,
     FIRST_NAME: 'Managed',
     LAST_NAME: 'Insightly User',
     TIMEZONE_ID: 'Eastern Standard Time',

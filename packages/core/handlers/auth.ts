@@ -174,6 +174,13 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
  * @returns {Promise<AuthHandlerResult>}
  */
 async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, devRcAccountId, connectorId, isPrivate, canPersistManagedAuth = false, hashedRcExtensionId, additionalInfo }) {
+    const isInsightly = platform === 'insightly';
+    if (isInsightly && !rcAccountId) {
+        return {
+            userInfo: null,
+            returnMessage: { messageType: 'warning', message: 'Sign in to RingCentral before connecting to Insightly.' }
+        };
+    }
     const platformModule = connectorRegistry.getConnector(platform);
     let resolvedAdditionalInfo = {
         ...(additionalInfo ?? {})
@@ -224,7 +231,9 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
         proxyId
     });
     if (successful) {
-        await managedAuthCore.clearManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
+        if (!isInsightly) {
+            await managedAuthCore.clearManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
+        }
         let userInfo = null;
         try {
             userInfo = await saveUserInfo({
@@ -242,6 +251,18 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
                 userInfo: null,
                 ...handleDatabaseError(error, 'Error saving user info')
             };
+        }
+        if (isInsightly) {
+            if (!userInfo) {
+                return {
+                    userInfo: null,
+                    returnMessage: {
+                        messageType: 'warning',
+                        message: 'This Insightly connection could not be verified for your RingCentral account.'
+                    }
+                };
+            }
+            await managedAuthCore.clearManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
         }
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo });
@@ -287,15 +308,35 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
  * @param {SaveUserInfoParams} params
  * @returns {Promise<unknown>}
  */
-async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry, rcAccountId, hashedRcExtensionId, proxyId }: any) {
+async function saveUserInfo(params: any) {
+    if (params.platform === 'insightly') {
+        return UserModel.sequelize.transaction(transaction => persistUserInfo(params, transaction));
+    }
+    return persistUserInfo(params);
+}
+
+async function persistUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry, rcAccountId, hashedRcExtensionId, proxyId }: any, transaction?: any) {
     const id = platformUserInfo.id;
     const name = platformUserInfo.name;
-    const existingUser = await UserModel.findByPk(id);
+    const existingUser = transaction
+        ? await UserModel.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE })
+        : await UserModel.findByPk(id);
     const timezoneName = platformUserInfo.timezoneName;
     const timezoneOffset = platformUserInfo.timezoneOffset;
     const platformAdditionalInfo = platformUserInfo.platformAdditionalInfo || {};
     platformAdditionalInfo.proxyId = proxyId;
+    const writeOptions = transaction ? [{ transaction }] : [];
     if (existingUser) {
+        if (platform === 'insightly') {
+            const savedInstanceId = existingUser.platformAdditionalInfo?.insightlyInstanceId;
+            // An existing valid API key can initialize the tenant binding for an already owned legacy row.
+            const matchesInstance = savedInstanceId == null
+                ? existingUser.accessToken === accessToken
+                : savedInstanceId === platformAdditionalInfo.insightlyInstanceId;
+            if (existingUser.platform !== platform || existingUser.rcAccountId !== rcAccountId || !matchesInstance) {
+                return null;
+            }
+        }
         await existingUser.update(
             {
                 platform,
@@ -311,7 +352,8 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
                     ...existingUser.platformAdditionalInfo, // keep existing platformAdditionalInfo
                     ...platformAdditionalInfo,
                 }
-            }
+            },
+            ...writeOptions
         );
     }
     else {
@@ -328,7 +370,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
             hashedRcExtensionId,
             platformAdditionalInfo,
             userSettings: {}
-        });
+        }, ...writeOptions);
     }
     return {
         id,

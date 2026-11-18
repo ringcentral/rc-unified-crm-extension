@@ -38,6 +38,28 @@ describe('Authentication App-level E2E', () => {
     });
   }
 
+  function mockInsightlyLogin({ rcAccountId = insightly.rcAccountId, apiKey = insightly.apiKey, instanceId = insightly.crmUserResponse.INSTANCE_ID } = {}) {
+    const rc = nock('https://platform.ringcentral.com')
+      .matchHeader('authorization', `Bearer ${insightly.rcAccessToken}`)
+      .get('/restapi/v1.0/account/~/extension/~')
+      .reply(200, { id: '101', account: { id: rcAccountId } });
+    const crm = nock(insightly.apiBaseUrl)
+      .matchHeader('authorization', `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`)
+      .get('/v3.1/users/me')
+      .reply(200, { ...insightly.crmUserResponse, INSTANCE_ID: instanceId });
+    return { rc, crm };
+  }
+
+  function loginToInsightly(apiKey = insightly.apiKey, rcAccessToken = insightly.rcAccessToken) {
+    return client.post('/apiKeyLogin', {
+      platform: insightly.platform,
+      hostname: insightly.hostname,
+      apiKey,
+      rcAccessToken,
+      additionalInfo: { apiUrl: `${insightly.apiBaseUrl}/v3.1/` },
+    }, { headers: { 'rc-extension-id': insightly.hashedExtensionId } });
+  }
+
   function restoreEnvironment() {
     for (const key of environmentKeys) {
       const previousValue = previousEnvironment[key];
@@ -118,24 +140,8 @@ describe('Authentication App-level E2E', () => {
   });
 
   test('logs in through the real Insightly API-key connector and persists the user', async () => {
-    const expectedAuthorization = `Basic ${Buffer.from(`${insightly.apiKey}:`).toString('base64')}`;
-    const userInfoScope = nock(insightly.apiBaseUrl)
-      .matchHeader('authorization', expectedAuthorization)
-      .get('/v3.1/users/me')
-      .reply(200, insightly.crmUserResponse);
-
-    const response = await client.post('/apiKeyLogin', {
-      platform: insightly.platform,
-      hostname: insightly.hostname,
-      apiKey: insightly.apiKey,
-      additionalInfo: {
-        apiUrl: insightly.apiBaseUrl,
-      },
-    }, {
-      headers: {
-        'rc-extension-id': insightly.hashedExtensionId,
-      },
-    });
+    const { rc, crm } = mockInsightlyLogin();
+    const response = await loginToInsightly();
 
     expect(response.status).toBe(200);
     expect(response.data).toMatchObject(insightly.expectedLoginResponse);
@@ -144,11 +150,71 @@ describe('Authentication App-level E2E', () => {
       id: insightly.userId,
       platform: insightly.platform,
     });
-    expect(userInfoScope.isDone()).toBe(true);
+    rc.done();
+    crm.done();
 
     const persistedUser = await UserModel.findByPk(insightly.userId);
     expect(persistedUser).not.toBeNull();
     expect(persistedUser.toJSON()).toMatchObject(insightly.expectedPersistedUser);
+  });
+
+  test('requires a verified RingCentral session before contacting Insightly', async () => {
+    const crm = nock(insightly.apiBaseUrl).get('/v3.1/users/me').reply(200, insightly.crmUserResponse);
+    const response = await loginToInsightly(insightly.apiKey, '');
+    expect(response.status).toBe(400);
+    expect(response.data.jwtToken).toBeUndefined();
+    expect(crm.isDone()).toBe(false);
+    expect(await UserModel.findByPk(insightly.userId)).toBeNull();
+  });
+
+  test('links an owned legacy record with its existing key, then supports key rotation', async () => {
+    const settings = { language: { value: 'en-US' } };
+    await UserModel.create({
+      ...insightly.expectedPersistedUser,
+      platformAdditionalInfo: { apiUrl: insightly.apiBaseUrl },
+      userSettings: settings,
+    });
+    const legacy = mockInsightlyLogin();
+    const first = await loginToInsightly();
+    expect(first.status).toBe(200);
+    legacy.rc.done();
+    legacy.crm.done();
+
+    const apiKey = 'e2e-insightly-replacement-key';
+    const rotated = mockInsightlyLogin({ apiKey });
+    const response = await loginToInsightly(apiKey);
+    expect(response.status).toBe(200);
+    expect(jwt.decodeJwt(response.data.jwtToken).id).toBe(insightly.userId);
+    rotated.rc.done();
+    rotated.crm.done();
+    expect((await UserModel.findByPk(insightly.userId)).toJSON()).toMatchObject({
+      accessToken: apiKey,
+      rcAccountId: insightly.rcAccountId,
+      platformAdditionalInfo: { insightlyInstanceId: insightly.crmUserResponse.INSTANCE_ID },
+      userSettings: settings,
+    });
+  });
+
+  test.each([
+    ['different RingCentral account', 'another-account', insightly.crmUserResponse.INSTANCE_ID, insightly.rcAccountId],
+    ['different Insightly instance', insightly.rcAccountId, 91919, insightly.rcAccountId],
+    ['missing legacy owner', insightly.rcAccountId, insightly.crmUserResponse.INSTANCE_ID, null],
+  ])('rejects an existing identity with a %s before writing credentials or issuing a session', async (_reason, rcAccountId, instanceId, savedAccountId) => {
+    const settings = { language: { value: 'en-US' } };
+    await UserModel.create({ ...insightly.expectedPersistedUser, rcAccountId: savedAccountId, userSettings: settings });
+    const apiKey = 'e2e-insightly-unaccepted-key';
+    const { rc, crm } = mockInsightlyLogin({ apiKey, rcAccountId, instanceId });
+    const response = await loginToInsightly(apiKey);
+    expect(response.status).toBe(400);
+    expect(response.data.jwtToken).toBeUndefined();
+    expect((await UserModel.findByPk(insightly.userId)).toJSON()).toMatchObject({
+      accessToken: insightly.apiKey,
+      rcAccountId: savedAccountId,
+      platformAdditionalInfo: { insightlyInstanceId: insightly.crmUserResponse.INSTANCE_ID },
+      userSettings: settings,
+    });
+    rc.done();
+    crm.done();
   });
 
   test('completes the real Pipedrive OAuth exchange and persists tokens and user details', async () => {
