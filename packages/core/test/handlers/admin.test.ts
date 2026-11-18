@@ -196,6 +196,51 @@ describe('Admin Handler', () => {
       const config = await AdminConfigModel.findByPk('hashed-existing');
       expect(config.userSettings).toEqual({ autoLogCalls: true, autoLogMessages: false });
     });
+
+    test('keeps stored RingCX agent IDs when a legacy writer omits rcxAgentIds', async () => {
+      await AdminConfigModel.create({
+        id: 'hashed-legacy-write',
+        userMappings: [
+          { crmUserId: 'crm-1', rcExtensionId: ['ext-1', 'ext-2'], rcxAgentIds: { 'ext-1': ['9001'], 'ext-2': ['9002'] } },
+          { crmUserId: 'crm-2', rcExtensionId: ['ext-3'], rcxAgentIds: { 'ext-3': ['9003'] } }
+        ]
+      });
+
+      await adminHandler.upsertAdminSettings({
+        hashedRcAccountId: 'hashed-legacy-write',
+        adminSettings: {
+          userMappings: [
+            { crmUserId: 'crm-1', rcExtensionId: ['ext-1'] },
+            { crmUserId: 'crm-2', rcExtensionId: [] }
+          ]
+        }
+      });
+
+      const config = await AdminConfigModel.findByPk('hashed-legacy-write');
+      expect(config.userMappings).toEqual([
+        { crmUserId: 'crm-1', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': ['9001'] } },
+        { crmUserId: 'crm-2', rcExtensionId: [] }
+      ]);
+    });
+
+    test('clears RingCX agent IDs that a writer explicitly empties', async () => {
+      await AdminConfigModel.create({
+        id: 'hashed-explicit-clear',
+        userMappings: [
+          { crmUserId: 'crm-1', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': ['9001'] } }
+        ]
+      });
+
+      await adminHandler.upsertAdminSettings({
+        hashedRcAccountId: 'hashed-explicit-clear',
+        adminSettings: {
+          userMappings: [{ crmUserId: 'crm-1', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': [] } }]
+        }
+      });
+
+      const config = await AdminConfigModel.findByPk('hashed-explicit-clear');
+      expect(config.userMappings).toEqual([{ crmUserId: 'crm-1', rcExtensionId: ['ext-1'] }]);
+    });
   });
 
   describe('getAdminSettings', () => {
@@ -790,6 +835,49 @@ describe('Admin Handler', () => {
         const persistedConfig = await AdminConfigModel.findByPk('hashed-agent-reinit');
         expect(persistedConfig.userMappings).toEqual([
           { crmUserId: 'crm-1', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': ['9001'] } }
+        ]);
+      });
+
+      test('reinitializeUserMapping keeps stored agent IDs when the extension list has no agentIds', async () => {
+        await AdminConfigModel.create({
+          id: 'hashed-agent-reinit-keep',
+          userMappings: [
+            { crmUserId: 'crm-old', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': ['9001'] } }
+          ]
+        });
+        mockCrmUsers([{ id: 'crm-1', name: 'John Doe', email: 'john@example.com' }]);
+
+        const result = await adminHandler.reinitializeUserMapping({
+          user,
+          hashedRcAccountId: 'hashed-agent-reinit-keep',
+          rcExtensionList: [{ id: 'ext-1', name: 'John Doe', email: 'john@example.com' }]
+        });
+
+        expect(result[0].rcUser[0].agentIds).toEqual(['9001']);
+        const persistedConfig = await AdminConfigModel.findByPk('hashed-agent-reinit-keep');
+        expect(persistedConfig.userMappings).toEqual([
+          { crmUserId: 'crm-1', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': ['9001'] } }
+        ]);
+      });
+
+      test('reinitializeUserMapping clears stored agent IDs when discovery found none', async () => {
+        await AdminConfigModel.create({
+          id: 'hashed-agent-reinit-clear',
+          userMappings: [
+            { crmUserId: 'crm-1', rcExtensionId: ['ext-1'], rcxAgentIds: { 'ext-1': ['9001'] } }
+          ]
+        });
+        mockCrmUsers([{ id: 'crm-1', name: 'John Doe', email: 'john@example.com' }]);
+
+        await adminHandler.reinitializeUserMapping({
+          user,
+          hashedRcAccountId: 'hashed-agent-reinit-clear',
+          rcExtensionList: [{ id: 'ext-1', name: 'John Doe', email: 'john@example.com', agentIds: [] }]
+        });
+
+        const persistedConfig = await AdminConfigModel.findByPk('hashed-agent-reinit-clear');
+        expect(persistedConfig.userMappings).toEqual([
+          { crmUserId: 'crm-1', rcExtensionId: ['ext-1'] }
         ]);
       });
     });

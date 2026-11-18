@@ -3,6 +3,8 @@ const {
     findMappedCrmUserIdBySubmission,
     getMappingRcExtensionIds,
     getMappingRcxAgentIds,
+    getStoredRcxAgentIdsByExtensionId,
+    mergeRcxAgentIds,
     normalizeAgentIds,
 } = require('../../lib/userMapping');
 
@@ -59,5 +61,71 @@ describe('userMapping lib', () => {
         expect(getMappingRcxAgentIds(userMappings[1])).toEqual(['9001', '9002', '9003']);
         expect(normalizeAgentIds([9001, '9001', '', null, ' 9002 '])).toEqual(['9001', '9002']);
         expect(normalizeAgentIds('9001')).toEqual([]);
+    });
+
+    describe('mergeRcxAgentIds', () => {
+        const stored = [
+            { crmUserId: 'crm-1', rcExtensionId: ['101', '102'], rcxAgentIds: { '101': ['9001'], '102': ['9002'] } },
+            { crmUserId: 'crm-2', rcExtensionId: ['201'], rcxAgentIds: { '201': ['9201'] } },
+        ];
+
+        test('keeps stored agent IDs of still-mapped extensions on writes without rcxAgentIds', () => {
+            expect(mergeRcxAgentIds([
+                { crmUserId: 'crm-1', rcExtensionId: ['101'] },
+                { crmUserId: 'crm-2', rcExtensionId: ['201'] },
+                { crmUserId: 'crm-3', rcExtensionId: [] },
+            ], stored)).toEqual([
+                { crmUserId: 'crm-1', rcExtensionId: ['101'], rcxAgentIds: { '101': ['9001'] } },
+                { crmUserId: 'crm-2', rcExtensionId: ['201'], rcxAgentIds: { '201': ['9201'] } },
+                { crmUserId: 'crm-3', rcExtensionId: [] },
+            ]);
+        });
+
+        test('moves agent IDs with an extension mapped to another CRM user', () => {
+            expect(mergeRcxAgentIds([
+                { crmUserId: 'crm-3', rcExtensionId: ['102'] },
+            ], stored)).toEqual([
+                { crmUserId: 'crm-3', rcExtensionId: ['102'], rcxAgentIds: { '102': ['9002'] } },
+            ]);
+        });
+
+        test('uses explicit agent IDs per extension and clears them with an empty array or null', () => {
+            expect(mergeRcxAgentIds([
+                { crmUserId: 'crm-1', rcExtensionId: ['101', '102'], rcxAgentIds: { '101': ['9005', 9005], '102': [] } },
+                { crmUserId: 'crm-2', rcExtensionId: ['201'], rcxAgentIds: null },
+            ], stored)).toEqual([
+                { crmUserId: 'crm-1', rcExtensionId: ['101', '102'], rcxAgentIds: { '101': ['9005'] } },
+                { crmUserId: 'crm-2', rcExtensionId: ['201'] },
+            ]);
+        });
+
+        test('keeps stored agent IDs for extensions missing from a partial rcxAgentIds', () => {
+            expect(mergeRcxAgentIds([
+                { crmUserId: 'crm-1', rcExtensionId: ['101', '102'], rcxAgentIds: { '101': ['9005'] } },
+            ], stored)).toEqual([
+                { crmUserId: 'crm-1', rcExtensionId: ['101', '102'], rcxAgentIds: { '101': ['9005'], '102': ['9002'] } },
+            ]);
+        });
+
+        test('drops agent IDs of unmapped extensions and handles legacy string extension IDs', () => {
+            expect(mergeRcxAgentIds([
+                { crmUserId: 'crm-1', rcExtensionId: '101', rcxAgentIds: { '999': ['1'] } },
+            ], stored)).toEqual([
+                { crmUserId: 'crm-1', rcExtensionId: '101', rcxAgentIds: { '101': ['9001'] } },
+            ]);
+            expect(mergeRcxAgentIds([{ crmUserId: 'crm-1', rcExtensionId: ['101'] }], null)).toEqual([
+                { crmUserId: 'crm-1', rcExtensionId: ['101'] },
+            ]);
+        });
+
+        test('collects stored agent IDs by extension', () => {
+            expect(getStoredRcxAgentIdsByExtensionId([
+                ...stored,
+                { crmUserId: 'crm-dup', rcExtensionId: ['101'], rcxAgentIds: { '101': ['9001', '9009'] } },
+                null,
+                { crmUserId: 'crm-bad', rcxAgentIds: ['x'] },
+            ])).toEqual({ '101': ['9001', '9009'], '102': ['9002'], '201': ['9201'] });
+            expect(getStoredRcxAgentIdsByExtensionId(undefined)).toEqual({});
+        });
     });
 });

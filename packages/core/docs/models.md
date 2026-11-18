@@ -72,7 +72,7 @@ Stores account-level admin configuration.
 | `adminAccessToken` | RingCentral admin access token |
 | `adminRefreshToken` | RingCentral admin refresh token |
 | `adminTokenExpiry` | Admin token expiry |
-| `userMappings` | JSON mapping between CRM users and RingCentral extensions: `{ crmUserId, rcExtensionId: string[], rcxAgentIds?: { [rcExtensionId]: string[] } }`. `rcxAgentIds` holds the RingCX agent IDs of each mapped extension, so a log that names only a RingCX agent (`additionalSubmission.adminAssignedUserRcxAgentId`) can still find its CRM user |
+| `userMappings` | JSON mapping between CRM users and RingCentral extensions: `{ crmUserId, rcExtensionId: string[], rcxAgentIds?: { [rcExtensionId]: string[] } }`. `rcxAgentIds` holds the RingCX agent IDs of each mapped extension, so a log that names only a RingCX agent (`additionalSubmission.adminAssignedUserRcxAgentId`) can still find its CRM user. `POST /admin/settings` replaces the array, but a mapping that omits an extension's `rcxAgentIds` entry keeps the agent IDs stored for that extension while it stays mapped (older extension and console builds never send them); an explicit `[]` for an extension, or `rcxAgentIds: null` for the whole mapping, clears them |
 
 ### `models/cacheModel.ts`
 
