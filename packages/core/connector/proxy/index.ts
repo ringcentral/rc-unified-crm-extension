@@ -129,7 +129,8 @@ async function getUserInfo({ authHeader, hostname, additionalInfo, platform, api
       userEmail,
     },
     user: {},
-    authHeader
+    authHeader,
+    proxyId
   });
   const map = cfg.operations.getUserInfo.responseMapping || {};
   const responseCtx = {

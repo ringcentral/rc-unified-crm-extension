@@ -203,6 +203,46 @@ describe('proxy engine utilities', () => {
     expect(JSON.stringify(loggedContext)).not.toContain('response body must not be logged here');
   });
 
+  test('performRequest logs non-secret auth diagnostics for 401 responses', async () => {
+    const error: any = new Error('Request failed with status code 401');
+    error.code = 'ERR_BAD_REQUEST';
+    error.response = {
+      status: 401,
+      headers: { server: 'awselb/2.0', 'www-authenticate': 'Bearer', 'set-cookie': 'session=secret', 'x-other': 'ignored' },
+      data: { message: 'Unauthorized' }
+    };
+    axios.mockRejectedValue(error);
+    const token = 'super-secret-token ';
+
+    await expect(performRequest({
+      config: {
+        meta: { name: 'exampleProxy' },
+        auth: { type: 'apiKey', scheme: 'Bearer', credentialTemplate: '{{apiKey}}', encode: 'none' },
+        requestDefaults: { baseUrl: 'https://api.example.com' },
+        operations: { getUserInfo: { method: 'GET', url: '/me' } }
+      },
+      opName: 'getUserInfo',
+      inputs: { apiKey: token },
+      user: {},
+      proxyId: 'acct-connector'
+    })).rejects.toBe(error);
+
+    const logged = logger.error.mock.calls[0][1];
+    expect(logged.proxyId).toBe('acct-connector');
+    expect(logged.statusCode).toBe(401);
+    expect(logged.responseHeaders).toEqual({ server: 'awselb/2.0', 'www-authenticate': 'Bearer' });
+    expect(logged.responseBodySnippet).toBe('{"message":"Unauthorized"}');
+    expect(logged.sentCredential).toEqual({
+      headerLength: 'Bearer '.length + token.length,
+      credentialLength: token.length,
+      credentialSha256Prefix: expect.stringMatching(/^[0-9a-f]{8}$/),
+      hasOuterWhitespace: true,
+      hasNonPrintableAscii: false
+    });
+    expect(JSON.stringify(logged)).not.toContain('super-secret-token');
+    expect(JSON.stringify(logged)).not.toContain('session=secret');
+  });
+
   test('performRequest logs timeout failures without request data', async () => {
     const error = Object.assign(new Error('timeout of 30000ms exceeded'), {
       code: 'ECONNABORTED'

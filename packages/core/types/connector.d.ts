@@ -137,6 +137,8 @@ export interface PerformProxyRequestParams {
   inputs?: Record<string, any>;
   user?: ProxyUserContext | null;
   authHeader?: string;
+  /** Used for failure logs when no stored user (and thus no platformAdditionalInfo.proxyId) exists yet, e.g. during login. */
+  proxyId?: string;
 }
 
 export interface ProxyResponse<TData = unknown> {

@@ -271,6 +271,18 @@ Prefer ISO 8601 values with a timezone, such as `2024-01-01T00:00:00Z`. The clie
 }
 ```
 
+## Troubleshooting Failed Upstream Calls
+
+When your API returns an error, App Connect logs `PROXY_CONNECTOR_REQUEST_FAILED` with the operation, `proxyId`, target host, status code and duration. Response bodies are not logged.
+
+For `401` and `403` responses it also logs details to help locate which layer rejected the request:
+
+- allow-listed response headers (`server`, `via`, `www-authenticate`, `content-type`, and a few gateway headers);
+- the first 300 characters of the response body;
+- a non-secret description of the credential that was sent: its length, the first 8 hex characters of its SHA-256, and whether it has outer whitespace or non-printable characters. The credential itself is never logged.
+
+Compare the length and hash with your stored token to check that the value sent matches the one you tested. Note that an authentication guard that runs before your request logging can reject requests without leaving an application log entry.
+
 ## Minimal Example
 
 ```json

@@ -11,7 +11,47 @@
 /** @typedef {Record<string, any>} TemplateContext */
 
 const axios = /** @type {any} */ (require('axios'));
+const crypto = require('crypto');
 const logger = require('../../lib/logger');
+
+const AUTH_FAILURE_STATUSES = [401, 403];
+const DIAGNOSTIC_RESPONSE_HEADERS = ['server', 'via', 'www-authenticate', 'content-type', 'x-amzn-requestid', 'x-amz-cf-id', 'x-amzn-errortype', 'cf-ray', 'x-cache'];
+const MAX_DIAGNOSTIC_BODY_LENGTH = 300;
+
+/**
+ * Non-secret description of the credential that was sent, to compare with the upstream's copy.
+ * @param {Record<string, any>} headers
+ * @param {string | undefined} headerName
+ */
+function describeCredential(headers, headerName) {
+  const raw = headers?.[headerName || 'Authorization'];
+  if (typeof raw !== 'string') return undefined;
+  const credential = raw.replace(/^\S+\s+/, '');
+  return {
+    headerLength: raw.length,
+    credentialLength: credential.length,
+    credentialSha256Prefix: crypto.createHash('sha256').update(credential).digest('hex').slice(0, 8),
+    hasOuterWhitespace: credential !== credential.trim(),
+    hasNonPrintableAscii: /[^!-~]/.test(credential.trim()),
+  };
+}
+
+/**
+ * Response details that help locate which layer rejected an auth failure. Only used for 401/403.
+ * @param {any} response
+ */
+function describeAuthFailureResponse(response) {
+  const headers = response?.headers || {};
+  const responseHeaders = {};
+  for (const name of DIAGNOSTIC_RESPONSE_HEADERS) {
+    if (headers[name] !== undefined) responseHeaders[name] = String(headers[name]).slice(0, 200);
+  }
+  const body = response?.data;
+  const bodySnippet = typeof body === 'string'
+    ? body.slice(0, MAX_DIAGNOSTIC_BODY_LENGTH)
+    : (body && typeof body === 'object' ? JSON.stringify(body).slice(0, MAX_DIAGNOSTIC_BODY_LENGTH) : undefined);
+  return { responseHeaders, responseBodySnippet: bodySnippet };
+}
 
 /**
  * @param {any} obj
@@ -136,7 +176,7 @@ function buildHeaders({ config, operation, authHeader, context }) {
  * @param {PerformProxyRequestParams} params
  * @returns {Promise<ProxyResponse | null>}
  */
-async function performRequest({ config, opName, inputs, user, authHeader }) {
+async function performRequest({ config, opName, inputs, user, authHeader, proxyId }) {
   const op = config.operations?.[opName];
   if (!op) return null;
   const accessToken = user?.accessToken ?? inputs?.apiKey ?? '';
@@ -175,9 +215,16 @@ async function performRequest({ config, opName, inputs, user, authHeader }) {
   } catch (e) {
     const error = /** @type {ProviderError} */ (e);
     const responseHeaders = /** @type {Record<string, any> | undefined} */ (error.response?.headers);
+    const statusCode = error.response?.status;
+    const authFailureDetails = AUTH_FAILURE_STATUSES.includes(/** @type {number} */ (statusCode))
+      ? {
+        sentCredential: describeCredential(headers, config.auth?.headerName),
+        ...describeAuthFailureResponse(error.response),
+      }
+      : {};
     logger.error('PROXY_CONNECTOR_REQUEST_FAILED', {
       proxyOperation: opName,
-      proxyId: user?.platformAdditionalInfo?.proxyId,
+      proxyId: user?.platformAdditionalInfo?.proxyId ?? proxyId,
       connectorName: config.meta?.name,
       method,
       targetHost: getUrlHost(url),
@@ -187,6 +234,7 @@ async function performRequest({ config, opName, inputs, user, authHeader }) {
       durationMs: Date.now() - requestStartTime,
       timeoutMs: timeout,
       upstreamRequestId: responseHeaders?.['x-request-id'] ?? responseHeaders?.['X-Request-Id'],
+      ...authFailureDetails,
     });
     throw error;
   }
