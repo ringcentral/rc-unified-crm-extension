@@ -119,7 +119,8 @@ describe('app connector TypeScript modules', () => {
             'refreshUserInfo',
             'unAuthorize',
             'updateCallLog',
-            'updateMessageLog'
+            'updateMessageLog',
+            'upsertCallDisposition'
         ]);
     });
 

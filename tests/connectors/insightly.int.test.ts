@@ -572,13 +572,17 @@ describe('Insightly Connector', () => {
             expect(result.returnMessage.messageType).toBe('success');
         });
 
-        it('should link organization and opportunity when provided', async () => {
+        it('should link organisation and opportunity when provided', async () => {
             nock(apiUrl)
                 .post('/v3.1/events')
                 .reply(201, { EVENT_ID: 202 });
 
+            const linkedObjects = [];
             nock(apiUrl)
-                .post('/v3.1/events/202/links')
+                .post('/v3.1/events/202/links', (body) => {
+                    linkedObjects.push(body);
+                    return true;
+                })
                 .times(3)
                 .reply(201, {});
 
@@ -589,7 +593,7 @@ describe('Insightly Connector', () => {
                 callLog: mockCallLogData,
                 note: 'Test note',
                 additionalSubmission: {
-                    organization: 301,
+                    organisation: 301,
                     opportunity: 401
                 },
                 aiNote: null,
@@ -599,6 +603,40 @@ describe('Insightly Connector', () => {
             });
 
             expect(result.logId).toBe(202);
+            expect(linkedObjects).toEqual([
+                { LINK_OBJECT_NAME: 'contact', LINK_OBJECT_ID: mockContact.id },
+                { LINK_OBJECT_NAME: 'Organisation', LINK_OBJECT_ID: 301 },
+                { LINK_OBJECT_NAME: 'Opportunity', LINK_OBJECT_ID: 401 }
+            ]);
+        });
+
+        it('should still link the organisation when submitted with the legacy organization key', async () => {
+            nock(apiUrl)
+                .post('/v3.1/events')
+                .reply(201, { EVENT_ID: 204 });
+
+            nock(apiUrl)
+                .post('/v3.1/events/204/links', { LINK_OBJECT_NAME: 'contact', LINK_OBJECT_ID: mockContact.id })
+                .reply(201, {});
+            const orgLinkScope = nock(apiUrl)
+                .post('/v3.1/events/204/links', { LINK_OBJECT_NAME: 'Organisation', LINK_OBJECT_ID: 302 })
+                .reply(201, {});
+
+            const result = await insightly.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: { organization: 302 },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(204);
+            expect(orgLinkScope.isDone()).toBe(true);
         });
 
         it('should create call log for lead type contact', async () => {
@@ -871,6 +909,42 @@ describe('Insightly Connector', () => {
             });
 
             expect(result.logId).toBe('201');
+        });
+
+        it('should not link the same record again when it is already linked', async () => {
+            nock(apiUrl)
+                .get('/v3.1/events/201')
+                .reply(200, {
+                    EVENT_ID: 201,
+                    LINKS: [
+                        { LINK_ID: 1, LINK_OBJECT_NAME: 'Organisation', LINK_OBJECT_ID: 301 },
+                        { LINK_ID: 2, LINK_OBJECT_NAME: 'Opportunity', LINK_OBJECT_ID: 400 }
+                    ]
+                });
+
+            nock(apiUrl)
+                .delete('/v3.1/events/201/links/2')
+                .reply(200, {});
+
+            const postedLinks = [];
+            nock(apiUrl)
+                .post('/v3.1/events/201/links', (body) => {
+                    postedLinks.push(body);
+                    return true;
+                })
+                .reply(201, {});
+
+            const result = await insightly.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                // The form can submit ids as strings while Insightly returns numbers.
+                dispositions: { organisation: '301', opportunity: 401, note: '' }
+            });
+
+            expect(result.logId).toBe('201');
+            expect(postedLinks).toEqual([{ LINK_OBJECT_NAME: 'Opportunity', LINK_OBJECT_ID: 401 }]);
+            expect(nock.isDone()).toBe(true);
         });
 
         it('should return null logId when no dispositions provided', async () => {
@@ -1952,7 +2026,7 @@ describe('Insightly Connector', () => {
                 callLog: mockCallLogData,
                 note: 'Test note',
                 additionalSubmission: {
-                    organization: 301,
+                    organisation: 301,
                     opportunity: 401,
                     project: 501
                 },

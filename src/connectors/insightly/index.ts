@@ -608,12 +608,14 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             });
         if (additionalSubmission != null) {
             // add org link
-            if (additionalSubmission.organization != null) {
+            // The call log form field is `organisation`; `organization` is kept for older callers.
+            const organisationId = additionalSubmission.organisation ?? additionalSubmission.organization;
+            if (organisationId != null) {
                 await axios.post(
                     `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
                     {
                         LINK_OBJECT_NAME: 'Organisation',
-                        LINK_OBJECT_ID: additionalSubmission.organization
+                        LINK_OBJECT_ID: organisationId
                     },
                     {
                         headers: { 'Authorization': authHeader }
@@ -750,75 +752,43 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
-    if (!dispositions.organisation && !dispositions.opportunity && !dispositions.project) {
+    const linkTargets = [
+        { linkObjectName: 'Organisation', linkObjectId: dispositions.organisation },
+        { linkObjectName: 'Opportunity', linkObjectId: dispositions.opportunity },
+        { linkObjectName: 'Project', linkObjectId: dispositions.project }
+    ].filter(target => !!target.linkObjectId);
+    if (linkTargets.length === 0) {
         return {
             logId: null
         };
     }
     const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
+    const eventLinksUrl = `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links`;
 
     const getLogRes = await axios.get(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}`,
         {
             headers: { 'Authorization': authHeader }
         });
-    // org: if different, DELETE link then CREATE
-    const orgLink = getLogRes.data.LINKS.find(l => l.LINK_OBJECT_NAME === 'Organisation');
-    if (dispositions.organisation) {
-        if (orgLink && orgLink.LINK_OBJECT_ID !== dispositions.organisation) {
+    const existingLinks = getLogRes.data.LINKS ?? [];
+    for (const { linkObjectName, linkObjectId } of linkTargets) {
+        const existingLink = existingLinks.find(l => l.LINK_OBJECT_NAME === linkObjectName);
+        // Already linked to the chosen record: posting it again would add a duplicate link.
+        if (existingLink && String(existingLink.LINK_OBJECT_ID) === String(linkObjectId)) {
+            continue;
+        }
+        if (existingLink) {
             await axios.delete(
-                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links/${orgLink.LINK_ID}`,
+                `${eventLinksUrl}/${existingLink.LINK_ID}`,
                 {
                     headers: { 'Authorization': authHeader }
                 });
         }
         await axios.post(
-            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links`,
+            eventLinksUrl,
             {
-                LINK_OBJECT_NAME: 'Organisation',
-                LINK_OBJECT_ID: dispositions.organisation
-            },
-            {
-                headers: { 'Authorization': authHeader }
-            });
-    }
-
-    // opportunity
-    const opportunityLink = getLogRes.data.LINKS.find(l => l.LINK_OBJECT_NAME === 'Opportunity');
-    if (dispositions.opportunity) {
-        if (opportunityLink && opportunityLink.LINK_OBJECT_ID !== dispositions.opportunity) {
-            await axios.delete(
-                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links/${opportunityLink.LINK_ID}`,
-                {
-                    headers: { 'Authorization': authHeader }
-                });
-        }
-        await axios.post(
-            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links`,
-            {
-                LINK_OBJECT_NAME: 'Opportunity',
-                LINK_OBJECT_ID: dispositions.opportunity
-            },
-            {
-                headers: { 'Authorization': authHeader }
-            });
-    }
-
-    // project
-    const projectLink = getLogRes.data.LINKS.find(l => l.LINK_OBJECT_NAME === 'Project');
-    if (dispositions.project) {
-        if (projectLink && projectLink.LINK_OBJECT_ID !== dispositions.project) {
-            await axios.delete(
-                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links/${projectLink.LINK_ID}`,
-                {
-                    headers: { 'Authorization': authHeader }
-                });
-        }
-        await axios.post(
-            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links`,
-            {
-                LINK_OBJECT_NAME: 'Project',
-                LINK_OBJECT_ID: dispositions.project
+                LINK_OBJECT_NAME: linkObjectName,
+                LINK_OBJECT_ID: linkObjectId
             },
             {
                 headers: { 'Authorization': authHeader }

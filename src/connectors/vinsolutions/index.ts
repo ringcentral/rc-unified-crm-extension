@@ -1067,6 +1067,35 @@ async function updateCallLog({
     }
 }
 
+// Applies the call log form's lead to a call that is already logged, such as one logged by server-side call logging.
+async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
+    const callDetailId = existingCallLog.thirdPartyLogId;
+    if (!dispositions?.leads || !callDetailId) {
+        return {
+            logId: null
+        };
+    }
+    const accessToken = await ensureAccessToken(user, TOKEN_TYPES.CALL_TRACKING);
+    const { dealerId } = getDealerContext(user);
+    const crmUserId = await resolveAssignedCrmUserId({ user, additionalSubmission: dispositions, hashedAccountId: null });
+    await axios.patch(
+        `${API_BASE_URL}/calldetails/id/${callDetailId}`,
+        {
+            providerName: getProviderName(),
+            vinProperties: {
+                dealerId,
+                userId: Number(crmUserId),
+                leadId: Number(dispositions.leads)
+            }
+        },
+        {
+            headers: buildCallTrackingHeaders({ accessToken, user })
+        });
+    return {
+        logId: callDetailId
+    };
+}
+
 function getMessageType({ recordingLink, faxDocLink }) {
     if (recordingLink) {
         return 'Voicemail';
@@ -1335,6 +1364,7 @@ exports.createContact = createContact;
 exports.createCallLog = createCallLog;
 exports.getCallLog = getCallLog;
 exports.updateCallLog = updateCallLog;
+exports.upsertCallDisposition = upsertCallDisposition;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getUserList = getUserList;
