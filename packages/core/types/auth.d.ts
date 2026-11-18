@@ -100,6 +100,27 @@ export interface ApiKeyLoginParams {
   additionalInfo?: Record<string, unknown>;
 }
 
+export type ValidateApiKeyLogin = (
+  context: Pick<ApiKeyLoginParams, 'rcAccountId' | 'rcExtensionId'>
+) => ReturnMessage | undefined | Promise<ReturnMessage | undefined>;
+
+export interface ApiKeyUserSaveContext {
+  existingUser: {
+    platform?: string;
+    rcAccountId?: string | number | null;
+    accessToken?: unknown;
+    platformAdditionalInfo?: Record<string, unknown> | null;
+  } | null;
+  platformUserInfo: SaveUserInfoParams['platformUserInfo'];
+  rcAccountId?: string | number;
+  accessToken?: unknown;
+}
+
+/** Return a warning to deny the write while the existing user row is locked. */
+export type ValidateApiKeyUserSave = (
+  context: ApiKeyUserSaveContext
+) => ReturnMessage | undefined | Promise<ReturnMessage | undefined>;
+
 export interface SaveUserInfoParams {
   platformUserInfo: PlatformUserInfo & {
     id: string | number;

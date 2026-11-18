@@ -1,6 +1,7 @@
 
 /* eslint-disable no-param-reassign */
 // @ts-check
+import type { ValidateApiKeyLogin, ValidateApiKeyUserSave } from '@app-connect/core/types';
 
 const axios = /** @type {any} */ (require('axios'));
 const moment = /** @type {any} */ (require('moment-timezone'));
@@ -24,6 +25,30 @@ function getLogFormatType() {
 function getBasicAuth({ apiKey }) {
     return Buffer.from(`${apiKey}:`).toString('base64');
 }
+
+const validateApiKeyLogin = (({ rcAccountId }) => {
+    if (!rcAccountId) {
+        return { messageType: 'warning', message: 'Sign in to RingCentral before connecting to Insightly.' };
+    }
+}) satisfies ValidateApiKeyLogin;
+
+const validateApiKeyUserSave: ValidateApiKeyUserSave = ({ existingUser, platformUserInfo, rcAccountId, accessToken }) => {
+    const loginDenial = validateApiKeyLogin({ rcAccountId });
+    if (loginDenial) return loginDenial;
+    if (!existingUser) return;
+
+    const savedInstanceId = existingUser.platformAdditionalInfo?.insightlyInstanceId;
+    // The existing valid key can bind an already owned legacy record to its verified instance.
+    const matchesInstance = savedInstanceId == null
+        ? existingUser.accessToken === accessToken
+        : savedInstanceId === platformUserInfo.platformAdditionalInfo?.insightlyInstanceId;
+    if (existingUser.platform !== 'insightly' || existingUser.rcAccountId !== rcAccountId || !matchesInstance) {
+        return {
+            messageType: 'warning',
+            message: 'This Insightly connection could not be verified for your RingCentral account.'
+        };
+    }
+};
 
 function requireInsightlyApiUrl(value: unknown): URL {
     const url = new URL(typeof value === 'string' ? value : '');
@@ -1061,6 +1086,8 @@ function getIanaTimeZone({ timeZone }) {
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
+exports.validateApiKeyLogin = validateApiKeyLogin;
+exports.validateApiKeyUserSave = validateApiKeyUserSave;
 exports.getUserInfo = getUserInfo;
 exports.getUserList = getUserList;
 exports.createCallLog = createCallLog;

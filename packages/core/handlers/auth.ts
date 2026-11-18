@@ -1,4 +1,7 @@
 // @ts-check
+import type { Transaction } from 'sequelize';
+import type { SaveUserInfoParams, ValidateApiKeyUserSave } from '../types';
+
 /** @typedef {import('../types').ApiKeyLoginParams} ApiKeyLoginParams */
 /** @typedef {import('../types').AuthHandlerResult} AuthHandlerResult */
 /** @typedef {import('../types').AuthValidationParams} AuthValidationParams */
@@ -6,7 +9,6 @@
 /** @typedef {import('../types').LicenseStatusParams} LicenseStatusParams */
 /** @typedef {import('../types').OAuthCallbackParams} OAuthCallbackParams */
 /** @typedef {import('../types').RingcentralOAuthCallbackParams} RingcentralOAuthCallbackParams */
-/** @typedef {import('../types').SaveUserInfoParams} SaveUserInfoParams */
 
 const oauth = /** @type {any} */ (require('../lib/oauth'));
 const { UserModel: UserModelImport } = require('../models/userModel');
@@ -126,7 +128,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
         }
         let userInfo = null;
         try {
-            userInfo = await saveUserInfo({
+            ({ userInfo } = await saveUserInfo({
                 platformUserInfo,
                 platform,
                 tokenUrl: resolvedTokenUrl,
@@ -139,7 +141,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
                 rcAccountId: query?.rcAccountId,
                 hashedRcExtensionId,
                 proxyId
-            });
+            }));
         }
         catch (error) {
             return {
@@ -174,14 +176,12 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
  * @returns {Promise<AuthHandlerResult>}
  */
 async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, devRcAccountId, connectorId, isPrivate, canPersistManagedAuth = false, hashedRcExtensionId, additionalInfo }) {
-    const isInsightly = platform === 'insightly';
-    if (isInsightly && !rcAccountId) {
-        return {
-            userInfo: null,
-            returnMessage: { messageType: 'warning', message: 'Sign in to RingCentral before connecting to Insightly.' }
-        };
-    }
     const platformModule = connectorRegistry.getConnector(platform);
+    const loginDenial = await platformModule.validateApiKeyLogin?.({ rcAccountId, rcExtensionId });
+    if (loginDenial) {
+        return { userInfo: null, returnMessage: loginDenial };
+    }
+    const validateUserSave = platformModule.validateApiKeyUserSave?.bind(platformModule);
     let resolvedAdditionalInfo = {
         ...(additionalInfo ?? {})
     };
@@ -231,12 +231,12 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
         proxyId
     });
     if (successful) {
-        if (!isInsightly) {
+        if (!validateUserSave) {
             await managedAuthCore.clearManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
         }
         let userInfo = null;
         try {
-            userInfo = await saveUserInfo({
+            const saveResult = await saveUserInfo({
                 platformUserInfo,
                 platform,
                 hostname,
@@ -244,7 +244,11 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
                 hashedRcExtensionId,
                 rcAccountId,
                 accessToken: platformUserInfo.overridingApiKey ?? resolvedApiKey
-            });
+            }, validateUserSave);
+            if (!saveResult.userInfo) {
+                return saveResult;
+            }
+            userInfo = saveResult.userInfo;
         }
         catch (error) {
             return {
@@ -252,16 +256,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
                 ...handleDatabaseError(error, 'Error saving user info')
             };
         }
-        if (isInsightly) {
-            if (!userInfo) {
-                return {
-                    userInfo: null,
-                    returnMessage: {
-                        messageType: 'warning',
-                        message: 'This Insightly connection could not be verified for your RingCentral account.'
-                    }
-                };
-            }
+        if (validateUserSave) {
             await managedAuthCore.clearManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
         }
         if (platformModule.postSaveUserInfo) {
@@ -304,39 +299,29 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
     }
 }
 
-/**
- * @param {SaveUserInfoParams} params
- * @returns {Promise<unknown>}
- */
-async function saveUserInfo(params: any) {
-    if (params.platform === 'insightly') {
-        return UserModel.sequelize.transaction(transaction => persistUserInfo(params, transaction));
+async function saveUserInfo(params: SaveUserInfoParams, validateUserSave?: ValidateApiKeyUserSave) {
+    if (validateUserSave) {
+        return UserModel.sequelize.transaction((transaction: Transaction) => persistUserInfo(params, validateUserSave, transaction));
     }
     return persistUserInfo(params);
 }
 
-async function persistUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry, rcAccountId, hashedRcExtensionId, proxyId }: any, transaction?: any) {
+async function persistUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry, rcAccountId, hashedRcExtensionId, proxyId }: SaveUserInfoParams, validateUserSave?: ValidateApiKeyUserSave, transaction?: Transaction) {
     const id = platformUserInfo.id;
     const name = platformUserInfo.name;
     const existingUser = transaction
         ? await UserModel.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE })
         : await UserModel.findByPk(id);
+    const saveDenial = await validateUserSave?.({ existingUser, platformUserInfo, rcAccountId, accessToken });
+    if (saveDenial) {
+        return { userInfo: null, returnMessage: saveDenial };
+    }
     const timezoneName = platformUserInfo.timezoneName;
     const timezoneOffset = platformUserInfo.timezoneOffset;
     const platformAdditionalInfo = platformUserInfo.platformAdditionalInfo || {};
     platformAdditionalInfo.proxyId = proxyId;
     const writeOptions = transaction ? [{ transaction }] : [];
     if (existingUser) {
-        if (platform === 'insightly') {
-            const savedInstanceId = existingUser.platformAdditionalInfo?.insightlyInstanceId;
-            // An existing valid API key can initialize the tenant binding for an already owned legacy row.
-            const matchesInstance = savedInstanceId == null
-                ? existingUser.accessToken === accessToken
-                : savedInstanceId === platformAdditionalInfo.insightlyInstanceId;
-            if (existingUser.platform !== platform || existingUser.rcAccountId !== rcAccountId || !matchesInstance) {
-                return null;
-            }
-        }
         await existingUser.update(
             {
                 platform,
@@ -372,10 +357,7 @@ async function persistUserInfo({ platformUserInfo, platform, hostname, accessTok
             userSettings: {}
         }, ...writeOptions);
     }
-    return {
-        id,
-        name
-    };
+    return { userInfo: { id, name } };
 }
 
 /**

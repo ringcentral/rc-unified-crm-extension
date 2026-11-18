@@ -141,7 +141,9 @@ describe('app connector TypeScript modules', () => {
             'unAuthorize',
             'updateCallLog',
             'updateMessageLog',
-            'upsertCallDisposition'
+            'upsertCallDisposition',
+            'validateApiKeyLogin',
+            'validateApiKeyUserSave'
         ]);
     });
 

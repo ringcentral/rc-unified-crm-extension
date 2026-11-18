@@ -165,6 +165,13 @@ API-key connectors define a login form in `auth.apiKey.page.content[]`. As with 
 
 App Connect passes the final resolved credential fields to `getUserInfo()` as `additionalInfo`. It also passes `apiKey` as the selected API-key value.
 
+API-key connectors can optionally implement two validation hooks:
+
+- `validateApiKeyLogin({ rcAccountId, rcExtensionId })` runs before the connector contacts the CRM. The IDs come from a verified RingCentral access token when one is supplied.
+- `validateApiKeyUserSave({ existingUser, platformUserInfo, rcAccountId, accessToken })` runs after CRM authentication and before writing the user record. Core reads and locks any existing record in the same transaction as the write.
+
+Return a `ReturnMessage` to deny the login, or return `undefined` to continue. Keep provider ownership rules in the connector. The save hook should inspect the supplied values without changing the user record or logging credentials.
+
 ### Step 3: Admin-managed API-key fields (optional)
 
 Use admin-managed API-key fields when only part of the login form is shared across the account (or across a user's own settings), as with VinSolutions's dealer ID. Mark the relevant field as managed:

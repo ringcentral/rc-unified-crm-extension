@@ -1,4 +1,5 @@
 import type { JsonObject } from './json';
+import type { ValidateApiKeyLogin, ValidateApiKeyUserSave } from './auth';
 
 export type ConnectorInterfaceFunction = (...args: any[]) => unknown;
 
@@ -6,6 +7,8 @@ export interface ConnectorImplementation {
   createCallLog?: ConnectorInterfaceFunction;
   updateCallLog?: ConnectorInterfaceFunction;
   getAuthType?: ConnectorInterfaceFunction;
+  validateApiKeyLogin?: ValidateApiKeyLogin;
+  validateApiKeyUserSave?: ValidateApiKeyUserSave;
   [key: string]: unknown;
 }
 
