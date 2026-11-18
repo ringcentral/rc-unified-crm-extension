@@ -19,7 +19,7 @@ async function postCallback({ callbackUrl, successful, message, note }) {
     successful,
     message,
     note
-  });
+  }, { maxRedirects: 0 });
 }
 
 async function run({ identity, data, config, asyncTaskId, callbackUrl }) {

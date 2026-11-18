@@ -33,7 +33,11 @@ Return quickly after accepting the task:
 }
 ```
 
-When background processing finishes, post the result to `callbackUrl`:
+The template builds the callback destination from its trusted App Connect base URL and the task ID. It checks that the supplied `callbackUrl` matches before accepting the task. The default base URL is `https://unified-crm-extension.labs.ringcentral.com`.
+
+For a self-hosted or staging App Connect Server, set `APP_CONNECT_CALLBACK_BASE_URL` to the server URL, including any deployment path prefix. For local development, set it explicitly to the local Core URL, such as `http://localhost:6066`. Loopback HTTP is supported outside production. The template sends callbacks directly and rejects redirect responses.
+
+When background processing finishes, the template posts the result to the verified callback:
 
 ```json
 {

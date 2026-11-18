@@ -81,7 +81,9 @@ Return quickly:
 }
 ```
 
-When background work finishes, post to `callbackUrl`:
+The plugin template accepts the task only when `callbackUrl` matches the callback address built from the trusted App Connect base URL and `asyncTaskId`. The template defaults to the hosted App Connect Server. Set `APP_CONNECT_CALLBACK_BASE_URL` on the plugin server when using self-hosted, staging, or local Core. Include any deployment path prefix. Local development can use loopback HTTP outside production.
+
+When background work finishes, post to the verified callback. The template rejects redirect responses.
 
 ```json
 {

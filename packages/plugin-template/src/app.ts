@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const syncPlugin = require('./plugins/syncPlugin');
 const asyncPlugin = require('./plugins/asyncPlugin');
+const { resolveAsyncCallbackUrl } = require('./lib/asyncCallback');
 const { generatePluginJwtToken, validateAndRefreshPluginToken } = require('./lib/pluginToken');
 const { validateRcIdentity } = require('./lib/ringcentral');
 const licenseHandler = require('./handlers/license');
@@ -64,15 +65,24 @@ app.post('/plugin/async', validateAndRefreshPluginToken, async (req, res) => {
     const pluginIdentity = req.pluginAuth;
     const {
       asyncTaskId,
-      callbackUrl,
+      callbackUrl: requestedCallbackUrl,
       data,
       config
     } = req.body || {};
 
-    if (!asyncTaskId || !callbackUrl) {
+    if (!asyncTaskId || !requestedCallbackUrl) {
       res.status(400).send({
         accepted: false,
         message: 'asyncTaskId and callbackUrl are required'
+      });
+      return;
+    }
+
+    const callbackUrl = resolveAsyncCallbackUrl(asyncTaskId, requestedCallbackUrl);
+    if (!callbackUrl) {
+      res.status(400).send({
+        accepted: false,
+        message: 'Invalid async task ID or callback URL'
       });
       return;
     }
