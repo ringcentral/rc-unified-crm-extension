@@ -562,6 +562,7 @@ async function handleWidgetToolCall(req, res) {
         const result = await tool.execute({
             ...toolArgs,
             rcExtensionId: widgetContext.rcExtensionId,
+            rcAccountId: widgetContext.rcAccountId,
             openaiSessionId: widgetContext.openaiSessionId,
         });
         logger.info('Widget tool call result:', { toolName, success: result?.success });

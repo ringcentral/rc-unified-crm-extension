@@ -89,7 +89,7 @@ const { sequelize } = /** @type {any} */ (require('./models/sequelize'));
 const { runCallLogsSchemaMigration } = /** @type {any} */ (require('./lib/migrateCallLogsSchema'));
 const { migrateMessageLogsSchema } = /** @type {any} */ (require('./lib/migrateMessageLogsSchema'));
 const { handleDatabaseError } = /** @type {any} */ (require('./lib/errorHandler'));
-const { updateAuthSession } = /** @type {any} */ (require('./lib/authSession'));
+const { claimAuthSession, updateAuthSession } = require('./lib/authSession');
 const managedAuthCore = /** @type {any} */ (require('./handlers/managedAuth'));
 const managedOAuthCore = /** @type {any} */ (require('./handlers/managedOAuth'));
 const accountDataCore = /** @type {any} */ (require('./handlers/accountData'));
@@ -1376,10 +1376,10 @@ function createCoreRouter() {
     router.get('/oauth-callback', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
-        tracer?.trace('oauth-callback:start', { query: req.query });
+        tracer?.trace('oauth-callback:start', { hasCallbackUri: !!req.query.callbackUri });
         let platformName = null;
         let success = false;
-        let sessionId = null;
+        let claimedSessionId: string | undefined;
         const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             if (!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
@@ -1402,7 +1402,7 @@ function createCoreRouter() {
                 platformName = req.query.callbackUri?.split('platform=')[1] ?? state.split('platform=')[1];
             }
             // Extract mcp auth sessionId if present
-            sessionId = stateParams?.get('sessionId');
+            const sessionId = stateParams?.get('sessionId');
             const isFromMCP = !!sessionId;
             const hostname = req.query.hostname ?? stateParams.get('hostname');
             const tokenUrl = req.query.tokenUrl;
@@ -1410,6 +1410,41 @@ function createCoreRouter() {
                 tracer?.trace('oauth-callback:missingPlatformName', {});
                 res.status(400).send(wrapDebugResponse(tracer, 'Missing platform name'));
                 return;
+            }
+            let verifiedRcAccountId: string | undefined;
+            let verifiedRcExtensionId: string | undefined;
+            if (sessionId) {
+                const session = await claimAuthSession(sessionId, platformName, {
+                    rcAccountId: req.query.rcAccountId,
+                    rcExtensionId: req.query.rcExtensionId
+                });
+                if (!session) {
+                    res.status(403).send(wrapDebugResponse(tracer, 'Invalid or expired OAuth session'));
+                    return;
+                }
+                claimedSessionId = sessionId;
+                verifiedRcAccountId = session.rcAccountId;
+                verifiedRcExtensionId = session.rcExtensionId;
+            } else {
+                const rcAccessToken = normalizeTokenValue(req.get('X-RC-Access-Token'));
+                if (rcAccessToken) {
+                    try {
+                        const identity = await adminCore.validateRcUserToken({ rcAccessToken });
+                        if (!identity.rcAccountId || !identity.rcExtensionId) {
+                            throw new Error('RingCentral identity is incomplete');
+                        }
+                        verifiedRcAccountId = identity.rcAccountId;
+                        verifiedRcExtensionId = identity.rcExtensionId;
+                    } catch {
+                        res.status(401).send(wrapDebugResponse(tracer, 'Invalid RingCentral access token'));
+                        return;
+                    }
+                    if ((req.query.rcAccountId !== undefined && req.query.rcAccountId !== verifiedRcAccountId)
+                        || (req.query.rcExtensionId !== undefined && req.query.rcExtensionId !== verifiedRcExtensionId)) {
+                        res.status(403).send(wrapDebugResponse(tracer, 'RingCentral account or extension does not match'));
+                        return;
+                    }
+                }
             }
             const hasAuthCodeInCallbackUri = req.query.callbackUri.includes('code=');
             if (!hasAuthCodeInCallbackUri) {
@@ -1420,9 +1455,11 @@ function createCoreRouter() {
                 platform: platformName,
                 hostname,
                 tokenUrl,
-                query: req.query,
+                query: { ...req.query, rcAccountId: verifiedRcAccountId, rcExtensionId: verifiedRcExtensionId },
                 proxyId: req.query.proxyId,
-                hashedRcExtensionId: hashedExtensionId,
+                verifiedRcAccountId,
+                hashedRcExtensionId: !isFromMCP && verifiedRcExtensionId
+                    ? util.getHashValue(verifiedRcExtensionId, process.env.HASH_KEY) : undefined,
                 isFromMCP
             });
             if (userInfo) {
@@ -1431,8 +1468,8 @@ function createCoreRouter() {
                     platform: platformName
                 });
                 // Store in session if sessionId exists (MCP flow)
-                if (isFromMCP) {
-                    await updateAuthSession(sessionId, {
+                if (claimedSessionId) {
+                    await updateAuthSession(claimedSessionId, {
                         status: 'completed',
                         jwtToken,
                         userInfo: {
@@ -1458,18 +1495,20 @@ function createCoreRouter() {
                     successful: false,
                     returnMessage
                 }));
-                await updateAuthSession(sessionId, {
-                    status: 'failed',
-                    errorMessage: returnMessage?.message || 'Authentication failed'
-                });
+                if (claimedSessionId) {
+                    await updateAuthSession(claimedSessionId, {
+                        status: 'failed',
+                        errorMessage: returnMessage?.message || 'Authentication failed'
+                    });
+                }
             }
         }
         catch (e) {
             logger.error('OAuth callback failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('oauth-callback:error', e, { platform: platformName });
             res.status(400).send(wrapDebugResponse(tracer, { error: getErrorResponse(e) }));
-            if (sessionId) {
-                await updateAuthSession(sessionId, {
+            if (claimedSessionId) {
+                await updateAuthSession(claimedSessionId, {
                     status: 'failed',
                     errorMessage: getErrorResponse(e).toString()
                 });

@@ -1,5 +1,6 @@
 export type AuthSessionStatus =
   | 'pending'
+  | 'processing'
   | 'completed'
   | 'expired'
   | (string & {});
@@ -11,6 +12,7 @@ export interface AuthSessionData {
   updatedAt?: string;
   status?: AuthSessionStatus;
   jwtToken?: string;
+  rcAccountId?: string;
   rcExtensionId?: string;
   openaiSessionId?: string;
   [key: string]: unknown;

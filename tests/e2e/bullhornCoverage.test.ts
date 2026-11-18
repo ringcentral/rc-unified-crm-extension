@@ -804,7 +804,7 @@ describe('Bullhorn connector App-level E2E coverage', () => {
       hostname: provider.hostname,
       accessToken: identity.accessToken,
       refreshToken: identity.refreshToken,
-      hashedRcExtensionId: identity.hashedExtensionId,
+      hashedRcExtensionId: null,
       timezoneOffset: '0',
       platformAdditionalInfo: {
         id: provider.corporateUserId,

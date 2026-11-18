@@ -24,6 +24,7 @@ const { RingCentral } = require('../../lib/ringcentral');
 const adminCore = require('../../handlers/admin');
 const { AccountDataModel } = require('../../models/accountDataModel');
 const { CacheModel } = require('../../models/cacheModel');
+const { UserModel } = require('../../models/userModel');
 const { encode, decoded } = require('../../lib/encode');
 const { getHashValue } = require('../../lib/util');
 
@@ -760,6 +761,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'api.example.com',
         tokenUrl: 'https://api.example.com/oauth/token',
+        verifiedRcAccountId: 'rc-account-123',
         query: {
           callbackUri: 'https://app.example.com/callback?code=auth-code-123',
           rcAccountId: 'rc-account-123'
@@ -796,6 +798,7 @@ describe('Auth Handler', () => {
         platform,
         hostname: 'api.example.com',
         tokenUrl: 'https://api.example.com/oauth/token',
+        verifiedRcAccountId: 'rc-account-123',
         query: { callbackUri: 'https://app.example.com/callback?code=auth-code-123', rcAccountId: 'rc-account-123' }
       });
 
@@ -820,6 +823,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'api.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-123',
         query: { callbackUri: 'https://app.example.com/callback', rcAccountId: 'rc-123' }
       };
 
@@ -854,6 +858,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'api.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-123',
         query: { callbackUri: 'https://app.example.com/callback', rcAccountId: 'rc-123' }
       };
 
@@ -889,6 +894,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'api.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-123',
         query: { callbackUri: 'https://app.example.com/callback', rcAccountId: 'rc-123' }
       });
 
@@ -931,6 +937,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'api.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-123',
         query: {
           callbackUri: 'https://app.example.com/callback',
           proxyId: 'proxy-123',
@@ -970,6 +977,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'api.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-123',
         query: { callbackUri: 'https://app.example.com/callback', rcAccountId: 'rc-123' }
       };
 
@@ -1007,6 +1015,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'api.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-123',
         query: { callbackUri: 'https://app.example.com/callback?code=code123&state=platform%3DtestCRM', rcAccountId: 'rc-123' }
       };
 
@@ -1063,6 +1072,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'old.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-managed',
         query: {
           callbackUri: 'https://app.example.com/callback?code=code123',
           rcAccountId: 'rc-managed'
@@ -1117,6 +1127,41 @@ describe('Auth Handler', () => {
       });
     };
 
+    test.each([
+      ['legacy', false],
+      ['MCP', true],
+    ])('%s OAuth keeps its connector credentials and does not promote pending browser configuration', async (kind, isFromMCP) => {
+      const pendingAccount = 'rc-managed-browser-flow-' + kind;
+      const verifiedRcAccountId = isFromMCP ? pendingAccount : undefined;
+      const expectedOwner = verifiedRcAccountId ?? 'existing-rc-owner';
+      await createPendingManagedOAuth(pendingAccount);
+      const id = 'connector-oauth-user-' + kind;
+      const oauthInfo = { clientId: 'connector-client', clientSecret: 'connector-secret' };
+      if (!isFromMCP) {
+        await UserModel.create({ id, platform: 'testCRM', rcAccountId: expectedOwner });
+      }
+      connectorRegistry.getConnector.mockReturnValue(global.testUtils.createMockConnector({
+        getOauthInfo: jest.fn().mockResolvedValue(oauthInfo),
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: { id, name: 'CRM User' },
+        }),
+      }));
+      mockOAuthApp.code.getToken.mockResolvedValue({ accessToken: 'token', refreshToken: 'refresh', expires: new Date() });
+
+      const result = await authHandler.onOAuthCallback({
+        platform: 'testCRM',
+        isFromMCP,
+        verifiedRcAccountId,
+        query: { callbackUri: 'https://app.example.com/callback?code=code123', rcAccountId: pendingAccount }
+      });
+
+      expect(result.userInfo.id).toBe(id);
+      expect(oauth.getOAuthApp).toHaveBeenCalledWith(oauthInfo);
+      expect((await UserModel.findByPk(id)).rcAccountId).toBe(expectedOwner);
+      expect(await CacheModel.findByPk(pendingAccount + '-managed-oauth-account')).not.toBeNull();
+    });
+
     test('should keep connector tokenEndpointAuthMethod when managed OAuth values are present', async () => {
       await createPendingManagedOAuth('rc-managed-post');
       const getOverridingOAuthOption = jest.fn().mockImplementation(({ oauthInfo }) => (
@@ -1150,6 +1195,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'old.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-managed-post',
         query: {
           callbackUri: 'https://app.example.com/callback?code=code123',
           rcAccountId: 'rc-managed-post',
@@ -1210,6 +1256,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'old.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-managed-fail',
         query: {
           callbackUri: 'https://app.example.com/callback?code=code123',
           rcAccountId: 'rc-managed-fail'
@@ -1246,6 +1293,7 @@ describe('Auth Handler', () => {
         platform: 'testCRM',
         hostname: 'old.example.com',
         tokenUrl: '',
+        verifiedRcAccountId: 'rc-managed-throw',
         query: {
           callbackUri: 'https://app.example.com/callback?code=code123',
           rcAccountId: 'rc-managed-throw'

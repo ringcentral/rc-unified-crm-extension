@@ -71,6 +71,7 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 - Returns `structuredContent` for schema-bearing tool calls and includes serialized JSON text content for backwards compatibility
 - Serves the widget HTML via `resources/read`
 - Exposes `handleWidgetToolCall`, which verifies the signed widget session token and dispatches only `tools.widgetTools`
+- Binds the signed widget's verified RingCentral account and extension to the pending CRM OAuth session. The callback claims the matching pending session once. The MCP widget uses the connector's own OAuth credentials, and the verified account is used for user association.
 
 **Request Flow:**
 1. Receives `POST /mcp` with a JSON-RPC body

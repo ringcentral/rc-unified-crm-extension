@@ -495,10 +495,12 @@ describe('Clio expanded App-level E2E', () => {
     const callbackUri = `${redirectUri}?code=${oauth.authorizationCode}`
       + `&state=${encodeURIComponent(state)}`;
 
+    const callbackIdentityScope = mockRingCentralAdmin();
     const response = await client.get('/oauth-callback', {
       params: { callbackUri, rcAccountId: identity.rcAccountId },
-      headers: { 'rc-extension-id': identity.hashedExtensionId },
+      headers: requestHeaders,
     });
+    callbackIdentityScope.done();
 
     expect(response.status).toBe(200);
     expect(response.data).toMatchObject({
@@ -534,7 +536,7 @@ describe('Clio expanded App-level E2E', () => {
       accessToken: oauth.accessToken,
       refreshToken: oauth.refreshToken,
       rcAccountId: identity.rcAccountId,
-      hashedRcExtensionId: identity.hashedExtensionId,
+      hashedRcExtensionId: getHashValue(identity.rcExtensionId, process.env.HASH_KEY),
     });
     expect(persisted.tokenExpiry).toBeInstanceOf(Date);
     expect(await CacheModel.findByPk(

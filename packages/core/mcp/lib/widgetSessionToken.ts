@@ -15,9 +15,11 @@ function getSecret(): string {
 
 function createWidgetSessionToken({
   rcExtensionId,
+  rcAccountId,
   openaiSessionId = null,
 }: {
   rcExtensionId?: string | null;
+  rcAccountId?: string | null;
   openaiSessionId?: string | null;
 } = {}): string | null {
   if (!rcExtensionId) {
@@ -28,6 +30,7 @@ function createWidgetSessionToken({
     {
       type: WIDGET_SESSION_TOKEN_TYPE,
       rcExtensionId,
+      rcAccountId,
       openaiSessionId,
     },
     getSecret(),
@@ -35,7 +38,7 @@ function createWidgetSessionToken({
   );
 }
 
-function verifyWidgetSessionToken(token: unknown): { rcExtensionId: string; openaiSessionId: string | null } | null {
+function verifyWidgetSessionToken(token: unknown): { rcExtensionId: string; rcAccountId?: string; openaiSessionId: string | null } | null {
   if (!token || typeof token !== 'string') {
     return null;
   }
@@ -53,6 +56,7 @@ function verifyWidgetSessionToken(token: unknown): { rcExtensionId: string; open
 
     return {
       rcExtensionId: payload.rcExtensionId,
+      ...(typeof payload.rcAccountId === 'string' && payload.rcAccountId ? { rcAccountId: payload.rcAccountId } : {}),
       openaiSessionId: typeof payload.openaiSessionId === 'string' ? payload.openaiSessionId : null,
     };
   } catch {

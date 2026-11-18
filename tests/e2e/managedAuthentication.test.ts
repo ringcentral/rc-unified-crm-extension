@@ -337,7 +337,7 @@ describe('Managed authentication App-level E2E', () => {
     const userRcScope = mockRingCentralExtension({
       accessToken: managedOAuth.userAccessToken,
       isAdmin: false,
-      times: 2,
+      times: 4,
     });
 
     const cacheResponse = await client.post('/admin/managedOAuth/cache', {
@@ -406,13 +406,21 @@ describe('Managed authentication App-level E2E', () => {
     }).toString();
     const callbackUri = `${managedOAuth.redirectUri}?code=${managedOAuth.authorizationCode}&state=${encodeURIComponent(state)}`;
 
+    const mismatchedCallback = await client.get('/oauth-callback', {
+      params: { callbackUri, rcAccountId: 'different-account' },
+      headers: userHeaders,
+    });
+    expect(mismatchedCallback.status).toBe(403);
+    expect(tokenRequest).toBeNull();
+    expect(await CacheModel.findByPk(pendingCacheId)).not.toBeNull();
+
     const callbackResponse = await client.get('/oauth-callback', {
       params: {
         callbackUri,
         rcAccountId: managedOAuth.rcAccountId,
       },
       headers: {
-        'rc-extension-id': managedOAuth.hashedRcExtensionId,
+        ...userHeaders,
       },
     });
 

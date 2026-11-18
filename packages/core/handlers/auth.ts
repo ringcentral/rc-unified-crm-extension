@@ -30,7 +30,7 @@ const logger = require('../lib/logger');
  * @param {OAuthCallbackParams} params
  * @returns {Promise<AuthHandlerResult>}
  */
-async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcExtensionId, isFromMCP = false }) {
+async function onOAuthCallback({ platform, hostname, tokenUrl, query, verifiedRcAccountId, hashedRcExtensionId, isFromMCP = false }) {
     const callbackUri = query.callbackUri;
     const apiUrl = query.apiUrl;
     const username = query.username;
@@ -43,9 +43,10 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
     }
     let managedOAuthSource = null;
     let managedOAuthValues = null;
-    if (query.rcAccountId) {
+    // The MCP widget starts the CRM flow with the connector's own OAuth client.
+    if (verifiedRcAccountId && !isFromMCP) {
         const managedOAuthResult = await managedOAuthCore.resolveManagedOAuthInfo({
-            rcAccountId: query.rcAccountId,
+            rcAccountId: verifiedRcAccountId,
             platform
         });
         managedOAuthSource = managedOAuthResult.source;
@@ -60,7 +61,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
             connectorOauthInfo = await platformModule.getOauthInfo({
                 tokenUrl,
                 hostname: managedOAuthValues.hostname ?? hostname,
-                rcAccountId: query.rcAccountId,
+                rcAccountId: verifiedRcAccountId,
                 proxyId,
                 proxyConfig,
                 userEmail,
@@ -77,7 +78,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
         }
     }
     else {
-        connectorOauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig, userEmail, isFromMCP });
+        connectorOauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: verifiedRcAccountId, proxyId, proxyConfig, userEmail, isFromMCP });
     }
     const oauthInfo = managedOAuthValues
         ? { ...(connectorOauthInfo ?? {}), ...managedOAuthValues }
@@ -128,7 +129,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
         }
         let userInfo = null;
         try {
-            ({ userInfo } = await saveUserInfo({
+            const saveResult = await saveUserInfo({
                 platformUserInfo,
                 platform,
                 tokenUrl: resolvedTokenUrl,
@@ -138,10 +139,19 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
                 accessToken,
                 refreshToken,
                 tokenExpiry: isNaN(expires) ? null : expires,
-                rcAccountId: query?.rcAccountId,
+                rcAccountId: verifiedRcAccountId,
                 hashedRcExtensionId,
                 proxyId
-            }));
+            }, verifiedRcAccountId ? ({ existingUser }) => {
+                if (existingUser?.rcAccountId && existingUser.rcAccountId !== verifiedRcAccountId) {
+                    return {
+                        messageType: 'warning',
+                        message: 'This CRM connection belongs to another RingCentral account.'
+                    };
+                }
+            } : undefined);
+            if (!saveResult.userInfo) return saveResult;
+            userInfo = saveResult.userInfo;
         }
         catch (error) {
             return {
@@ -154,7 +164,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
         }
         if (managedOAuthSource === 'pending') {
             await managedOAuthCore.migratePendingManagedOAuth({
-                rcAccountId: query.rcAccountId,
+                rcAccountId: verifiedRcAccountId,
                 platform
             });
         }
@@ -331,8 +341,8 @@ async function persistUserInfo({ platformUserInfo, platform, hostname, accessTok
                 accessToken,
                 refreshToken,
                 tokenExpiry,
-                rcAccountId,
-                hashedRcExtensionId,
+                ...(rcAccountId !== undefined ? { rcAccountId } : {}),
+                ...(hashedRcExtensionId !== undefined ? { hashedRcExtensionId } : {}),
                 platformAdditionalInfo: {
                     ...existingUser.platformAdditionalInfo, // keep existing platformAdditionalInfo
                     ...platformAdditionalInfo,

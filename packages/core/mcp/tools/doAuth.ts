@@ -42,7 +42,7 @@ const toolDefinition = {
 
 async function execute(args) {
     try {
-        const { sessionId, connectorName, hostname = '', rcExtensionId, openaiSessionId } = args;
+        const { sessionId, connectorName, hostname = '', rcExtensionId, rcAccountId, openaiSessionId } = args;
 
         if (!sessionId || !connectorName || !rcExtensionId) {
             return { success: false, error: 'Missing required fields: sessionId, connectorName, rcExtensionId' };
@@ -52,6 +52,7 @@ async function execute(args) {
             platform: connectorName,
             hostname,
             rcExtensionId,
+            ...(rcAccountId ? { rcAccountId } : {}),
             openaiSessionId,
         });
 

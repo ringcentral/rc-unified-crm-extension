@@ -101,6 +101,8 @@ The flow is:
 
 Connector code usually does not need to know whether credentials came from `getOauthInfo()` or managed OAuth. On callback, App Connect still calls `getOauthInfo()` and then layers the admin-managed values (client ID, client secret, token URL, authorization URL, redirect URI, scopes, hostname) on top of it. Managed values win for those fields; any other setting returned by `getOauthInfo()`, such as a proxy connector's `tokenEndpointAuthMethod`, stays in effect.
 
+For a browser callback to a trusted App Connect server, send the RingCentral access token in the `X-RC-Access-Token` header. Core uses the verified RingCentral identity for managed OAuth settings and account association. Without account proof, legacy clients can exchange a regular CRM authorization code using connector-level configuration. Account-level managed settings and account binding require verification.
+
 ### Step 4: Implement the required interfaces
 
 Required interfaces:

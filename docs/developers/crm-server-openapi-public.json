@@ -305,6 +305,15 @@
         "operationId": "getOauthCallback",
         "parameters": [
           {
+            "name": "X-RC-Access-Token",
+            "in": "header",
+            "required": false,
+            "description": "RingCentral access token used to verify account and extension identity for browser callbacks. Managed OAuth configuration and account binding require verified identity.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "state",
             "in": "query",
             "schema": {
@@ -365,7 +374,7 @@
             "name": "rcAccountId",
             "in": "query",
             "required": false,
-            "description": "Optional RingCentral account context forwarded to connectors that bind CRM OAuth to an account.",
+            "description": "Optional account ID for compatibility. When the callback has verified RingCentral identity, a supplied ID must match that identity.",
             "schema": {
               "type": "string"
             }
@@ -374,7 +383,7 @@
             "name": "rcExtensionId",
             "in": "query",
             "required": false,
-            "description": "Optional RingCentral extension context forwarded to connectors that bind CRM OAuth to a user.",
+            "description": "Optional extension ID for compatibility. When the callback has verified RingCentral identity, a supplied ID must match that identity.",
             "schema": {
               "type": "string"
             }
@@ -405,9 +414,15 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "The supplied RingCentral access token could not be verified."
+          },
+          "403": {
+            "description": "The supplied RingCentral identity does not match, or the MCP OAuth session is invalid, expired, or already claimed."
           }
         },
-        "description": "Completes connector OAuth by passing the provider result and connector context to the selected connector, storing the resulting CRM credentials, and issuing an App Connect CRM-session JWT. Browser flows restore context from state or callbackUri. Connector-specific query fields such as account, extension, email, or username can also be forwarded. MCP authorization stores the completed session server-side and returns plain text instead of a browser token."
+        "description": "Completes connector OAuth, stores the resulting CRM credentials, and issues an App Connect CRM-session JWT. Browser callbacks may verify RingCentral identity using the access-token header. Legacy browser callbacks without that header use connector credentials and cannot bind a RingCentral account. MCP callbacks claim a pending server-side authorization session and return plain text instead of a browser token."
       }
     },
     "/apiKeyLogin": {

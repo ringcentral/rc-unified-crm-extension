@@ -81,6 +81,7 @@ export interface OAuthCallbackParams {
   hostname?: string;
   tokenUrl?: string;
   query: OAuthCallbackQuery;
+  verifiedRcAccountId?: string;
   hashedRcExtensionId?: string;
   isFromMCP?: boolean;
 }

@@ -634,14 +634,16 @@ describe('NetSuite expanded App-level E2E', () => {
       `&state=${encodeURIComponent(state)}`,
     ].join('');
 
+    const callbackIdentityScope = mockRingCentralAdmin(1);
     const response = await client.get('/oauth-callback', {
       params: {
         callbackUri,
         hostname: provider.loginHostname,
         rcAccountId: identity.rcAccountId,
       },
-      headers: { 'rc-extension-id': identity.hashedExtensionId },
+      headers: requestHeaders,
     });
+    callbackIdentityScope.done();
 
     expect(response.status).toBe(200);
     expect(response.data).toMatchObject({
@@ -674,7 +676,7 @@ describe('NetSuite expanded App-level E2E', () => {
       hostname: provider.loginHostname,
       accessToken: oauth.accessToken,
       refreshToken: oauth.refreshToken,
-      hashedRcExtensionId: identity.hashedExtensionId,
+      hashedRcExtensionId: getHashValue(identity.rcExtensionId, process.env.HASH_KEY),
       platformAdditionalInfo: {
         email: oauth.currentUserResponse.email,
         name: oauth.currentUserResponse.name,

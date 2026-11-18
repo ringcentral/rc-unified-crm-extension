@@ -105,6 +105,7 @@ jest.mock('../../lib/s3ErrorLogReport', () => ({
   getUploadUrl: jest.fn(),
 }));
 jest.mock('../../lib/authSession', () => ({
+  claimAuthSession: jest.fn(),
   updateAuthSession: jest.fn(),
 }));
 jest.mock('../../mcp/mcpHandler', () => ({
@@ -134,7 +135,7 @@ const connectorRegistry = require('../../connector/registry');
 const analytics = require('../../lib/analytics');
 const jwt = require('../../lib/jwt');
 const s3ErrorLogReport = require('../../lib/s3ErrorLogReport');
-const { updateAuthSession } = require('../../lib/authSession');
+const { claimAuthSession, updateAuthSession } = require('../../lib/authSession');
 const mcpHandler = require('../../mcp/mcpHandler');
 const { UserModel } = require('../../models/userModel');
 const {
@@ -327,6 +328,7 @@ describe('Core router broad route coverage', () => {
       userInfo: { id: 'user-1', name: 'CRM User' },
       returnMessage: { messageType: 'success', message: 'Connected' },
     });
+    claimAuthSession.mockResolvedValue({ rcExtensionId: 'ext-1', rcAccountId: 'rc-account-1' });
     authCore.onApiKeyLogin.mockResolvedValue({
       userInfo: { id: 'user-1', name: 'CRM User' },
       returnMessage: { messageType: 'success', message: 'Connected' },
@@ -704,6 +706,7 @@ describe('Core router broad route coverage', () => {
       .query({
         callbackUri: `https://redirect.example.com/callback?state=${callbackState}`,
         code: 'oauth-code',
+        rcAccountId: 'legacy-account',
       });
     expect(callbackResponse.body).toEqual({
       successful: true,
@@ -715,6 +718,10 @@ describe('Core router broad route coverage', () => {
       eventName: 'OAuth Callback',
       success: true,
     }));
+    expect(authCore.onOAuthCallback).toHaveBeenLastCalledWith(expect.objectContaining({
+      verifiedRcAccountId: undefined,
+      query: expect.objectContaining({ rcAccountId: undefined }),
+    }));
 
     const mcpState = encodeURIComponent('platform=testCRM&hostname=crm.example.com&sessionId=session-1');
     await expect(request(app).get('/oauth-callback').query({
@@ -722,6 +729,10 @@ describe('Core router broad route coverage', () => {
       code: 'oauth-code',
     })).resolves.toMatchObject({ status: 200, text: 'Authentication successful. Please go back to AI Agent and confirm it.' });
     expect(updateAuthSession).toHaveBeenCalledWith('session-1', expect.objectContaining({ status: 'completed' }));
+    expect(authCore.onOAuthCallback).toHaveBeenLastCalledWith(expect.objectContaining({
+      verifiedRcAccountId: 'rc-account-1',
+      isFromMCP: true,
+    }));
 
     authCore.onOAuthCallback.mockResolvedValueOnce({
       userInfo: null,

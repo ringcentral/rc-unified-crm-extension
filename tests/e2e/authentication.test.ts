@@ -231,7 +231,7 @@ describe('Authentication App-level E2E', () => {
     const tokenExchangeStartedAt = Date.now();
 
     const response = await client.get('/oauth-callback', {
-      params: { callbackUri },
+      params: { callbackUri, rcAccountId: 'unverified-legacy-account' },
       headers: {
         'rc-extension-id': pipedrive.hashedExtensionId,
       },
@@ -261,7 +261,11 @@ describe('Authentication App-level E2E', () => {
     const persistedUser = await UserModel.findByPk(pipedrive.userId);
     expect(persistedUser).not.toBeNull();
     const persistedData = persistedUser.toJSON();
-    expect(persistedData).toMatchObject(pipedrive.expectedPersistedUser);
+    expect(persistedData).toMatchObject({
+      ...pipedrive.expectedPersistedUser,
+      rcAccountId: null,
+      hashedRcExtensionId: null,
+    });
     expect(persistedData.tokenExpiry).toBeInstanceOf(Date);
     expect(persistedData.tokenExpiry.getTime()).toBeGreaterThan(tokenExchangeStartedAt + 7190 * 1000);
     expect(persistedData.tokenExpiry.getTime()).toBeLessThan(Date.now() + 7210 * 1000);

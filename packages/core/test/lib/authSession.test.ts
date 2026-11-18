@@ -1,6 +1,7 @@
 const { CacheModel } = require('../../models/cacheModel');
 const {
   createAuthSession,
+  claimAuthSession,
   getAuthSession,
   updateAuthSession,
 } = require('../../lib/authSession');
@@ -90,6 +91,20 @@ describe('authSession', () => {
 
   test('returns null for missing sessions', async () => {
     await expect(getAuthSession('missing-session')).resolves.toBeNull();
+  });
+
+  test('binds callback claims to the stored platform and identity and accepts a pending attempt once', async () => {
+    await createAuthSession('bound-session', {
+      platform: 'clio',
+      rcAccountId: 'account-1',
+      rcExtensionId: 'extension-1',
+    });
+    await expect(claimAuthSession('bound-session', 'other-platform', {})).resolves.toBeNull();
+    await expect(claimAuthSession('bound-session', 'clio', { rcAccountId: 'other-account' })).resolves.toBeNull();
+    await expect(claimAuthSession('bound-session', 'clio', {})).resolves.toMatchObject({
+      rcAccountId: 'account-1', rcExtensionId: 'extension-1', status: 'processing',
+    });
+    await expect(claimAuthSession('bound-session', 'clio', {})).resolves.toBeNull();
   });
 
   test('marks expired sessions as expired and returns current session data', async () => {

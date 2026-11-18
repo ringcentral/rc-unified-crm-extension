@@ -16,6 +16,7 @@ Object.assign(process.env, oauthEnvironment);
 const nock = require('nock');
 const http = require('http');
 const jwt = require('@app-connect/core/lib/jwt');
+const { getHashValue } = require('@app-connect/core/lib/util');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { MessageLogModel } = require('@app-connect/core/models/messageLogModel');
 const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
@@ -425,10 +426,14 @@ describe('Google Sheets additional App-level coverage', () => {
     const callbackUri =
       `${oauth.redirectUri}?code=${oauth.authorizationCode}&state=${encodeURIComponent(state)}`;
     const exchangeStartedAt = Date.now();
+    const callbackIdentityScope = nock('https://platform.ringcentral.com')
+      .matchHeader('authorization', `Bearer ${oauth.adminAccessToken}`)
+      .get('/restapi/v1.0/account/~/extension/~')
+      .reply(200, googleSheetsOAuthAdminResponse());
 
     const response = await client.get('/oauth-callback', {
       params: { callbackUri, rcAccountId: oauth.rcAccountId },
-      headers: { 'rc-extension-id': oauth.hashedExtensionId },
+      headers: { 'X-RC-Access-Token': oauth.adminAccessToken },
     });
 
     expect(response.status).toBe(200);
@@ -455,7 +460,11 @@ describe('Google Sheets additional App-level coverage', () => {
     const persistedUser = await UserModel.findByPk(oauth.userId);
     expect(persistedUser).not.toBeNull();
     const persistedData = persistedUser.toJSON();
-    expect(persistedData).toMatchObject(oauth.expectedPersistedUser);
+    expect(persistedData).toMatchObject({
+      ...oauth.expectedPersistedUser,
+      hashedRcExtensionId: getHashValue(oauth.rcExtensionId, process.env.HASH_KEY),
+    });
+    callbackIdentityScope.done();
     expect(persistedData.tokenExpiry).toBeInstanceOf(Date);
     expect(persistedData.tokenExpiry.getTime()).toBeGreaterThan(
       exchangeStartedAt + 7190 * 1000,

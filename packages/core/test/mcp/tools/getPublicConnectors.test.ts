@@ -71,6 +71,7 @@ describe('MCP Tool: getPublicConnectors', () => {
       expect(result.structuredContent.widgetSessionToken).toEqual(expect.any(String));
       expect(verifyWidgetSessionToken(result.structuredContent.widgetSessionToken)).toEqual({
         rcExtensionId: 'ext-456',
+        rcAccountId: 'acc-789',
         openaiSessionId: 'session-abc',
       });
       expect(axios.get).toHaveBeenCalledWith(

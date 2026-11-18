@@ -29,24 +29,50 @@ async function createAuthSession(sessionId: string, data: AuthSessionCreateData)
     const sessionData = {
         platform: data.platform,
         hostname: data.hostname || '',
+        rcAccountId: data.rcAccountId,
         rcExtensionId: data.rcExtensionId,
         openaiSessionId: data.openaiSessionId,
         createdAt: new Date().toISOString(),
     };
 
-    const existing = await CacheModel.findByPk(id);
-    if (existing) {
-        await existing.update({ status: 'pending', data: sessionData, expiry });
-    } else {
-        await CacheModel.create({
-            id,
-            cacheKey: AUTH_SESSION_PREFIX,
-            userId: sessionId,
-            status: 'pending',
-            data: sessionData,
-            expiry,
+    await CacheModel.sequelize.transaction(async transaction => {
+        const existing = await CacheModel.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
+        if (existing) {
+            if (existing.status === 'processing' && !isExpired(existing)) {
+                throw new Error('OAuth callback is already in progress');
+            }
+            await existing.update({ status: 'pending', data: sessionData, expiry }, { transaction });
+        } else {
+            await CacheModel.create({
+                id,
+                cacheKey: AUTH_SESSION_PREFIX,
+                userId: sessionId,
+                status: 'pending',
+                data: sessionData,
+                expiry,
+            }, { transaction });
+        }
+    });
+}
+
+async function claimAuthSession(sessionId: string, platform: string, query: {
+    rcAccountId?: unknown;
+    rcExtensionId?: unknown;
+}): Promise<AuthSessionResult | null> {
+    return CacheModel.sequelize.transaction(async transaction => {
+        const record = await CacheModel.findByPk(getSessionRecordId(sessionId), {
+            transaction, lock: transaction.LOCK.UPDATE
         });
-    }
+        const data = record?.data;
+        if (record?.status !== 'pending' || !record.expiry || isExpired(record) || data?.platform !== platform
+            || !data.rcExtensionId
+            || (query.rcAccountId !== undefined && query.rcAccountId !== data.rcAccountId)
+            || (query.rcExtensionId !== undefined && query.rcExtensionId !== data.rcExtensionId)) {
+            return null;
+        }
+        await record.update({ status: 'processing' }, { transaction });
+        return { ...data, sessionId, status: 'processing' };
+    });
 }
 
 async function getAuthSession(sessionId: string): Promise<AuthSessionResult | null> {
@@ -94,6 +120,7 @@ async function updateAuthSession(sessionId: string, data: AuthSessionUpdateData)
 
 export {
     createAuthSession,
+    claimAuthSession,
     getAuthSession,
     updateAuthSession
 };

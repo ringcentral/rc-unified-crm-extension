@@ -92,7 +92,11 @@ async function execute({ rcAccessToken, openaiSessionId }: { rcAccessToken?: str
                 rcExtensionId,
                 rcAccountId,
                 openaiSessionId: openaiSessionId ?? null,
-                widgetSessionToken: createWidgetSessionToken({ rcExtensionId, openaiSessionId: openaiSessionId ?? null }),
+                widgetSessionToken: createWidgetSessionToken({
+                    rcExtensionId: rcExtensionId?.toString(),
+                    rcAccountId: rcAccountId?.toString(),
+                    openaiSessionId: openaiSessionId ?? null
+                }),
             }
         };
     }
