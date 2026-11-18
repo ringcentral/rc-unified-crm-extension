@@ -287,8 +287,9 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
     try {
         // use password to get code
         logger.info('authorize bullhorn by password')
-        const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
-        const codeResponse = await axios.get(authUrl, {
+        const tokenUrl = oauth.requireBullhornTokenUrl(user.platformAdditionalInfo.tokenUrl);
+        const authUrl = new URL('/oauth/authorize', tokenUrl);
+        const codeResponse = await axios.get(authUrl.href, {
             params: {
                 client_id: process.env.BULLHORN_CLIENT_ID,
                 username: serverLoggingSettings.apiUsername,
@@ -310,18 +311,11 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
             throw new Error('Authorize failure, missing code');
         }
         const overridingOAuthOption = {
-            headers: {
-                Authorization: ''
-            },
-            query: {
-                grant_type: 'authorization_code',
-                code,
-                client_id: process.env.BULLHORN_CLIENT_ID,
-                client_secret: process.env.BULLHORN_CLIENT_SECRET,
-                redirect_uri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
-            }
+            ...getOverridingOAuthOption({ code }),
+            accessTokenUri: tokenUrl.href
         };
-        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
+        const { accessToken, refreshToken, expires } = await oauth.useRedirectFollowingRequest(oauthApp)
+            .code.getToken(redirectLocation, overridingOAuthOption);
         logger.info('authorize bullhorn user by password successfully.')
         return {
             access_token: accessToken,
@@ -405,14 +399,20 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, s
         logger.info('Bullhorn token refreshing...')
         let authData;
         try {
-            const refreshTokenResponse = await axios.post(user.platformAdditionalInfo.tokenUrl, null, {
-                params: {
+            const tokenUrl = oauth.requireBullhornTokenUrl(user.platformAdditionalInfo.tokenUrl);
+            const refreshTokenResponse = await axios.post(
+                tokenUrl.href,
+                new URLSearchParams({
                     grant_type: 'refresh_token',
                     refresh_token: user.refreshToken,
-                    client_id: process.env.BULLHORN_CLIENT_ID,
-                    client_secret: process.env.BULLHORN_CLIENT_SECRET
+                    client_id: process.env.BULLHORN_CLIENT_ID ?? '',
+                    client_secret: process.env.BULLHORN_CLIENT_SECRET ?? ''
+                }),
+                {
+                    ...oauth.bullhornTokenRedirectOptions(),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                 }
-            });
+            );
             authData = refreshTokenResponse.data;
         } catch (e) {
             const serverLoggingSettings = await getServerLoggingSettings({ user });
@@ -582,7 +582,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
 
 function getOverridingOAuthOption({ code }) {
     return {
-        query: {
+        body: {
             grant_type: 'authorization_code',
             code,
             client_id: process.env.BULLHORN_CLIENT_ID,
@@ -590,7 +590,7 @@ function getOverridingOAuthOption({ code }) {
             redirect_uri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
         },
         headers: {
-            Authorization: ''
+            Authorization: undefined
         }
     }
 }

@@ -153,19 +153,32 @@ describe('oauth', () => {
       });
     });
 
-    test('should keep Authorization only when redirected within the same parent domain', async () => {
+    test('preserves Authorization on a trusted regional redirect and blocks other destinations', async () => {
       const requestSpy = jest.spyOn(axios, 'request').mockResolvedValue({ status: 200, data: '' });
       const app = useRedirectFollowingRequest({});
       await app.request('POST', 'https://auth-emea.bullhornstaffing.com/oauth/token', 'code=1', { Authorization: 'Basic abc' });
       const { beforeRedirect } = requestSpy.mock.calls[0][0] as any;
 
-      const sameDomain: any = { hostname: 'auth-east.bullhornstaffing.com', headers: {} };
+      const sameDomain: any = { href: 'https://auth-east.bullhornstaffing.com/oauth/token', headers: {} };
       beforeRedirect(sameDomain);
       expect(sameDomain.headers.Authorization).toBe('Basic abc');
 
-      const otherDomain: any = { hostname: 'evil.example.com', headers: {} };
-      beforeRedirect(otherDomain);
-      expect(otherDomain.headers.Authorization).toBeUndefined();
+      const otherDomain: any = { href: 'https://other.example.test/oauth/token', headers: {} };
+      expect(() => beforeRedirect(otherDomain)).toThrow('Invalid Bullhorn OAuth token endpoint');
+      expect(otherDomain.headers).toEqual({});
+    });
+
+    test.each([
+      'https://auth.bullhornstaffing.com.example.test/oauth/token',
+      'http://auth.bullhornstaffing.com/oauth/token',
+      'https://auth.bullhornstaffing.com:8443/oauth/token',
+      'https://auth.bullhornstaffing.com/oauth/authorize',
+    ])('rejects an unapproved token endpoint before making a request: %s', async (url) => {
+      const requestSpy = jest.spyOn(axios, 'request');
+      const app = useRedirectFollowingRequest({});
+      await expect(app.request('POST', url, 'grant_type=authorization_code', {}))
+        .rejects.toThrow('Invalid Bullhorn OAuth token endpoint');
+      expect(requestSpy).not.toHaveBeenCalled();
     });
   });
 

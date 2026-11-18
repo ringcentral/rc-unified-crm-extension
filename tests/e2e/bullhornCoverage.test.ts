@@ -1,4 +1,3 @@
-const http = require('http');
 const nock = require('nock');
 const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
@@ -42,9 +41,8 @@ describe('Bullhorn connector App-level E2E coverage', () => {
   let server;
   let client;
   let jwtToken;
-  let tokenApiServer;
-  let tokenUrl;
-  let tokenRequest;
+  const tokenOrigin = 'https://auth-west.bullhornstaffing.com';
+  const tokenUrl = `${tokenOrigin}${provider.tokenPath}`;
 
   function requestConfig() {
     return {
@@ -62,37 +60,6 @@ describe('Bullhorn connector App-level E2E coverage', () => {
         process.env[key] = value;
       }
     }
-  }
-
-  async function startTokenApiServer() {
-    tokenApiServer = http.createServer(async (request: any, response: any) => {
-      const chunks: Buffer[] = [];
-      for await (const chunk of request) {
-        chunks.push(Buffer.from(chunk));
-      }
-      tokenRequest = {
-        method: request.method,
-        url: request.url,
-        headers: request.headers,
-        body: Buffer.concat(chunks).toString('utf8'),
-      };
-      response.writeHead(200, { 'content-type': 'application/json' });
-      response.end(JSON.stringify(oauth.tokenResponse));
-    });
-    await new Promise(resolve => tokenApiServer.listen(0, '127.0.0.1', resolve));
-    const { port } = tokenApiServer.address();
-    tokenUrl = `http://127.0.0.1:${port}${provider.tokenPath}`;
-  }
-
-  async function stopTokenApiServer() {
-    if (!tokenApiServer) return;
-    await new Promise((resolve, reject) => tokenApiServer.close((error: any) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve(undefined);
-    }));
   }
 
   async function cleanData() {
@@ -180,7 +147,6 @@ describe('Bullhorn connector App-level E2E coverage', () => {
   }
 
   beforeAll(async () => {
-    await startTokenApiServer();
     process.env.BULLHORN_CLIENT_ID = provider.clientId;
     process.env.BULLHORN_CLIENT_SECRET = provider.clientSecret;
     nock.disableNetConnect();
@@ -197,20 +163,15 @@ describe('Bullhorn connector App-level E2E coverage', () => {
       try {
         await stopServer(server);
       } finally {
-        try {
-          await stopTokenApiServer();
-        } finally {
-          restoreEnvironment();
-          nock.cleanAll();
-          nock.enableNetConnect();
-        }
+        restoreEnvironment();
+        nock.cleanAll();
+        nock.enableNetConnect();
       }
     }
   });
 
   beforeEach(async () => {
     nock.cleanAll();
-    tokenRequest = null;
     await cleanData();
     await seedUser();
   });
@@ -779,6 +740,15 @@ describe('Bullhorn connector App-level E2E coverage', () => {
       hostname: provider.hostname,
     }).toString();
     const callbackUri = `${provider.redirectUri}?code=${provider.authorizationCode}&state=${encodeURIComponent(state)}`;
+    const tokenScope = nock(tokenOrigin, { badheaders: ['authorization'] })
+      .post(provider.tokenPath, {
+        grant_type: 'authorization_code',
+        code: provider.authorizationCode,
+        client_id: provider.clientId,
+        client_secret: provider.clientSecret,
+        redirect_uri: provider.redirectUri,
+      })
+      .reply(200, oauth.tokenResponse);
     const loginScope = nock(provider.apiBaseUrl)
       .post('/login')
       .query({ version: '2.0', access_token: identity.accessToken })
@@ -818,18 +788,7 @@ describe('Bullhorn connector App-level E2E coverage', () => {
       id: identity.userId,
       platform: identity.platform,
     });
-    expect(tokenRequest).not.toBeNull();
-    expect(tokenRequest.method).toBe('POST');
-    const parsedTokenRequest = new URL(tokenRequest.url, 'http://127.0.0.1');
-    expect(parsedTokenRequest.pathname).toBe(provider.tokenPath);
-    expect(Object.fromEntries(parsedTokenRequest.searchParams)).toMatchObject({
-      grant_type: 'authorization_code',
-      code: provider.authorizationCode,
-      client_id: provider.clientId,
-      client_secret: provider.clientSecret,
-      redirect_uri: provider.redirectUri,
-    });
-    expect(tokenRequest.headers.authorization ?? '').toBe('');
+    expect(tokenScope.isDone()).toBe(true);
     expect(corporateUserQuery).toMatchObject({
       fields: 'id,name,timeZoneOffsetEST,masterUserID',
       BhRestToken: provider.bhRestToken,

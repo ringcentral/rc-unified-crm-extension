@@ -70,8 +70,32 @@ async function recoverConcurrentlyRefreshedUser(
     return null;
 }
 
-function lastTwoLabels(hostname: string): string {
-    return hostname.split('.').slice(-2).join('.');
+export function requireBullhornTokenUrl(value: unknown): URL {
+    let url: URL;
+    try {
+        url = new URL(typeof value === 'string' ? value : '');
+    } catch {
+        throw new Error('Invalid Bullhorn OAuth token endpoint');
+    }
+    if (url.protocol !== 'https:'
+        || !/^auth(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?\.bullhornstaffing\.com$/.test(url.hostname)
+        || url.port || url.username || url.password || url.pathname !== '/oauth/token'
+        || url.search || url.hash) {
+        throw new Error('Invalid Bullhorn OAuth token endpoint');
+    }
+    return url;
+}
+
+export function bullhornTokenRedirectOptions(authorization?: string) {
+    return {
+        maxRedirects: 5,
+        beforeRedirect: (options: { href?: string; headers: Record<string, string> }) => {
+            requireBullhornTokenUrl(options.href);
+            if (authorization) {
+                options.headers.Authorization = authorization;
+            }
+        }
+    };
 }
 
 // client-oauth2 sends token requests through popsicle, which does not follow 307/308 redirects
@@ -84,27 +108,18 @@ async function requestFollowingRedirect(
     body: string,
     headers: Record<string, string | undefined>
 ): Promise<{ status: number; body: string }> {
-    const originalHost = new URL(url).hostname;
     const cleanHeaders = Object.fromEntries(
         Object.entries(headers ?? {}).filter(([, value]) => value !== undefined)
     ) as Record<string, string>;
     const response = await axios.request({
         method,
-        url,
+        url: requireBullhornTokenUrl(url).href,
         data: body,
         headers: cleanHeaders,
-        maxRedirects: 5,
+        ...bullhornTokenRedirectOptions(cleanHeaders.Authorization),
         responseType: 'text',
         transformResponse: (data: unknown) => data,
-        validateStatus: () => true,
-        // axios drops Authorization when redirected to another host; keep it for the same
-        // parent domain (e.g. another Bullhorn cluster) so client credentials still reach the token endpoint.
-        beforeRedirect: (options: { hostname?: string; headers: Record<string, string> }) => {
-            if (cleanHeaders.Authorization && options.hostname
-                && lastTwoLabels(options.hostname) === lastTwoLabels(originalHost)) {
-                options.headers.Authorization = cleanHeaders.Authorization;
-            }
-        }
+        validateStatus: () => true
     });
     return { status: response.status, body: response.data };
 }

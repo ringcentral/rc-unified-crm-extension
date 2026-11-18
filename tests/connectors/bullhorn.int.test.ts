@@ -234,6 +234,50 @@ describe('Bullhorn Connector', () => {
             expect(result.redirectUri).toBe('https://ringcentral.github.io/ringcentral-embeddable/redirect.html');
             expect(result.accessTokenUri).toBe(tokenUrl);
         });
+
+        it('exchanges the code using a form body through a Bullhorn regional redirect', async () => {
+            const oauth = require('@app-connect/core/lib/oauth');
+            const info = await bullhorn.getOauthInfo({ tokenUrl: 'https://auth.bullhornstaffing.com/oauth/token' });
+            const app = oauth.useRedirectFollowingRequest(oauth.getOAuthApp(info));
+            const body = {
+                code: 'test-code',
+                grant_type: 'authorization_code',
+                redirect_uri: info.redirectUri,
+                client_id: 'test-client-id',
+                client_secret: 'test-client-secret',
+            };
+            const first = nock('https://auth.bullhornstaffing.com', { badheaders: ['authorization'] })
+                .post('/oauth/token', body)
+                .reply(307, '', { location: 'https://auth-west50.bullhornstaffing.com/oauth/token' });
+            const second = nock('https://auth-west50.bullhornstaffing.com', { badheaders: ['authorization'] })
+                .post('/oauth/token', body)
+                .reply(200, { access_token: 'test-access-token', refresh_token: 'test-refresh-token', expires_in: 600 });
+
+            const token = await app.code.getToken(
+                `${info.redirectUri}?code=test-code`,
+                bullhorn.getOverridingOAuthOption({ code: 'test-code' })
+            );
+            expect(token.accessToken).toBe('test-access-token');
+            first.done();
+            second.done();
+        });
+
+        it('stops the token exchange when the redirect leaves Bullhorn', async () => {
+            const oauth = require('@app-connect/core/lib/oauth');
+            const info = await bullhorn.getOauthInfo({ tokenUrl: 'https://auth.bullhornstaffing.com/oauth/token' });
+            const app = oauth.useRedirectFollowingRequest(oauth.getOAuthApp(info));
+            const first = nock('https://auth.bullhornstaffing.com')
+                .post('/oauth/token')
+                .reply(307, '', { location: 'https://other.example.test/oauth/token' });
+            const outside = nock('https://other.example.test').post('/oauth/token').reply(400);
+
+            await expect(app.code.getToken(
+                `${info.redirectUri}?code=test-code`,
+                bullhorn.getOverridingOAuthOption({ code: 'test-code' })
+            )).rejects.toThrow('Invalid Bullhorn OAuth token endpoint');
+            first.done();
+            expect(outside.isDone()).toBe(false);
+        });
     });
 
     // ==================== getUserInfo ====================
@@ -2173,12 +2217,12 @@ describe('Bullhorn Connector', () => {
         it('should return correct OAuth options with code', () => {
             const result = bullhorn.getOverridingOAuthOption({ code: 'test-auth-code' });
 
-            expect(result.query.grant_type).toBe('authorization_code');
-            expect(result.query.code).toBe('test-auth-code');
-            expect(result.query.client_id).toBe('test-client-id');
-            expect(result.query.client_secret).toBe('test-client-secret');
-            expect(result.query.redirect_uri).toBe('https://ringcentral.github.io/ringcentral-embeddable/redirect.html');
-            expect(result.headers.Authorization).toBe('');
+            expect(result.body.grant_type).toBe('authorization_code');
+            expect(result.body.code).toBe('test-auth-code');
+            expect(result.body.client_id).toBe('test-client-id');
+            expect(result.body.client_secret).toBe('test-client-secret');
+            expect(result.body.redirect_uri).toBe('https://ringcentral.github.io/ringcentral-embeddable/redirect.html');
+            expect(result.headers.Authorization).toBeUndefined();
         });
     });
 
@@ -2935,6 +2979,23 @@ describe('Bullhorn Connector', () => {
             Lock.get.mockReset();
         });
 
+        it('rejects an unapproved saved token URL without sending a refresh request', async () => {
+            const user = createMockUser({
+                accessToken: 'old-access-token',
+                refreshToken: 'old-refresh-token',
+                platformAdditionalInfo: {
+                    ...mockUser.platformAdditionalInfo,
+                    tokenUrl: 'https://other.example.test/oauth/token',
+                },
+            });
+            const ping = nock(restUrl.slice(0, -1)).get('/ping').reply(401);
+            const outside = nock('https://other.example.test').post('/oauth/token').reply(400);
+
+            expect(await bullhorn.checkAndRefreshAccessToken({}, user, 20, true)).toBeNull();
+            ping.done();
+            expect(outside.isDone()).toBe(false);
+        });
+
         it('should refresh token when session is about to expire', async () => {
             // Create a user with valid token
             const userWithToken = createMockUser({
@@ -2965,8 +3026,7 @@ describe('Bullhorn Connector', () => {
 
             // Mock token refresh
             nock('https://auth.bullhornstaffing.com')
-                .post('/oauth/token')
-                .query(true)
+                .post('/oauth/token', body => body.grant_type === 'refresh_token' && body.client_secret === 'test-client-secret')
                 .reply(200, {
                     access_token: 'new-access-token',
                     refresh_token: 'new-refresh-token',
@@ -3012,7 +3072,6 @@ describe('Bullhorn Connector', () => {
             // Mock token refresh
             nock('https://auth.bullhornstaffing.com')
                 .post('/oauth/token')
-                .query(true)
                 .reply(200, {
                     access_token: 'new-access-token',
                     refresh_token: 'new-refresh-token',
@@ -3055,7 +3114,6 @@ describe('Bullhorn Connector', () => {
             // Token refresh fails
             nock('https://auth.bullhornstaffing.com')
                 .post('/oauth/token')
-                .query(true)
                 .reply(401, { error: 'Invalid refresh token' });
 
             // Call with skipLock = true to avoid lock complexity
@@ -3769,7 +3827,6 @@ describe('Bullhorn Connector', () => {
             // Token refresh succeeds
             nock('https://auth.bullhornstaffing.com')
                 .post('/oauth/token')
-                .query(true)
                 .reply(200, {
                     access_token: 'new-access-token',
                     refresh_token: 'new-refresh-token',
