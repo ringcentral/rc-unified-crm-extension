@@ -139,7 +139,7 @@ describe('Netsuite Connector', () => {
             });
 
             expect(result.successful).toBe(true);
-            expect(result.platformUserInfo.id).toBe('12345-testcompany-netsuite');
+            expect(result.platformUserInfo.id).toBe(`12345-${accountId}-netsuite`);
             expect(result.platformUserInfo.name).toBe('Test User');
             expect(result.returnMessage.messageType).toBe('success');
         });
@@ -2189,6 +2189,7 @@ describe('Netsuite Connector', () => {
             nock(restletsUrl)
                 .get(/getcurrentuser/)
                 .reply(200, {
+                    id: 12345,
                     name: 'Test User',
                     email: 'test@example.com',
                     subsidiary: '5'  // Has subsidiary, so OneWorld is inferred
@@ -2231,6 +2232,7 @@ describe('Netsuite Connector', () => {
             nock(restletsUrl)
                 .get(/getcurrentuser/)
                 .reply(200, {
+                    id: 12345,
                     name: 'Test User',
                     email: 'test@example.com'
                 });
