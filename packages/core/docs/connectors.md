@@ -64,6 +64,7 @@ Exports:
 - `getConnectorManifest()`
 
 These functions are small fetch helpers and return `null` on failure after logging.
+Manifest lookups accept connector IDs composed of letters, digits, periods, underscores, and hyphens. They reject standalone dot segments and keep manifest and private-list requests on the Developer Portal by disabling redirects.
 
 ## Mock Connector Helpers
 

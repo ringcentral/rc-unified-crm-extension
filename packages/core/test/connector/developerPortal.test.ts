@@ -62,7 +62,10 @@ describe('developerPortal connector', () => {
       id: 'salesforce',
       name: 'Salesforce',
     });
-    expect(axios.get).toHaveBeenCalledWith('https://appconnect.labs.ringcentral.com/public-api/connectors/salesforce/manifest');
+    expect(axios.get).toHaveBeenCalledWith(
+      'https://appconnect.labs.ringcentral.com/public-api/connectors/salesforce/manifest',
+      { params: undefined, maxRedirects: 0 },
+    );
   });
 
   test('loads a private connector manifest for the requesting account', async () => {
@@ -93,11 +96,13 @@ describe('developerPortal connector', () => {
 
     expect(axios.get).toHaveBeenNthCalledWith(
       1,
-      'https://appconnect.labs.ringcentral.com/public-api/connectors/internal?accountId=rc-account-1',
+      'https://appconnect.labs.ringcentral.com/public-api/connectors/internal',
+      { params: { accountId: 'rc-account-1' }, maxRedirects: 0 },
     );
     expect(axios.get).toHaveBeenNthCalledWith(
       2,
-      'https://appconnect.labs.ringcentral.com/public-api/connectors/private-crm/manifest?access=internal&type=connector&accountId=rc-account-1',
+      'https://appconnect.labs.ringcentral.com/public-api/connectors/private-crm/manifest',
+      { params: { access: 'internal', type: 'connector', accountId: 'rc-account-1' }, maxRedirects: 0 },
     );
   });
 
@@ -121,7 +126,8 @@ describe('developerPortal connector', () => {
 
     expect(axios.get).toHaveBeenCalledTimes(1);
     expect(axios.get).toHaveBeenCalledWith(
-      'https://appconnect.labs.ringcentral.com/public-api/connectors/shared-crm/manifest?access=internal&type=connector&accountId=owner-account',
+      'https://appconnect.labs.ringcentral.com/public-api/connectors/shared-crm/manifest',
+      { params: { access: 'internal', type: 'connector', accountId: 'owner-account' }, maxRedirects: 0 },
     );
   });
 
@@ -153,7 +159,34 @@ describe('developerPortal connector', () => {
 
     expect(axios.get).toHaveBeenNthCalledWith(
       2,
-      'https://appconnect.labs.ringcentral.com/public-api/connectors/shared-crm/manifest?access=internal&type=connector&accountId=owner-account',
+      'https://appconnect.labs.ringcentral.com/public-api/connectors/shared-crm/manifest',
+      { params: { access: 'internal', type: 'connector', accountId: 'owner-account' }, maxRedirects: 0 },
+    );
+  });
+
+  test.each([[''], [null], [['crm']], ['.'], ['..'], ['not/a-connector-id'], ['crm?name'], ['crm%20name'], ['crm\n']])(
+    'rejects invalid connector ID %p before making a portal request',
+    async (connectorId) => {
+      await expect(getConnectorManifest({
+        connectorId,
+        rcAccountId: 'viewer-account',
+        isPrivate: true,
+      })).resolves.toBeNull();
+      expect(axios.get).not.toHaveBeenCalled();
+    },
+  );
+
+  test('keeps the developer account in one query parameter for legacy connector IDs', async () => {
+    axios.get.mockResolvedValueOnce({ data: {} });
+
+    await expect(getConnectorManifest({
+      connectorId: 'acme.crm_A-123',
+      devRcAccountId: 'owner & region',
+    })).resolves.toEqual({});
+
+    expect(axios.get).toHaveBeenCalledWith(
+      'https://appconnect.labs.ringcentral.com/public-api/connectors/acme.crm_A-123/manifest',
+      { params: { access: 'internal', type: 'connector', accountId: 'owner & region' }, maxRedirects: 0 },
     );
   });
 

@@ -45,6 +45,7 @@ export interface GetPrivateConnectorListParams {
 
 export interface GetConnectorManifestParams extends GetPrivateConnectorListParams {
   connectorId: string;
+  devRcAccountId?: string | number;
   isPrivate?: boolean;
 }
 
