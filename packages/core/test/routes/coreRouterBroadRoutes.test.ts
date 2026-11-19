@@ -1654,7 +1654,7 @@ describe('Core router broad route coverage', () => {
     adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
     await expect(request(app).post('/plugin/register').query({ rcAccessToken: 'rc-token' }).send({ pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 403 });
 
-    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: true, rcAccountId: 'different-account' });
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: true, rcAccountId: '' });
     await expect(request(app).post('/plugin/register').query({ rcAccessToken: 'rc-token' }).send({ pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 403 });
 
     pluginCore.registerPluginAccount.mockRejectedValueOnce(new Error('register failed'));
@@ -1666,7 +1666,7 @@ describe('Core router broad route coverage', () => {
     adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
     await expect(request(app).delete('/plugin/unregister').query({ rcAccessToken: 'rc-token', pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 403 });
 
-    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: true, rcAccountId: 'different-account' });
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: true, rcAccountId: '' });
     await expect(request(app).delete('/plugin/unregister').query({ rcAccessToken: 'rc-token', pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 403 });
 
     pluginCore.unregisterPluginAccount.mockRejectedValueOnce(new Error('unregister failed'));

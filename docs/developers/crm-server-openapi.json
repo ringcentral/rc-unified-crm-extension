@@ -3208,7 +3208,7 @@
             "legacyRingCentralAccessToken": []
           }
         ],
-        "description": "Installs a plugin for a RingCentral account. The route validates administrator access and account identity, resolves the selected platform entry from the Developer Console plugin manifest, calls its registration URL with the short-lived RingCentral administrator token, and stores the returned opaque plugin credential and manifest metadata."
+        "description": "Installs a plugin for a RingCentral account. The route validates administrator access and derives the account from the RingCentral token, resolves the selected platform entry from the Developer Console plugin manifest, calls its registration URL with the short-lived RingCentral administrator token, and stores the returned opaque plugin credential and manifest metadata."
       }
     },
     "/plugin/unregister": {
@@ -3232,8 +3232,9 @@
           {
             "name": "rcAccountId",
             "in": "query",
-            "required": true,
-            "description": "RingCentral account that owns the local plugin registration. It must match the administrator token.",
+            "required": false,
+            "deprecated": true,
+            "description": "Ignored legacy field. The server derives the RingCentral account from the access token.",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -3269,7 +3270,7 @@
             "legacyRingCentralAccessToken": []
           }
         ],
-        "description": "Removes the account's local App Connect plugin registration after RingCentral administrator validation. The current protocol does not notify the remote plugin server or revoke its credential, so providers need their own stale-account cleanup and retention policy."
+        "description": "Removes the account's local App Connect plugin registration for the account derived from the RingCentral administrator token. The current protocol does not notify the remote plugin server or revoke its credential, so providers need their own stale-account cleanup and retention policy."
       }
     },
     "/plugin/licenseStatus": {
@@ -5299,7 +5300,6 @@
                 "summary": "Register a shared plugin",
                 "value": {
                   "pluginId": "plugin.example",
-                  "rcAccountId": "123456789",
                   "pluginAccess": "shared",
                   "pluginName": "examplePlugin"
                 }
@@ -7488,7 +7488,8 @@
                 "type": "number"
               }
             ],
-            "description": "RingCentral account that will receive the plugin."
+            "description": "Ignored legacy field. The server derives the RingCentral account from the access token.",
+            "deprecated": true
           },
           "ownerRcAccountId": {
             "anyOf": [
@@ -7518,8 +7519,7 @@
           }
         },
         "required": [
-          "pluginId",
-          "rcAccountId"
+          "pluginId"
         ],
         "additionalProperties": false,
         "description": "Plugin catalog identity and RingCentral account context used for installation.",

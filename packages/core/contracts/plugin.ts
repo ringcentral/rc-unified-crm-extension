@@ -3,7 +3,10 @@ import { EntityIdSchema } from './common';
 
 export const PluginRegisterRequestSchema = z.strictObject({
   pluginId: z.string().min(1).describe('Plugin identifier from the developer portal.'),
-  rcAccountId: EntityIdSchema.describe('RingCentral account that will receive the plugin.'),
+  rcAccountId: EntityIdSchema.meta({
+    deprecated: true,
+    description: 'Ignored legacy field. The server derives the RingCentral account from the access token.',
+  }).optional(),
   ownerRcAccountId: EntityIdSchema.describe(
     'RingCentral account used to resolve a private or shared plugin manifest.',
   ).optional(),
@@ -31,7 +34,6 @@ export type PluginMutationResponse = z.input<typeof PluginMutationResponseSchema
 
 export const pluginRegisterRequestExample = {
   pluginId: 'plugin.example',
-  rcAccountId: '123456789',
   pluginAccess: 'shared',
   pluginName: 'examplePlugin',
 } satisfies PluginRegisterRequest;
