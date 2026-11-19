@@ -236,6 +236,8 @@ Keep client secrets out of the manifest. Return them from [`getOauthInfo`](inter
 
 For tenant-specific environments, `auth.oauth.authUrl` supports the `{hostname}` placeholder. For example, `https://{hostname}/oauth` resolves using the hostname that the tenant entered during setup.
 
+The Admin Console opens OAuth authorization URLs using the HTTP or HTTPS protocol. Use HTTPS for production connectors.
+
 ## Server-Side Logging
 
 ```json

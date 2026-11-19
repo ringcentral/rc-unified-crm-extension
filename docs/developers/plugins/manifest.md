@@ -40,6 +40,8 @@ Current plugin runtime reads these fields from the plugin platform manifest:
 
 Keep plugin secrets on the plugin server. The manifest should contain URLs and UI/config metadata, not secret values.
 
+Use absolute HTTP or HTTPS URLs for links shown in the Developer Console plugin preview, including documentation, release notes, and support links. Optional URL fields can be left blank. The preview keeps unsupported legacy URL values visible as plain text.
+
 ## Custom configuration
 
 Plugin configuration is similar to connector custom settings. The saved config is passed to the plugin invocation as `config`; core reads it from user settings under:
