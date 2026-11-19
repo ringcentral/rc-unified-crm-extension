@@ -167,11 +167,15 @@ describe('Authentication App-level E2E', () => {
     expect(await UserModel.findByPk(insightly.userId)).toBeNull();
   });
 
-  test('links an owned legacy record with its existing key, then supports key rotation', async () => {
+  test.each([
+    ['connected', insightly.apiKey, undefined],
+    ['disconnected', '', insightly.apiKey],
+  ])('links a %s legacy record with its existing key, then supports key rotation', async (_state, savedAccessToken, legacyApiKey) => {
     const settings = { language: { value: 'en-US' } };
     await UserModel.create({
       ...insightly.expectedPersistedUser,
-      platformAdditionalInfo: { apiUrl: insightly.apiBaseUrl },
+      accessToken: savedAccessToken,
+      platformAdditionalInfo: { apiUrl: insightly.apiBaseUrl, apiKey: legacyApiKey },
       userSettings: settings,
     });
     const legacy = mockInsightlyLogin();
@@ -179,6 +183,11 @@ describe('Authentication App-level E2E', () => {
     expect(first.status).toBe(200);
     legacy.rc.done();
     legacy.crm.done();
+    expect((await UserModel.findByPk(insightly.userId)).toJSON()).toMatchObject({
+      accessToken: insightly.apiKey,
+      platformAdditionalInfo: { insightlyInstanceId: insightly.crmUserResponse.INSTANCE_ID },
+      userSettings: settings,
+    });
 
     const apiKey = 'e2e-insightly-replacement-key';
     const rotated = mockInsightlyLogin({ apiKey });
@@ -193,6 +202,29 @@ describe('Authentication App-level E2E', () => {
       platformAdditionalInfo: { insightlyInstanceId: insightly.crmUserResponse.INSTANCE_ID },
       userSettings: settings,
     });
+  });
+
+  test.each([
+    ['no previous key', insightly.rcAccountId, '', undefined],
+    ['a different stored key', insightly.rcAccountId, '', 'different-original-key'],
+    ['a different RingCentral account', 'another-account', '', insightly.apiKey],
+    ['a different active key', insightly.rcAccountId, 'different-original-key', insightly.apiKey],
+  ])('rejects a legacy reconnect with %s', async (_reason, rcAccountId, savedAccessToken, legacyApiKey) => {
+    const settings = { language: { value: 'en-US' } };
+    await UserModel.create({
+      ...insightly.expectedPersistedUser,
+      accessToken: savedAccessToken,
+      platformAdditionalInfo: { apiUrl: insightly.apiBaseUrl, apiKey: legacyApiKey },
+      userSettings: settings,
+    });
+    const original = (await UserModel.findByPk(insightly.userId)).toJSON();
+    const { rc, crm } = mockInsightlyLogin({ rcAccountId });
+    const result = await loginToInsightly();
+    expect(result.status).toBe(400);
+    expect(result.data.jwtToken).toBeUndefined();
+    expect((await UserModel.findByPk(insightly.userId)).toJSON()).toMatchObject(original);
+    rc.done();
+    crm.done();
   });
 
   test.each([

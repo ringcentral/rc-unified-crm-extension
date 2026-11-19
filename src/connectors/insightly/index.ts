@@ -38,9 +38,10 @@ const validateApiKeyUserSave: ValidateApiKeyUserSave = ({ existingUser, platform
     if (!existingUser) return;
 
     const savedInstanceId = existingUser.platformAdditionalInfo?.insightlyInstanceId;
-    // The existing valid key can bind an already owned legacy record to its verified instance.
+    // Disconnect clears accessToken, but older logins also stored the authenticated key in connector data.
+    const savedApiKey = existingUser.accessToken || existingUser.platformAdditionalInfo?.apiKey;
     const matchesInstance = savedInstanceId == null
-        ? existingUser.accessToken === accessToken
+        ? typeof savedApiKey === 'string' && savedApiKey.length > 0 && savedApiKey === accessToken
         : savedInstanceId === platformUserInfo.platformAdditionalInfo?.insightlyInstanceId;
     if (existingUser.platform !== 'insightly' || existingUser.rcAccountId !== rcAccountId || !matchesInstance) {
         return {

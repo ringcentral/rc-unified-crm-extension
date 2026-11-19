@@ -41,6 +41,8 @@ When you login successfully, the Chrome extension will automatically update to s
 
 And with that, you will be connected to Insightly and ready to begin using the integration. 
 
+When reconnecting a connection created before App Connect recorded the Insightly instance ID, sign in to the original RingCentral account and use the existing Insightly API key. Once the connection succeeds, you can rotate the key in Insightly and reconnect with the new one.
+
 ## Setting up phone number matching to properly match contacts
 
 Insightly's contact lookup method is very strict. As a result, if the phone numbers in Insightly are not stored using the E.164 standard, e.g. `+1##########`, then App Connect will fail to find the contact record for call logging and call pop. 
