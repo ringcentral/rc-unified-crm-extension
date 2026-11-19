@@ -691,6 +691,101 @@ describe('NetSuite expanded App-level E2E', () => {
     expect(permissionsScope.isDone()).toBe(true);
     expect(nock.pendingMocks()).toEqual([]);
   });
+
+  test('ignores callback entity and company when saving the NetSuite user', async () => {
+    const victimId = '999-VICTIMCO-netsuite';
+    const authenticatedUserId = '42-8765432-netsuite';
+    const victimAccessToken = 'victim-original-access-token';
+    await UserModel.destroy({ where: { id: [victimId, authenticatedUserId] } });
+    await UserModel.create({
+      id: victimId,
+      platform: identity.platform,
+      hostname: provider.hostname,
+      accessToken: victimAccessToken,
+      refreshToken: 'victim-original-refresh-token',
+      tokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+      platformAdditionalInfo: { email: 'victim@example.test', name: 'Victim User' },
+      userSettings: {},
+    });
+
+    try {
+      const rcScope = mockRingCentralAdmin(1);
+      const cacheResponse = await client.post('/admin/managedOAuth/cache', {
+        values: {
+          clientId: identity.clientId,
+          clientSecret: identity.clientSecret,
+          accessTokenUri: tokenApiUrl,
+          authorizationUri: 'https://system.netsuite.com/app/login/oauth2/authorize.nl',
+          redirectUri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
+          scopes: [],
+          hostname: provider.loginHostname,
+        },
+      }, { headers: requestHeaders });
+      expect(cacheResponse.status).toBe(200);
+
+      const oauthAuthorization = `Bearer ${oauth.accessToken}`;
+      nock(provider.restletsBaseUrl)
+        .matchHeader('authorization', oauthAuthorization)
+        .get('/app/site/hosting/restlet.nl')
+        .query({ script: 'customscript_getcurrentuser', deploy: 'customdeploy_getcurrentuser' })
+        .reply(200, {
+          id: 42,
+          name: 'Authenticated NetSuite User',
+          email: 'authenticated@example.test',
+          subsidiary: '1',
+        });
+      nock(provider.restletsBaseUrl)
+        .matchHeader('authorization', oauthAuthorization)
+        .get('/app/site/hosting/restlet.nl')
+        .query({
+          script: 'customscript_getoneworldlicense_scriptid',
+          deploy: 'customdeploy_getoneworldlicense_deployid',
+        })
+        .reply(200, oauth.oneWorldResponse);
+      nock(provider.restletsBaseUrl)
+        .matchHeader('authorization', oauthAuthorization)
+        .post('/app/site/hosting/restlet.nl')
+        .query({
+          script: 'customscript_checkrolepermissionscriptid',
+          deploy: 'customdeploy_checkrolepermissiondeployid',
+        })
+        .reply(200, oauth.permissionResponse);
+
+      const state = new URLSearchParams({
+        platform: identity.platform,
+        hostname: provider.loginHostname,
+      }).toString();
+      const callbackUri = [
+        'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
+        `?code=${oauth.authorizationCode}`,
+        '&entity=999',
+        '&company=VICTIMCO',
+        `&state=${encodeURIComponent(state)}`,
+      ].join('');
+
+      const response = await client.get('/oauth-callback', {
+        params: {
+          callbackUri,
+          hostname: provider.loginHostname,
+          rcAccountId: identity.rcAccountId,
+        },
+        headers: { 'rc-extension-id': identity.hashedExtensionId },
+      });
+
+      const decoded = response.data.jwtToken ? jwt.decodeJwt(response.data.jwtToken) : null;
+      const victim = await UserModel.findByPk(victimId);
+      const authenticatedUser = await UserModel.findByPk(authenticatedUserId);
+
+      expect(response.status).toBe(200);
+      expect(response.data.successful).toBe(true);
+      expect(decoded?.id).toBe(authenticatedUserId);
+      expect(victim.accessToken).toBe(victimAccessToken);
+      expect(authenticatedUser.accessToken).toBe(oauth.accessToken);
+      expect(rcScope.isDone()).toBe(true);
+    } finally {
+      await UserModel.destroy({ where: { id: [victimId, authenticatedUserId] } });
+    }
+  });
 });
 
 export {};

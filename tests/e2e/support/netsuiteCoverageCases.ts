@@ -1,7 +1,7 @@
 const identity = {
   platform: 'netsuite',
   userId: 'e2e-netsuite-coverage-user',
-  oauthUserId: '99011-ACME-netsuite',
+  oauthUserId: '99011-8765432-netsuite',
   rcAccountId: 'e2e-netsuite-coverage-rc-account',
   rcExtensionId: 'e2e-netsuite-coverage-rc-extension',
   rcUserNumber: '+14155557000',
@@ -326,6 +326,7 @@ const oauth = {
     expires_in: 7200,
   },
   currentUserResponse: {
+    id: 99011,
     name: 'NetSuite OAuth User',
     email: 'netsuite.oauth@example.test',
     subsidiary: '1',

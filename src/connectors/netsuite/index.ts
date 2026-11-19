@@ -27,22 +27,14 @@ async function getOauthInfo({ hostname }) {
     }
 }
 
-async function getUserInfo({ authHeader, query }) {
-    // Parse entity and company from callbackUri since they're not directly in query
-    if (query.callbackUri) {
-        const parsedUrl = url.parse(query.callbackUri, true);
-        if (parsedUrl.query.entity) {
-            query.entity = parsedUrl.query.entity;
-        }
-        if (parsedUrl.query.company) {
-            query.company = parsedUrl.query.company;
-        }
-        if (parsedUrl.query.role) {
-            query.role = parsedUrl.query.role;
-        }
-        console.log('Parsed NetSuite parameters:', { entity: query.entity, company: query.company, role: query.role });
-    }
+function accountIdFromHostname(hostname) {
+    if (typeof hostname !== 'string' || !hostname.includes('.')) return null;
+    const accountId = hostname.split('.')[0];
+    if (!accountId || !/^[A-Za-z0-9_-]+$/.test(accountId)) return null;
+    return accountId;
+}
 
+async function getUserInfo({ authHeader, query }) {
     try {
         let getCurrentLoggedInUserResponse;
 
@@ -115,13 +107,17 @@ async function getUserInfo({ authHeader, query }) {
         } catch (error) {
             logger.error("Error in getting permission set", { stack: error.stack });
         }
-        // Validate that we have the required NetSuite parameters
-        if (!query.entity || !query.company) {
+        // Identity comes only from the authenticated restlet and the account the token was issued for.
+        // entity and company on the OAuth callback are caller-controlled and are not read.
+        const trustedEntity = getCurrentLoggedInUserResponse?.data?.id;
+        const accountId = accountIdFromHostname(query.hostname);
+        if (trustedEntity === undefined || trustedEntity === null || trustedEntity === '' || !accountId) {
+            logger.warn('NetSuite identity could not be derived from the authenticated user');
             return {
                 successful: false,
                 returnMessage: {
                     messageType: 'warning',
-                    message: 'Missing required NetSuite parameters (entity or company). Please try reconnecting to NetSuite.',
+                    message: 'Could not verify your NetSuite identity. Please try reconnecting to NetSuite.',
                     ttl: 10000
                 }
             };
@@ -130,7 +126,7 @@ async function getUserInfo({ authHeader, query }) {
         return {
             successful: true,
             platformUserInfo: {
-                id: `${query.entity.toString()}-${query.company}-netsuite`,
+                id: `${String(trustedEntity)}-${accountId}-netsuite`,
                 name: getCurrentLoggedInUserResponse?.data?.name,
                 platformAdditionalInfo: {
                     email: getCurrentLoggedInUserResponse?.data?.email,
