@@ -8,6 +8,7 @@ const { parsePhoneNumber } = /** @type {any} */ (require('awesome-phonenumber'))
 const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
 const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
 const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
+const { findMappedCrmUserIdBySubmission } = /** @type {any} */ (require('@app-connect/core/lib/userMapping'));
 const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/lib/errorHandler'));
@@ -838,11 +839,7 @@ async function resolveAssignedCrmUserId({ user, additionalSubmission, hashedAcco
     }
 
     const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-    const mappedUserId = adminConfig?.userMappings?.find((mapping) => (
-        typeof mapping.rcExtensionId === 'string'
-            ? mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId
-            : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId)
-    ))?.crmUserId;
+    const mappedUserId = findMappedCrmUserIdBySubmission(adminConfig?.userMappings, additionalSubmission);
 
     return mappedUserId || user.platformAdditionalInfo.crmUserId;
 }
@@ -1068,6 +1065,35 @@ async function updateCallLog({
             }
         };
     }
+}
+
+// Applies the call log form's lead to a call that is already logged, such as one logged by server-side call logging.
+async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
+    const callDetailId = existingCallLog.thirdPartyLogId;
+    if (!dispositions?.leads || !callDetailId) {
+        return {
+            logId: null
+        };
+    }
+    const accessToken = await ensureAccessToken(user, TOKEN_TYPES.CALL_TRACKING);
+    const { dealerId } = getDealerContext(user);
+    const crmUserId = await resolveAssignedCrmUserId({ user, additionalSubmission: dispositions, hashedAccountId: null });
+    await axios.patch(
+        `${API_BASE_URL}/calldetails/id/${callDetailId}`,
+        {
+            providerName: getProviderName(),
+            vinProperties: {
+                dealerId,
+                userId: Number(crmUserId),
+                leadId: Number(dispositions.leads)
+            }
+        },
+        {
+            headers: buildCallTrackingHeaders({ accessToken, user })
+        });
+    return {
+        logId: callDetailId
+    };
 }
 
 function getMessageType({ recordingLink, faxDocLink }) {
@@ -1338,6 +1364,7 @@ exports.createContact = createContact;
 exports.createCallLog = createCallLog;
 exports.getCallLog = getCallLog;
 exports.updateCallLog = updateCallLog;
+exports.upsertCallDisposition = upsertCallDisposition;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getUserList = getUserList;

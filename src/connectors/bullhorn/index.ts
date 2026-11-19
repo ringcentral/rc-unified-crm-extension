@@ -10,6 +10,7 @@ const { getMostRecentDate } = /** @type {any} */ (require('@app-connect/core/lib
 const { encode, decoded } = /** @type {any} */ (require('@app-connect/core/lib/encode'));
 const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
 const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
+const { findMappedCrmUserIdBySubmission } = /** @type {any} */ (require('@app-connect/core/lib/userMapping'));
 const { Lock } = /** @type {any} */ (require('@app-connect/core/models/dynamo/lockSchema'));
 const { getAccountData } = /** @type {any} */ (require('@app-connect/core/lib/accountData'));
 const {
@@ -1215,7 +1216,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     if (additionalSubmission?.isAssignedToUser) {
         if (!assigneeId) {
             const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-            assigneeId = adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+            assigneeId = findMappedCrmUserIdBySubmission(adminConfig?.userMappings, additionalSubmission);
         }
 
         if (!assigneeId && additionalSubmission.adminAssignedUserToken) {
@@ -1345,7 +1346,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
         const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-        assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+        assigneeId = findMappedCrmUserIdBySubmission(adminConfig?.userMappings, additionalSubmission);
     }
 
 
@@ -1475,6 +1476,42 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     };
 }
 
+const COPY_TO_CONTACT_COMMENTS_FAILED_MESSAGE = {
+    messageType: 'warning',
+    message: 'Note action saved, but the note could not be copied to the contact comments.',
+    ttl: 5000
+};
+
+// Finds the contact a call Note is logged against, so a disposition can write to that contact.
+async function getBullhornNoteContact({ user, noteId }) {
+    const getNoteRes = await axios.get(
+        `${user.platformAdditionalInfo.restUrl}entity/Note/${noteId}?fields=personReference,clientContacts,candidates`,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        });
+    const noteData = getNoteRes.data?.data ?? {};
+    const person = noteData.personReference;
+    const personSubtype = BULLHORN_PERSON_SUBTYPE_BY_CONTACT_TYPE[person?._subtype];
+    if (person?.id && personSubtype && personSubtype !== 'CorporateUser') {
+        return { entityName: personSubtype, id: person.id };
+    }
+    const clientContact = noteData.clientContacts?.data?.[0];
+    if (clientContact?.id) {
+        return { entityName: 'ClientContact', id: clientContact.id };
+    }
+    const candidate = noteData.candidates?.data?.[0];
+    if (candidate?.id) {
+        return { entityName: 'Candidate', id: candidate.id };
+    }
+    // Leads are not in the Note's contact associations, so a person without a known subtype is a Lead.
+    if (person?.id) {
+        return { entityName: 'Lead', id: person.id };
+    }
+    return null;
+}
+
 async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
     let extraDataTracking: any = {};
     const noteActions = (dispositions.noteActions ?? '') || 'pending note';
@@ -1525,11 +1562,44 @@ async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
             throw e;
         }
     }
+    let returnMessage;
+    if (dispositions.copyToContactComments && dispositions.note) {
+        try {
+            const contact = await getBullhornNoteContact({ user, noteId: existingBullhornLogId });
+            if (contact) {
+                const contactCommentResponse = await axios.post(
+                    `${user.platformAdditionalInfo.restUrl}entity/${contact.entityName}/${contact.id}`,
+                    {
+                        comments: dispositions.note
+                    },
+                    {
+                        headers: {
+                            BhRestToken: user.platformAdditionalInfo.bhRestToken
+                        }
+                    });
+                extraDataTracking = {
+                    ratelimitRemaining: contactCommentResponse.headers['ratelimit-remaining'],
+                    ratelimitAmount: contactCommentResponse.headers['ratelimit-limit'],
+                    ratelimitReset: contactCommentResponse.headers['ratelimit-reset']
+                }
+            }
+            else {
+                returnMessage = COPY_TO_CONTACT_COMMENTS_FAILED_MESSAGE;
+            }
+        }
+        catch (e) {
+            logger.error('Failed to copy Bullhorn call note to contact comments', { stack: e.stack });
+            extraDataTracking['statusCode'] = e.response?.status;
+            returnMessage = COPY_TO_CONTACT_COMMENTS_FAILED_MESSAGE;
+        }
+    }
     return {
         logId: existingBullhornLogId,
+        returnMessage,
         extraDataTracking
     }
 }
+
 
 async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     const noteActions = additionalSubmission?.noteActions ?? '';

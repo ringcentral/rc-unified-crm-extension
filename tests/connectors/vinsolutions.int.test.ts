@@ -395,6 +395,68 @@ describe('VinSolutions Connector', () => {
         });
     });
 
+    describe('upsertCallDisposition', () => {
+        it('should set the chosen lead on an already logged call', async () => {
+            const patchScope = nock(apiBase)
+                .patch('/calldetails/id/4321', {
+                    providerName: 'RingCentral',
+                    vinProperties: {
+                        dealerId: 2002,
+                        userId: 1001,
+                        leadId: 9100
+                    }
+                })
+                .matchHeader('api_key', 'call-api-key')
+                .matchHeader('content-type', 'application/vnd.coxauto.v1+json')
+                .reply(204);
+
+            const result = await vinsolutions.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog: { thirdPartyLogId: '4321' },
+                authHeader,
+                dispositions: { leads: '9100', note: 'Agent note' }
+            });
+
+            expect(result.logId).toBe('4321');
+            expect(patchScope.isDone()).toBe(true);
+        });
+
+        it('should return a null logId when no lead is chosen', async () => {
+            const result = await vinsolutions.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog: { thirdPartyLogId: '4321' },
+                authHeader,
+                dispositions: { note: 'Agent note' }
+            });
+
+            expect(result.logId).toBeNull();
+        });
+
+        it('should return a null logId when the call has no VinSolutions call detail id', async () => {
+            const result = await vinsolutions.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog: { thirdPartyLogId: null },
+                authHeader,
+                dispositions: { leads: '9100' }
+            });
+
+            expect(result.logId).toBeNull();
+        });
+
+        it('should let the API error reach the disposition handler when the update fails', async () => {
+            nock(apiBase)
+                .patch('/calldetails/id/4321')
+                .reply(500, { message: 'Server error' });
+
+            await expect(vinsolutions.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog: { thirdPartyLogId: '4321' },
+                authHeader,
+                dispositions: { leads: '9100' }
+            })).rejects.toMatchObject({ response: { status: 500 } });
+        });
+    });
+
     describe('createMessageLog', () => {
         it('should create a lead without logging credentials, contact data, or message notes', async () => {
             const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);

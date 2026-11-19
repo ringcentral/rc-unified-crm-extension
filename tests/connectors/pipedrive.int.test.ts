@@ -1400,6 +1400,32 @@ describe('Pipedrive Connector', () => {
             expect(result.returnMessage.messageType).toBe('error');
         });
 
+        it('should assign call logs by RingCX agent ID when the RC extension is unknown', async () => {
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: ['ext-5'], rcxAgentIds: { 'ext-5': ['9001'] }, crmUserId: 910 }
+                ]
+            });
+            nock(`https://${hostname}`)
+                .patch('/api/v2/activities/403', body => body.owner_id === 910)
+                .reply(200, { data: { id: 403 } }, mockRateLimitHeaders);
+
+            const result = await pipedrive.updateCallLog({
+                user: mockUser,
+                existingCallLog: createMockExistingCallLog({ thirdPartyLogId: '403' }),
+                authHeader,
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserRcxAgentId: '9001',
+                    adminAssignedUserRcxSubAccountId: '123'
+                },
+                composedLogDetails: 'Assigned by RingCX agent',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
         it('should assign call log updates from admin config without subject or duration', async () => {
             AdminConfigModel.findByPk.mockResolvedValue({
                 userMappings: [

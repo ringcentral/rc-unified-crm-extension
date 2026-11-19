@@ -102,6 +102,8 @@ Your `getUserList` implementation supplies the CRM side of this table. Return a 
 
 When logging a call server-side, the framework passes the mapped CRM user's details to your `createCallLog` implementation via the `user` parameter, allowing you to set the correct record owner in the CRM.
 
+For RingCX accounts, the Admin console also stores each mapped RingCentral user's RingCX agent IDs. A RingCX call event names only the agent, so the logging service sends `additionalSubmission.adminAssignedUserRcxAgentId` when it does not know the RingCentral extension. To resolve the assignee from either ID, use `findMappedCrmUserIdBySubmission(adminConfig.userMappings, additionalSubmission)` from `@app-connect/core/lib/userMapping`. It matches `adminAssignedUserRcId` first, then the RingCX agent ID.
+
 ## Testing
 
 1. Enable server-side logging in the Admin settings for your test account

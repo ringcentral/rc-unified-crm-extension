@@ -28,7 +28,8 @@ const AdminConfigModel = sequelize.define('adminConfigs', {
     // Array of:
   // {
   //   crmUserId: string,
-  //   rcExtensionId: array of strings
+  //   rcExtensionId: array of strings,
+  //   rcxAgentIds?: { [rcExtensionId]: array of RingCX agent ID strings }
   // }
   userMappings: {
     type: Sequelize.JSON

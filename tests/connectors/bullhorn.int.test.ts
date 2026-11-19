@@ -1769,6 +1769,156 @@ describe('Bullhorn Connector', () => {
             expect(result.returnMessage.messageType).toBe('warning');
             expect(result.returnMessage.message).toContain('does not have permission');
         });
+
+        describe('copyToContactComments', () => {
+            function mockNoteActionUpdate() {
+                nock(restUrl.slice(0, -1))
+                    .post('/entity/Note/501', body => body.action === 'Call')
+                    .reply(200, { changedEntityId: 501 }, mockBullhornRateLimitHeaders);
+            }
+
+            function mockNoteContactLookup(data) {
+                nock(restUrl.slice(0, -1))
+                    .get('/entity/Note/501')
+                    .query({ fields: 'personReference,clientContacts,candidates' })
+                    .reply(200, { data }, mockBullhornRateLimitHeaders);
+            }
+
+            it('should copy the note to the contact the Note is logged against', async () => {
+                mockNoteActionUpdate();
+                mockNoteContactLookup({
+                    personReference: { id: 901, _subtype: 'ClientContact' },
+                    clientContacts: { total: 1, data: [{ id: 901 }] },
+                    candidates: { total: 0, data: [] }
+                });
+                const commentScope = nock(restUrl.slice(0, -1))
+                    .post('/entity/ClientContact/901', { comments: 'Agent note' })
+                    .reply(200, { changedEntityId: 901 }, mockBullhornRateLimitHeaders);
+
+                const result = await bullhorn.upsertCallDisposition({
+                    user: mockUser,
+                    existingCallLog,
+                    authHeader,
+                    dispositions: { noteActions: 'Call', copyToContactComments: true, note: 'Agent note' }
+                });
+
+                expect(result.logId).toBe('501');
+                expect(result.returnMessage).toBeUndefined();
+                expect(commentScope.isDone()).toBe(true);
+            });
+
+            it('should copy to a Candidate found through the Note associations', async () => {
+                mockNoteActionUpdate();
+                mockNoteContactLookup({
+                    personReference: { id: 902 },
+                    clientContacts: { total: 0, data: [] },
+                    candidates: { total: 1, data: [{ id: 902 }] }
+                });
+                const commentScope = nock(restUrl.slice(0, -1))
+                    .post('/entity/Candidate/902', { comments: 'Agent note' })
+                    .reply(200, { changedEntityId: 902 }, mockBullhornRateLimitHeaders);
+
+                const result = await bullhorn.upsertCallDisposition({
+                    user: mockUser,
+                    existingCallLog,
+                    authHeader,
+                    dispositions: { noteActions: 'Call', copyToContactComments: true, note: 'Agent note' }
+                });
+
+                expect(result.logId).toBe('501');
+                expect(commentScope.isDone()).toBe(true);
+            });
+
+            it('should treat a person outside the Note associations as a Lead', async () => {
+                mockNoteActionUpdate();
+                mockNoteContactLookup({
+                    personReference: { id: 903 },
+                    clientContacts: { total: 0, data: [] },
+                    candidates: { total: 0, data: [] }
+                });
+                const commentScope = nock(restUrl.slice(0, -1))
+                    .post('/entity/Lead/903', { comments: 'Agent note' })
+                    .reply(200, { changedEntityId: 903 }, mockBullhornRateLimitHeaders);
+
+                const result = await bullhorn.upsertCallDisposition({
+                    user: mockUser,
+                    existingCallLog,
+                    authHeader,
+                    dispositions: { noteActions: 'Call', copyToContactComments: true, note: 'Agent note' }
+                });
+
+                expect(result.logId).toBe('501');
+                expect(commentScope.isDone()).toBe(true);
+            });
+
+            it('should warn but keep the saved note action when the Note has no contact', async () => {
+                mockNoteActionUpdate();
+                mockNoteContactLookup({
+                    clientContacts: { total: 0, data: [] },
+                    candidates: { total: 0, data: [] }
+                });
+
+                const result = await bullhorn.upsertCallDisposition({
+                    user: mockUser,
+                    existingCallLog,
+                    authHeader,
+                    dispositions: { noteActions: 'Call', copyToContactComments: true, note: 'Agent note' }
+                });
+
+                expect(result.logId).toBe('501');
+                expect(result.returnMessage).toMatchObject({ messageType: 'warning', message: expect.stringContaining('could not be copied') });
+            });
+
+            it('should warn but keep the saved note action when copying the comment fails', async () => {
+                mockNoteActionUpdate();
+                mockNoteContactLookup({
+                    personReference: { id: 901, _subtype: 'ClientContact' }
+                });
+                nock(restUrl.slice(0, -1))
+                    .post('/entity/ClientContact/901')
+                    .reply(403, { errorMessage: 'Forbidden' });
+
+                const result = await bullhorn.upsertCallDisposition({
+                    user: mockUser,
+                    existingCallLog,
+                    authHeader,
+                    dispositions: { noteActions: 'Call', copyToContactComments: true, note: 'Agent note' }
+                });
+
+                expect(result.logId).toBe('501');
+                expect(result.returnMessage).toMatchObject({ messageType: 'warning', message: expect.stringContaining('could not be copied') });
+                expect(result.extraDataTracking.statusCode).toBe(403);
+            });
+
+            it('should not touch the contact when there is no note to copy', async () => {
+                mockNoteActionUpdate();
+
+                const result = await bullhorn.upsertCallDisposition({
+                    user: mockUser,
+                    existingCallLog,
+                    authHeader,
+                    dispositions: { noteActions: 'Call', copyToContactComments: true, note: '' }
+                });
+
+                expect(result.logId).toBe('501');
+                expect(result.returnMessage).toBeUndefined();
+                expect(nock.isDone()).toBe(true);
+            });
+
+            it('should not touch the contact when copyToContactComments is not checked', async () => {
+                mockNoteActionUpdate();
+
+                const result = await bullhorn.upsertCallDisposition({
+                    user: mockUser,
+                    existingCallLog,
+                    authHeader,
+                    dispositions: { noteActions: 'Call', copyToContactComments: false, note: 'Agent note' }
+                });
+
+                expect(result.logId).toBe('501');
+                expect(nock.isDone()).toBe(true);
+            });
+        });
     });
 
     // ==================== getCallLog ====================
