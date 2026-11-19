@@ -763,14 +763,16 @@ describe('NetSuite expanded App-level E2E', () => {
         `&state=${encodeURIComponent(state)}`,
       ].join('');
 
+      const callbackIdentityScope = mockRingCentralAdmin(1);
       const response = await client.get('/oauth-callback', {
         params: {
           callbackUri,
           hostname: provider.loginHostname,
           rcAccountId: identity.rcAccountId,
         },
-        headers: { 'rc-extension-id': identity.hashedExtensionId },
+        headers: requestHeaders,
       });
+      callbackIdentityScope.done();
 
       const decoded = response.data.jwtToken ? jwt.decodeJwt(response.data.jwtToken) : null;
       const victim = await UserModel.findByPk(victimId);
