@@ -37,8 +37,10 @@ const {
     getCallLogExtensionNumber: rawGetCallLogExtensionNumber,
     getCallLogHashedExtensionId: rawGetCallLogHashedExtensionId,
     buildCallLogSessionWhere: rawBuildCallLogSessionWhere,
+    buildCallLogIdWhere: rawBuildCallLogIdWhere,
     findMatchingCallLog: rawFindMatchingCallLog,
 } = require('../lib/callLogLookup');
+const buildCallLogIdWhere = /** @type {any} */ (rawBuildCallLogIdWhere);
 const getCallLogExtensionNumber = /** @type {any} */ (rawGetCallLogExtensionNumber);
 const getCallLogHashedExtensionId = /** @type {any} */ (rawGetCallLogHashedExtensionId);
 const buildCallLogSessionWhere = /** @type {any} */ (rawBuildCallLogSessionWhere);
@@ -565,6 +567,18 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                     hashedExtensionId,
                 })
             });
+            // The same call may arrive with a different sessionId format, so
+            // also match on the call's own id (telephonySessionId).
+            const callId = incomingData.logInfo.telephonySessionId || incomingData.logInfo.id;
+            if (!existingCallLog && callId) {
+                existingCallLog = await CallLogModel.findOne({
+                    where: buildCallLogIdWhere({
+                        id: callId,
+                        extensionNumber,
+                        hashedExtensionId,
+                    })
+                });
+            }
         }
         catch (error) {
             return handleDatabaseError(error, 'Error finding existing call log');

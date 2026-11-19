@@ -229,6 +229,34 @@ describe('Log Handler', () => {
       expect(axios.post.mock.calls.some(([target]) => target === url)).toBe(false);
     });
 
+    test('should not create a second CRM log when the same call arrives with a different sessionId format', async () => {
+      await CallLogModel.create({
+        id: 'tel-session-123',
+        sessionId: '3561547735011',
+        platform: 'testCRM',
+        thirdPartyLogId: 'third-party-first',
+        userId: 'test-user-id'
+      });
+      const mockConnector = { createCallLog: jest.fn() };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          ...mockIncomingData,
+          logInfo: { ...mockIncomingData.logInfo, sessionId: 'tel-session-123' }
+        },
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      expect(result.successful).toBe(false);
+      expect(result.returnMessage.messageType).toBe('warning');
+      expect(mockConnector.createCallLog).not.toHaveBeenCalled();
+      expect(await CallLogModel.count({ where: { id: 'tel-session-123' } })).toBe(1);
+    });
+
     test('should return warning when call log already exists for session', async () => {
       // Arrange
       await CallLogModel.create({

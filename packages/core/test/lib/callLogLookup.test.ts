@@ -9,6 +9,15 @@ const {
 } = require('../data/callLogLookupCases');
 
 describe('callLogLookup', () => {
+  test('buildCallLogIdWhere matches on id instead of sessionId', () => {
+    expect(jsLookup.buildCallLogIdWhere({ id: 'tel-1', extensionNumber: '101', hashedExtensionId: '' }))
+      .toEqual({ id: 'tel-1', extensionNumber: '101' });
+    const where = jsLookup.buildCallLogIdWhere({ id: 'tel-1', hashedExtensionId: 'h1' });
+    expect(where.id).toBe('tel-1');
+    expect(where).not.toHaveProperty('sessionId');
+    expect(where[Op.or]).toBeDefined();
+  });
+
   test('keeps TypeScript implementation aligned with compatibility JS entrypoint', () => {
     const incomingData = {
       logInfo: {

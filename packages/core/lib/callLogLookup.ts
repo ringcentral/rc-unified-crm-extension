@@ -76,6 +76,20 @@ function buildCallLogSessionWhere({
     return where;
 }
 
+// The same call can reach the server with different sessionId formats (numeric
+// call-log sessionId vs. telephonySessionId string) but always carries the same
+// id, so use it as a second duplicate check.
+function buildCallLogIdWhere({
+    id,
+    extensionNumber,
+    hashedExtensionId
+}: { id: string | number; extensionNumber?: string | number | null; hashedExtensionId?: string | number | null }): Record<string | symbol, unknown> {
+    const where = buildCallLogSessionWhere({ sessionId: '', extensionNumber, hashedExtensionId });
+    delete where.sessionId;
+    where.id = id.toString();
+    return where;
+}
+
 function hasEmptyHashedExtensionId(callLog: PersistedCallLogIdentity): boolean {
     return !stringOrEmpty(callLog.hashedExtensionId);
 }
@@ -120,6 +134,7 @@ function findMatchingCallLog(
 }
 
 export {
+    buildCallLogIdWhere,
     buildCallLogSessionWhere,
     findMatchingCallLog,
     getCallLogExtensionNumber,
