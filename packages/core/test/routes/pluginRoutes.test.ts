@@ -46,7 +46,7 @@ describe('Plugin Routes', () => {
   });
 
   describe('POST /plugin/register', () => {
-    test('should validate admin role, reject spoofed account ids, and register the selected plugin', async () => {
+    test('registers the selected plugin using the token account', async () => {
       adminCore.validateAdminRole.mockResolvedValue({
         isValidated: true,
         rcAccountId: 'validated-account-id',
@@ -55,7 +55,6 @@ describe('Plugin Routes', () => {
 
       const requestBody = {
         pluginId: 'plugin-1',
-        rcAccountId: 'validated-account-id',
         pluginAccess: 'shared',
         pluginName: 'plugin.sample',
       };
@@ -115,11 +114,13 @@ describe('Plugin Routes', () => {
       }));
     });
 
-    test('should reject register requests when the body account does not match the validated admin account', async () => {
+    test('uses the token account when a legacy body supplies a different account', async () => {
       adminCore.validateAdminRole.mockResolvedValue({
         isValidated: true,
         rcAccountId: 'validated-account-id',
       });
+
+      pluginCore.registerPluginAccount.mockResolvedValue({ successful: true });
 
       const response = await request(app)
         .post('/plugin/register')
@@ -131,12 +132,10 @@ describe('Plugin Routes', () => {
           pluginName: 'plugin.sample',
         });
 
-      expect(response.status).toBe(403);
-      expect(response.body).toEqual({
-        successful: false,
-        returnMessage: 'rcAccountId mismatch',
-      });
-      expect(pluginCore.registerPluginAccount).not.toHaveBeenCalled();
+      expect(response.status).toBe(200);
+      expect(pluginCore.registerPluginAccount).toHaveBeenCalledWith(expect.objectContaining({
+        rcAccountId: 'validated-account-id',
+      }));
     });
   });
 
@@ -215,7 +214,10 @@ describe('Plugin Routes', () => {
     });
   });
   describe('DELETE /plugin/unregister', () => {
-    test('should validate admin role and unregister the selected plugin for the validated account', async () => {
+    test.each([
+      ['without a client account', {}],
+      ['with a different legacy account', { rcAccountId: 'other-account-id' }],
+    ])('unregisters the selected plugin for the token account %s', async (_description, legacyQuery) => {
       adminCore.validateAdminRole.mockResolvedValue({
         isValidated: true,
         rcAccountId: 'validated-account-id',
@@ -227,8 +229,8 @@ describe('Plugin Routes', () => {
         .set('X-RC-Access-Token', 'valid-rc-token')
         .query({
           pluginId: 'plugin-1',
-          rcAccountId: 'validated-account-id',
           pluginName: 'plugin.sample',
+          ...legacyQuery,
         });
 
       expect(response.status).toBe(200);

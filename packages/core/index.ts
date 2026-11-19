@@ -3527,30 +3527,26 @@ function createCoreRouter() {
         let trackingErrorCode;
         const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const { pluginId, rcAccountId, pluginAccess, pluginName, ownerRcAccountId } = req.body || {};
+            const { pluginId, pluginAccess, pluginName, ownerRcAccountId } = req.body || {};
             const rcAccessToken = getRcAccessTokenFromRequest(req);
-            if (!pluginId || !rcAccountId) {
-                res.status(400).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'pluginId and rcAccountId are required' }));
+            if (!pluginId) {
+                res.status(400).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'pluginId is required' }));
                 return;
             }
             if (!rcAccessToken) {
                 res.status(400).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'Missing RingCentral access token' }));
                 return;
             }
-            const { isValidated, rcAccountId: validatedRcAccountId } = await adminCore.validateAdminRole({ rcAccessToken });
-            if (!isValidated) {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken });
+            if (!isValidated || !rcAccountId) {
                 res.status(403).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'Admin validation failed' }));
-                return;
-            }
-            if (validatedRcAccountId?.toString() !== rcAccountId?.toString()) {
-                res.status(403).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'rcAccountId mismatch' }));
                 return;
             }
 
             const registration = await pluginCore.registerPluginAccount({
                 pluginId,
                 rcAccessToken,
-                rcAccountId: rcAccountId?.toString(),
+                rcAccountId: String(rcAccountId),
                 ownerRcAccountId: ownerRcAccountId?.toString(),
                 pluginAccess,
                 pluginName,
@@ -3594,29 +3590,25 @@ function createCoreRouter() {
         let trackingErrorCode;
         const { hashedExtensionId, hashedAccountId, rcAccountIdRaw, rcExtensionIdRaw, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const { pluginId, rcAccountId, pluginName } = req.query || {};
+            const { pluginId, pluginName } = req.query || {};
             const rcAccessToken = getRcAccessTokenFromRequest(req);
-            if (!pluginId || !rcAccountId) {
-                res.status(400).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'pluginId and rcAccountId are required' }));
+            if (!pluginId) {
+                res.status(400).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'pluginId is required' }));
                 return;
             }
             if (!rcAccessToken) {
                 res.status(400).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'Missing RingCentral access token' }));
                 return;
             }
-            const { isValidated, rcAccountId: validatedRcAccountId } = await adminCore.validateAdminRole({ rcAccessToken });
-            if (!isValidated) {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken });
+            if (!isValidated || !rcAccountId) {
                 res.status(403).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'Admin validation failed' }));
-                return;
-            }
-            if (validatedRcAccountId?.toString() !== rcAccountId?.toString()) {
-                res.status(403).send(wrapDebugResponse(tracer, { successful: false, returnMessage: 'rcAccountId mismatch' }));
                 return;
             }
 
             pluginMetadata = await pluginCore.unregisterPluginAccount({
                 pluginId,
-                rcAccountId: rcAccountId?.toString(),
+                rcAccountId: String(rcAccountId),
                 pluginName,
             });
             res.status(200).send(wrapDebugResponse(tracer, { successful: true }));
