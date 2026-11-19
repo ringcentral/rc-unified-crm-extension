@@ -3344,6 +3344,16 @@ function createCoreRouter() {
                     res.status(400).send(wrapDebugResponse(tracer, 'User not found'));
                     return;
                 }
+                const rcAccessToken = normalizeTokenValue(req.get('X-RC-Access-Token'));
+                if (!rcAccessToken) {
+                    res.status(401).send(wrapDebugResponse(tracer, 'Missing RingCentral access token'));
+                    return;
+                }
+                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken });
+                if (!isValidated || !rcAccountId || !user.rcAccountId || String(rcAccountId) !== String(user.rcAccountId)) {
+                    res.status(403).send(wrapDebugResponse(tracer, 'Administrator access required for this account'));
+                    return;
+                }
                 const report = await adminCore.getAdminReport({ rcAccountId: user.rcAccountId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo, groupBy: req.query.groupBy });
                 res.status(200).send(wrapDebugResponse(tracer, report));
                 success = true;

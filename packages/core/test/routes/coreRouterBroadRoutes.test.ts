@@ -1103,7 +1103,7 @@ describe('Core router broad route coverage', () => {
     await expectDebugResponse(request(app).post('/messageLog').query(authQuery()).send({ messages: [] }));
     await expectDebugResponse(request(app).post('/messageLog/match').query(authQuery()).send({ conversationId: 'conv-1', messageIds: ['msg-1'] }));
     await expectDebugResponse(request(app).get('/custom/contact/search').query({ ...authQuery(), name: 'Alice' }));
-    await expectDebugResponse(request(app).get('/ringcentral/admin/report').query(authQuery()));
+    await expectDebugResponse(request(app).get('/ringcentral/admin/report').set('X-RC-Access-Token', 'rc-token').query(authQuery()));
     await expectDebugResponse(request(app).get('/ringcentral/admin/userReport').query({ ...authQuery(), rcExtensionId: 'ext-1' }));
     await expectDebugResponse(request(app).get('/debug/report/url').query(authQuery()));
   });
@@ -1144,7 +1144,7 @@ describe('Core router broad route coverage', () => {
   });
 
   test('serves RingCentral report, callback, debug, and plugin routes', async () => {
-    expect((await request(app).get('/ringcentral/admin/report').query({ ...authQuery(), timezone: 'UTC' })).body).toEqual({ rows: [{ id: 'admin-row' }] });
+    expect((await request(app).get('/ringcentral/admin/report').set('X-RC-Access-Token', 'rc-token').query({ ...authQuery(), timezone: 'UTC' })).body).toEqual({ rows: [{ id: 'admin-row' }] });
     expect((await request(app).get('/ringcentral/admin/userReport').query({ ...authQuery(), rcExtensionId: 'ext-1' })).body).toEqual({ rows: [{ id: 'user-row' }] });
     await expect(request(app).get('/ringcentral/oauth/callback').query({ ...authQuery(), code: 'rc-code' })).resolves.toMatchObject({ status: 200 });
     const debugReportResponse = await request(app).get('/debug/report/url').query(authQuery());
@@ -1154,6 +1154,24 @@ describe('Core router broad route coverage', () => {
     await expect(request(app).post('/plugin/register').query({ rcAccessToken: 'rc-token' }).send({ pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 200 });
     await expect(request(app).delete('/plugin/unregister').query({ rcAccessToken: 'rc-token', pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 200 });
     expect((await request(app).get('/plugin/licenseStatus').query({ ...authQuery(), rcAccountId: 'rc-account-1', pluginId: 'p1' })).body).toEqual({ licenseStatus: true });
+  });
+
+  test('denies account reports without a RingCentral token even with a valid App Connect JWT', async () => {
+    await expect(request(app).get('/ringcentral/admin/report').query(authQuery()))
+      .resolves.toMatchObject({ status: 401 });
+    expect(adminCore.validateAdminRole).not.toHaveBeenCalled();
+    expect(adminCore.getAdminReport).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['regular account member', false, 'rc-account-1'],
+    ['administrator of a different account', true, 'other-account'],
+  ])('denies account reports to a %s before loading the report', async (_label, isValidated, rcAccountId) => {
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated, rcAccountId });
+    await expect(request(app).get('/ringcentral/admin/report').set('X-RC-Access-Token', 'rc-token').query(authQuery()))
+      .resolves.toMatchObject({ status: 403 });
+    expect(adminCore.validateAdminRole).toHaveBeenCalledWith({ rcAccessToken: 'rc-token' });
+    expect(adminCore.getAdminReport).not.toHaveBeenCalled();
   });
 
   test('rejects protected routes when JWT token is missing', async () => {

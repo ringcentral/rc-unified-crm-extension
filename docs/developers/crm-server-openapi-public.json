@@ -3364,12 +3364,19 @@
         ],
         "summary": "Generate an admin report",
         "operationId": "getRingCentralAdminReport",
+        "description": "Returns the company report when the caller is a RingCentral administrator for the account associated with the App Connect session.",
         "responses": {
           "200": {
             "$ref": "#/components/responses/OkJson"
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "The RingCentral access-token header is missing."
+          },
+          "403": {
+            "description": "The caller lacks administrator access for the App Connect session account."
           }
         },
         "security": [
@@ -3381,6 +3388,15 @@
           }
         ],
         "parameters": [
+          {
+            "name": "X-RC-Access-Token",
+            "in": "header",
+            "required": true,
+            "description": "RingCentral access token used to verify administrator privileges and account identity.",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "timezone",
             "in": "query",
@@ -3419,8 +3435,7 @@
               "type": "string"
             }
           }
-        ],
-        "description": "Generates an account-level RingCentral calls and messages report using OAuth credentials previously stored for the RingCentral account associated with userJwt. The route authenticates an App Connect CRM user but does not independently verify that the caller is currently a RingCentral administrator."
+        ]
       }
     },
     "/ringcentral/admin/userReport": {
