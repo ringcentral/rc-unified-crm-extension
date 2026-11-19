@@ -139,7 +139,7 @@ describe('Netsuite Connector', () => {
             });
 
             expect(result.successful).toBe(true);
-            expect(result.platformUserInfo.id).toBe('12345-testcompany-netsuite');
+            expect(result.platformUserInfo.id).toBe(`12345-${accountId}-netsuite`);
             expect(result.platformUserInfo.name).toBe('Test User');
             expect(result.returnMessage.messageType).toBe('success');
         });
@@ -203,6 +203,83 @@ describe('Netsuite Connector', () => {
 
             expect(result.successful).toBe(false);
             expect(result.returnMessage.messageType).toBe('warning');
+        });
+
+        function mockAuthenticatedNetSuiteUser(user, restletsBaseUrl = restletsApiUrl) {
+            nock(restletsBaseUrl)
+                .get(/getcurrentuser/)
+                .reply(200, user);
+            nock(restletsBaseUrl)
+                .get(/getoneworldlicense/)
+                .reply(200, { oneWorldEnabled: true });
+            nock(restletsBaseUrl)
+                .post(/checkrolepermission/)
+                .reply(200, {
+                    permissionResults: {
+                        LIST_CONTACT: true,
+                        LIST_CUSTJOB: true,
+                        LIST_CALL: true,
+                        ADMI_LOGIN_OAUTH2: true,
+                        ADMI_RESTWEBSERVICES: true,
+                        REPO_ANALYTICS: true,
+                        TRAN_SALESORD: true,
+                        LIST_SUBSIDIARY: true
+                    }
+                });
+        }
+
+        it('should reject the callback when the authenticated user id is missing', async () => {
+            mockAuthenticatedNetSuiteUser({
+                name: 'Test User',
+                email: 'test@example.com',
+                subsidiary: '1'
+            });
+
+            const result = await netsuite.getUserInfo({
+                authHeader,
+                query: {
+                    hostname,
+                    callbackUri: 'https://example.com/redirect.html?entity=999&company=VICTIMCO'
+                }
+            });
+
+            expect(result).toMatchObject({
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Could not verify your NetSuite identity. Please try reconnecting to NetSuite.'
+                }
+            });
+            expect(result.platformUserInfo).toBeUndefined();
+        });
+
+        it('should reject a hostname that does not contain a NetSuite account id', async () => {
+            mockAuthenticatedNetSuiteUser({ id: 42, name: 'Test User' });
+
+            const result = await netsuite.getUserInfo({
+                authHeader,
+                query: { hostname: accountId }
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.platformUserInfo).toBeUndefined();
+            expect(result.returnMessage.message).toBe('Could not verify your NetSuite identity. Please try reconnecting to NetSuite.');
+        });
+
+        it('should reject a hostname whose account label is not a NetSuite account id', async () => {
+            const unsafeAccount = 'bad!';
+            mockAuthenticatedNetSuiteUser(
+                { id: 42, name: 'Test User' },
+                `https://${unsafeAccount}.restlets.api.netsuite.com`
+            );
+
+            const result = await netsuite.getUserInfo({
+                authHeader,
+                query: { hostname: `${unsafeAccount}.suitetalk.api.netsuite.com` }
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.platformUserInfo).toBeUndefined();
         });
     });
 
@@ -2189,6 +2266,7 @@ describe('Netsuite Connector', () => {
             nock(restletsUrl)
                 .get(/getcurrentuser/)
                 .reply(200, {
+                    id: 12345,
                     name: 'Test User',
                     email: 'test@example.com',
                     subsidiary: '5'  // Has subsidiary, so OneWorld is inferred
@@ -2231,6 +2309,7 @@ describe('Netsuite Connector', () => {
             nock(restletsUrl)
                 .get(/getcurrentuser/)
                 .reply(200, {
+                    id: 12345,
                     name: 'Test User',
                     email: 'test@example.com'
                 });

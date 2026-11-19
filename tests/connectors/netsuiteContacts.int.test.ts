@@ -727,15 +727,15 @@ describe('NetSuite contact creation branches', () => {
         });
     });
 
-    test('getUserInfo parses callback parameters and skips subsidiary permission when OneWorld is off', async () => {
+    test('getUserInfo uses the authenticated user id and skips subsidiary permission when OneWorld is off', async () => {
         const query = {
             hostname: user.hostname,
-            callbackUri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html?entity=42&company=1234567&role=3'
+            callbackUri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html?entity=999&company=VICTIMCO&role=3'
         };
         axios.get
             .mockResolvedValueOnce({
                 data: {
-                    id: 'current-user',
+                    id: 42,
                     name: 'NetSuite User',
                     email: 'user@example.com',
                     subsidiary: ''
@@ -769,18 +769,16 @@ describe('NetSuite contact creation branches', () => {
             name: 'NetSuite User'
         });
         expect(result.platformUserInfo.platformAdditionalInfo.oneWorldEnabled).toBe(false);
-        expect(query).toMatchObject({
-            entity: '42',
-            company: '1234567',
-            role: '3'
-        });
+        expect('entity' in query).toBe(false);
+        expect('company' in query).toBe(false);
+        expect('role' in query).toBe(false);
     });
 
-    test('getUserInfo returns warning when required callback parameters are missing', async () => {
+    test('getUserInfo connects without callback entity or company', async () => {
         axios.get
             .mockResolvedValueOnce({
                 data: {
-                    id: 'current-user',
+                    id: 42,
                     name: 'NetSuite User',
                     email: 'user@example.com',
                     subsidiary: 10
@@ -813,13 +811,8 @@ describe('NetSuite contact creation branches', () => {
             }
         });
 
-        expect(result).toMatchObject({
-            successful: false,
-            returnMessage: {
-                messageType: 'warning',
-                message: 'Missing required NetSuite parameters (entity or company). Please try reconnecting to NetSuite.'
-            }
-        });
+        expect(result.successful).toBe(true);
+        expect(result.platformUserInfo.id).toBe('42-1234567-netsuite');
     });
 
     test('createMessageLog logs shared SMS against sales order and swallows user note failures', async () => {
