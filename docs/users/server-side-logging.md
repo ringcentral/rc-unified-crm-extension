@@ -32,6 +32,9 @@ Server-side call logging can be enabled from the Admin settings screen as shown 
 
 Under **Enable server side logging**, select "Enable for account", and then save to enable this feature.
 
+!!! tip "Logging RingCX calls"
+    To log RingCX contact center calls as well, select **RingCX** under **Call sources** and add the call events URL to RingCX. See [Server-side logging for RingCX](ringcx.md#setting-up-ringcx-logging).
+
 !!! tip "To make sure server-side logging is functioning properly, it is best for the admin to maintain an active session in the CRM to keep the CRM connected and authorized in App Connect."
 
 #### Trial-mode
