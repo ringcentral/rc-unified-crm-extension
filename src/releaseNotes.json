@@ -26,12 +26,6 @@
                 "description": "Connectors can hide screen-pop settings and the related contact and call log buttons."
             }
         ],
-        "bullhorn": [
-            {
-                "type": "Fix",
-                "description": "When saving an already logged call in Bullhorn, you can copy the note to the contact comments. App Connect warns you if the copy fails."
-            }
-        ],
         "clio": [
             {
                 "type": "Fix",
@@ -60,12 +54,6 @@
             {
                 "type": "Fix",
                 "description": "The in-call note button and drawer stay accessible above the dialer in the extension popup."
-            }
-        ],
-        "bullhorn": [
-            {
-                "type": "Fix",
-                "description": "When saving an already logged call in Bullhorn, you can copy the note to the contact comments. App Connect warns you if the copy fails."
             }
         ],
         "clio": [

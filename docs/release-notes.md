@@ -8,7 +8,6 @@
 - Fix: When a RingCX call is already logged, wrap-up updates the existing log and warns agents about changes it could not save.
 - Better: Admins can search user mappings by RingCX agent ID. Editing a mapping preserves its saved agent IDs.
 - Better: Connectors can hide screen-pop settings and the related contact and call log buttons.
-- Fix: When saving an already logged call in Bullhorn, you can copy the note to the contact comments. App Connect warns you if the copy fails.
 - Fix: Clio updates the matter and billable status on the existing time entry when you save an already logged call.
 - Fix: Insightly call logs save the selected organization and avoid duplicate links to organizations, opportunities, and projects.
 - Fix: VinSolutions applies the selected lead to the existing call record when you save an already logged call.
@@ -17,7 +16,6 @@
 
 - Fix: App Connect avoids creating duplicate CRM logs when the same call arrives with different session ID formats.
 - Fix: The in-call note button and drawer stay accessible above the dialer in the extension popup.
-- Fix: When saving an already logged call in Bullhorn, you can copy the note to the contact comments. App Connect warns you if the copy fails.
 - Fix: Clio updates the matter and billable status on the existing time entry when you save an already logged call.
 - Fix: Insightly call logs save the selected organization and avoid duplicate links to organizations, opportunities, and projects.
 - Fix: VinSolutions applies the selected lead to the existing call record when you save an already logged call.
