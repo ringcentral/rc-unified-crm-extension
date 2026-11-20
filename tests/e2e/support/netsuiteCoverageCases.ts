@@ -295,6 +295,7 @@ const userMapping = {
         name: 'Ada Mapping',
         extensionNumber: '7041',
         email: 'ada.netsuite.mapping@example.test',
+        agentIds: [],
       }],
     },
     {

@@ -885,18 +885,179 @@ describe('Clio Connector', () => {
     describe('upsertCallDisposition', () => {
         const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '301' });
 
-        it('should update communication with matter', async () => {
-            nock(apiUrl)
+        function mockTimeEntryLookup(timeEntries) {
+            return nock(apiUrl)
+                .get('/api/v4/activities')
+                .query({ communication_id: '301', fields: 'id' })
+                .reply(200, { data: timeEntries }, mockRateLimitHeaders);
+        }
+
+        it('should update communication and its time entry with matter', async () => {
+            const communicationScope = nock(apiUrl)
                 .patch('/api/v4/communications/301.json', body => body.data.matter.id === 201)
                 .reply(200, {
                     data: { id: 301 }
                 }, mockRateLimitHeaders);
+            mockTimeEntryLookup([{ id: 401 }]);
+            let timeEntryBody;
+            const timeEntryScope = nock(apiUrl)
+                .patch('/api/v4/activities/401.json', body => {
+                    timeEntryBody = body;
+                    return true;
+                })
+                .reply(200, { data: { id: 401 } }, mockRateLimitHeaders);
 
             const result = await clio.upsertCallDisposition({
                 user: mockUser,
                 existingCallLog,
                 authHeader,
                 dispositions: { matters: 201 }
+            });
+
+            expect(result.logId).toBe('301');
+            expect(communicationScope.isDone()).toBe(true);
+            expect(timeEntryScope.isDone()).toBe(true);
+            expect(timeEntryBody).toEqual({ data: { matter: { id: 201 } } });
+        });
+
+        it('should update the time entry billable status of a call logged without it', async () => {
+            // A call server-side logging logged before the agent submitted the wrap-up form
+            mockTimeEntryLookup([{ id: 401 }]);
+            let timeEntryBody;
+            nock(apiUrl)
+                .patch('/api/v4/activities/401.json', body => {
+                    timeEntryBody = body;
+                    return true;
+                })
+                .reply(200, { data: { id: 401 } }, mockRateLimitHeaders);
+
+            const result = await clio.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { billableStatus: 'billable', note: '' }
+            });
+
+            expect(result.logId).toBe('301');
+            expect(timeEntryBody).toEqual({ data: { non_billable: false } });
+            expect(result.extraDataTracking).toEqual({
+                ratelimitRemaining: mockRateLimitHeaders['x-ratelimit-remaining'],
+                ratelimitAmount: mockRateLimitHeaders['x-ratelimit-limit'],
+                ratelimitReset: mockRateLimitHeaders['x-ratelimit-reset']
+            });
+        });
+
+        it('should prefer an explicit nonBillable over billableStatus', async () => {
+            mockTimeEntryLookup([{ id: 401 }]);
+            let timeEntryBody;
+            nock(apiUrl)
+                .patch('/api/v4/activities/401.json', body => {
+                    timeEntryBody = body;
+                    return true;
+                })
+                .reply(200, { data: { id: 401 } }, mockRateLimitHeaders);
+
+            await clio.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { nonBillable: true, billableStatus: 'billable' }
+            });
+
+            expect(timeEntryBody).toEqual({ data: { non_billable: true } });
+        });
+
+        it('should update the matter and billable status together', async () => {
+            nock(apiUrl)
+                .patch('/api/v4/communications/301.json')
+                .reply(200, { data: { id: 301 } }, mockRateLimitHeaders);
+            mockTimeEntryLookup([{ id: 401 }]);
+            let timeEntryBody;
+            nock(apiUrl)
+                .patch('/api/v4/activities/401.json', body => {
+                    timeEntryBody = body;
+                    return true;
+                })
+                .reply(200, { data: { id: 401 } }, mockRateLimitHeaders);
+
+            const result = await clio.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { matters: 201, billableStatus: 'non-billable' }
+            });
+
+            expect(result.logId).toBe('301');
+            expect(timeEntryBody).toEqual({ data: { matter: { id: 201 }, non_billable: true } });
+        });
+
+        it('should still report the matter update when the call has no time entry', async () => {
+            nock(apiUrl)
+                .patch('/api/v4/communications/301.json')
+                .reply(200, { data: { id: 301 } }, mockRateLimitHeaders);
+            mockTimeEntryLookup([]);
+
+            const result = await clio.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { matters: 201, billableStatus: 'billable' }
+            });
+
+            expect(result.logId).toBe('301');
+        });
+
+        it('should return null logId when only a billable status is given and the call has no time entry', async () => {
+            mockTimeEntryLookup([]);
+
+            const result = await clio.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { billableStatus: 'billable' }
+            });
+
+            expect(result.logId).toBeNull();
+        });
+
+        it('should leave time entries alone when they are turned off', async () => {
+            const userWithoutTimeEntries = createMockUser({
+                ...mockUser,
+                userSettings: { clioTimeEntriesEnabled: { value: false } }
+            });
+            nock(apiUrl)
+                .patch('/api/v4/communications/301.json')
+                .reply(200, { data: { id: 301 } }, mockRateLimitHeaders);
+
+            const matterResult = await clio.upsertCallDisposition({
+                user: userWithoutTimeEntries,
+                existingCallLog,
+                authHeader,
+                dispositions: { matters: 201, billableStatus: 'billable' }
+            });
+            const billableOnlyResult = await clio.upsertCallDisposition({
+                user: userWithoutTimeEntries,
+                existingCallLog,
+                authHeader,
+                dispositions: { billableStatus: 'billable' }
+            });
+
+            expect(matterResult.logId).toBe('301');
+            expect(billableOnlyResult.logId).toBeNull();
+            expect(nock.pendingMocks()).toEqual([]);
+        });
+
+        it('should use the communication id of a stored log id with a decimal suffix', async () => {
+            mockTimeEntryLookup([{ id: 401 }]);
+            nock(apiUrl)
+                .patch('/api/v4/activities/401.json')
+                .reply(200, { data: { id: 401 } }, mockRateLimitHeaders);
+
+            const result = await clio.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog: createMockExistingCallLog({ thirdPartyLogId: '301.0' }),
+                authHeader,
+                dispositions: { billableStatus: 'billable' }
             });
 
             expect(result.logId).toBe('301');
@@ -908,6 +1069,17 @@ describe('Clio Connector', () => {
                 existingCallLog,
                 authHeader,
                 dispositions: {}
+            });
+
+            expect(result.logId).toBeNull();
+        });
+
+        it('should return null logId when the dispositions only carry a note', async () => {
+            const result = await clio.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { note: 'Wrap-up note' }
             });
 
             expect(result.logId).toBeNull();

@@ -35,6 +35,7 @@ const logger = /** @type {{ error(message: string, context?: Record<string, unkn
 const { handleDatabaseError: rawHandleDatabaseError } = require('../lib/errorHandler');
 const handleDatabaseError = /** @type {(error: unknown, message: string) => any} */ (rawHandleDatabaseError);
 const { getHashValue: rawGetHashValue } = require('../lib/util');
+const { getStoredRcxAgentIdsByExtensionId, mergeRcxAgentIds, normalizeAgentIds } = require('../lib/userMapping');
 const getHashValue = /** @type {(value: string | number, key?: string) => string} */ (rawGetHashValue);
 
 const CALL_AGGREGATION_GROUPS = ["Company", "CompanyNumbers", "Users", "Queues", "IVRs", "IVAs", "SharedLines", "UserGroups", "Sites", "Departments"]
@@ -86,14 +87,22 @@ async function validateAdminRole({ rcAccessToken }) {
  */
 async function upsertAdminSettings({ hashedRcAccountId, adminSettings }) {
     let existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+    // The mapping array is replaced as a whole; keep the RingCX agent IDs of still-mapped
+    // extensions that the writer did not send (see mergeRcxAgentIds).
+    const settingsToSave = Array.isArray(adminSettings?.userMappings)
+        ? {
+            ...adminSettings,
+            userMappings: mergeRcxAgentIds(adminSettings.userMappings, existingAdminConfig?.userMappings)
+        }
+        : adminSettings;
     if (existingAdminConfig) {
         await existingAdminConfig.update({
-            ...adminSettings
+            ...settingsToSave
         });
     } else {
         await AdminConfigModel.create({
             id: hashedRcAccountId,
-            ...adminSettings
+            ...settingsToSave
         });
     }
 }
@@ -303,6 +312,52 @@ async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, t
 }
 
 /**
+ * RingCX agent IDs of an RC extension. The admin console sends `agentIds` on each extension when it
+ * has discovered them from RingCX; when it has not, the IDs stored for the extension are kept.
+ * @param {RcExtensionInfo} extension
+ * @param {Record<string, string[]>} [storedAgentIdsByExtensionId]
+ * @returns {string[]}
+ */
+function getRcExtensionAgentIds(extension, storedAgentIdsByExtensionId = {}) {
+    if (Array.isArray(extension.agentIds)) {
+        return normalizeAgentIds(extension.agentIds);
+    }
+    return storedAgentIdsByExtensionId[String(extension.id)] ?? [];
+}
+
+/**
+ * @param {RcExtensionInfo} extension
+ * @param {string[]} agentIds
+ */
+function toMappedRcUser(extension, agentIds) {
+    return {
+        extensionId: extension.id,
+        name: extension?.name || `${extension.firstName} ${extension.lastName}`,
+        extensionNumber: extension?.extensionNumber ?? '',
+        email: extension?.email ?? '',
+        agentIds
+    };
+}
+
+/**
+ * Stored mapping for CRM users matched automatically. `rcxAgentIds` is sent when the RC user has
+ * RingCX agents or when RingCX discovery ran for the extension, so an empty discovery clears stale
+ * agent IDs; upsertAdminSettings drops empty entries, so mappings without RingCX keep their shape.
+ * @param {string | number} crmUserId
+ * @param {RcExtensionInfo} extension
+ * @param {string[]} agentIds
+ */
+function toNewStoredUserMapping(crmUserId, extension, agentIds) {
+    const extensionId = extension.id.toString();
+    const hasAgentIds = agentIds.length > 0 || Array.isArray(extension.agentIds);
+    return {
+        crmUserId: crmUserId.toString(),
+        rcExtensionId: [extensionId],
+        ...(hasAgentIds ? { rcxAgentIds: { [extensionId]: agentIds } } : {})
+    };
+}
+
+/**
  * @param {UserMappingParams} params
  * @returns {Promise<UserMappingResultItem[] | any>}
  */
@@ -351,9 +406,10 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                 break;
         }
         const crmUserList = await platformModule.getUserList({ user, authHeader, proxyConfig });
+        const storedAgentIds = getStoredRcxAgentIdsByExtensionId(adminConfig?.userMappings);
         /** @type {UserMappingResultItem[]} */
         const userMappingResult = [];
-        /** @type {Array<{ crmUserId: string, rcExtensionId: string[] }>} */
+        /** @type {Array<{ crmUserId: string, rcExtensionId: string[], rcxAgentIds?: Record<string, string[]> }>} */
         const newUserMappings = [];
         for (const crmUser of crmUserList) {
             const existingMapping = adminConfig?.userMappings?.find(u => u.crmUserId == crmUser.id);
@@ -377,12 +433,7 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                         name: crmUser.name ?? '',
                         email: crmUser.email ?? '',
                     },
-                    rcUser: rcExtension.map(e => ({
-                        extensionId: e.id,
-                        name: e?.name || `${e.firstName} ${e.lastName}`,
-                        extensionNumber: e?.extensionNumber ?? '',
-                        email: e?.email ?? ''
-                    }))
+                    rcUser: rcExtension.map(e => toMappedRcUser(e, getRcExtensionAgentIds(e, storedAgentIds)))
                 });
             }
             // Case: new mapping
@@ -393,23 +444,16 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                     (`${u.firstName} ${u.lastName}` === crmUser.name)
                 );
                 if (rcExtensionForNewMapping) {
+                    const agentIds = getRcExtensionAgentIds(rcExtensionForNewMapping, storedAgentIds);
                     userMappingResult.push({
                         crmUser: {
                             id: crmUser.id,
                             name: crmUser.name ?? '',
                             email: crmUser.email ?? '',
                         },
-                        rcUser: [{
-                            extensionId: rcExtensionForNewMapping.id,
-                            name: rcExtensionForNewMapping.name || `${rcExtensionForNewMapping.firstName} ${rcExtensionForNewMapping.lastName}`,
-                            extensionNumber: rcExtensionForNewMapping?.extensionNumber ?? '',
-                            email: rcExtensionForNewMapping?.email ?? ''
-                        }]
+                        rcUser: [toMappedRcUser(rcExtensionForNewMapping, agentIds)]
                     });
-                    newUserMappings.push({
-                        crmUserId: crmUser.id.toString(),
-                        rcExtensionId: [rcExtensionForNewMapping.id.toString()]
-                    });
+                    newUserMappings.push(toNewStoredUserMapping(crmUser.id, rcExtensionForNewMapping, agentIds));
                 }
                 else {
                     userMappingResult.push({
@@ -534,9 +578,19 @@ async function reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionLis
     }
 
     const crmUserList = await platformModule.getUserList({ user, authHeader, proxyConfig });
+    let adminConfig = null;
+    try {
+        adminConfig = await getAdminSettings({ hashedRcAccountId });
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error reinitializing user mapping');
+    }
+    // RingCX agent IDs belong to the RC extension, so a re-matched extension keeps its stored IDs
+    // unless the caller discovered new ones.
+    const storedAgentIds = getStoredRcxAgentIdsByExtensionId(adminConfig?.userMappings);
     /** @type {UserMappingResultItem[]} */
     const userMappingResult = [];
-    /** @type {Array<{ crmUserId: string, rcExtensionId: string[] }>} */
+    /** @type {Array<{ crmUserId: string, rcExtensionId: string[], rcxAgentIds?: Record<string, string[]> }>} */
     const initialUserMappings = [];
 
     // Auto-match CRM users with RC extensions by email or name
@@ -548,23 +602,16 @@ async function reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionLis
         );
 
         if (rcExtensionForMapping) {
+            const agentIds = getRcExtensionAgentIds(rcExtensionForMapping, storedAgentIds);
             userMappingResult.push({
                 crmUser: {
                     id: crmUser.id,
                     name: crmUser.name ?? '',
                     email: crmUser.email ?? '',
                 },
-                rcUser: [{
-                    extensionId: rcExtensionForMapping.id,
-                    name: rcExtensionForMapping.name || `${rcExtensionForMapping.firstName} ${rcExtensionForMapping.lastName}`,
-                    extensionNumber: rcExtensionForMapping?.extensionNumber ?? '',
-                    email: rcExtensionForMapping?.email ?? ''
-                }]
+                rcUser: [toMappedRcUser(rcExtensionForMapping, agentIds)]
             });
-            initialUserMappings.push({
-                crmUserId: crmUser.id.toString(),
-                rcExtensionId: [rcExtensionForMapping.id.toString()]
-            });
+            initialUserMappings.push(toNewStoredUserMapping(crmUser.id, rcExtensionForMapping, agentIds));
         }
         else {
             userMappingResult.push({

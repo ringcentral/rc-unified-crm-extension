@@ -9,6 +9,7 @@ const { parsePhoneNumber } = /** @type {any} */ (require('awesome-phonenumber'))
 const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
 const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
 const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
+const { findMappedCrmUserIdBySubmission } = /** @type {any} */ (require('@app-connect/core/lib/userMapping'));
 const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/lib/errorHandler'));
@@ -41,6 +42,20 @@ function isClioTimeEntriesEnabled(user) {
     if (settingValue === undefined || settingValue === null) { return true; }
     if (typeof settingValue === 'string') { return settingValue.toLowerCase() === 'true'; }
     return Boolean(settingValue);
+}
+
+/**
+ * The non-billable flag a call log form submitted, or undefined when it submitted none.
+ * An explicit nonBillable wins over billableStatus.
+ */
+function getSubmittedNonBillable(submission) {
+    if (submission?.nonBillable !== undefined) {
+        return submission.nonBillable;
+    }
+    if (submission?.billableStatus !== undefined) {
+        return submission.billableStatus !== 'billable';
+    }
+    return undefined;
 }
 
 /**
@@ -623,7 +638,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
 
         if (!assigneeId) {
             const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-            assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+            assigneeId = findMappedCrmUserIdBySubmission(adminConfig?.userMappings, additionalSubmission);
         }
     }
 
@@ -683,18 +698,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             extraDataTracking
         };
     }
-    // const nonBillable = additionalSubmission?.nonBillable !== undefined ? additionalSubmission.nonBillable : (user.userSettings?.clioDefaultNonBillableTick?.value ?? true);
-    // Determine billable status with clear precedence order
-    let nonBillable;
-
-    if (additionalSubmission?.nonBillable !== undefined) {
-        // Use explicit nonBillable value if provided
-        nonBillable = additionalSubmission.nonBillable;
-    } else if (additionalSubmission?.billableStatus !== undefined) {
-        // Convert billableStatus to nonBillable (inverse relationship)
-        nonBillable = additionalSubmission.billableStatus !== 'billable';
-    } else {
-        // Fall back to user settings
+    // Determine billable status with clear precedence order: the submitted value, then user settings
+    let nonBillable = getSubmittedNonBillable(additionalSubmission);
+    if (nonBillable === undefined) {
         const defaultSetting = user.userSettings?.clioDefaultNonBillableTick?.value;
         nonBillable = !(defaultSetting === 'billable' || defaultSetting === false);
     }
@@ -792,7 +798,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, subject, start
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
         const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-        assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+        assigneeId = findMappedCrmUserIdBySubmission(adminConfig?.userMappings, additionalSubmission);
     }
 
     if (assigneeId) {
@@ -831,35 +837,66 @@ async function updateCallLog({ user, existingCallLog, authHeader, subject, start
     };
 }
 
+// Applies the call log form's matter and billable status to a call that is already logged, such as
+// one server-side logging logged before the agent finished the RingCX wrap-up form. The matter goes
+// on the communication, and both go on the time entry createCallLog added for it.
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
-    let extraDataTracking = {};
-    if (!dispositions.matters) {
+    const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
+    const matterId = dispositions?.matters;
+    const nonBillable = getSubmittedNonBillable(dispositions);
+    // The latest Clio response, kept for rate limit tracking. Stays null if nothing was updated.
+    let lastUpdateRes = null;
+    if (matterId) {
+        lastUpdateRes = await axios.patch(
+            `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json`,
+            {
+                data: {
+                    matter: {
+                        id: matterId
+                    }
+                }
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+    if (isClioTimeEntriesEnabled(user) && (matterId || nonBillable !== undefined)) {
+        const getTimeEntryRes = await axios.get(
+            `https://${user.hostname}/api/v4/activities?communication_id=${existingClioLogId}&fields=id`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const timeEntryId = getTimeEntryRes.data.data[0]?.id;
+        if (timeEntryId) {
+            const patchTimeEntryBody: any = { data: {} };
+            if (matterId) {
+                patchTimeEntryBody.data.matter = { id: matterId };
+            }
+            if (nonBillable !== undefined) {
+                patchTimeEntryBody.data.non_billable = nonBillable;
+            }
+            lastUpdateRes = await axios.patch(
+                `https://${user.hostname}/api/v4/activities/${timeEntryId}.json`,
+                patchTimeEntryBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+        }
+    }
+    if (!lastUpdateRes) {
+        // Nothing in the dispositions could be applied, for example a billable status for a
+        // call logged without a time entry
         return {
             logId: null
         };
     }
-    const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
-    const patchBody = {
-        data: {
-            matter: {
-                id: dispositions.matters
-            }
-        }
-    }
-    const upsertDispositionRes = await axios.patch(
-        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json`,
-        patchBody,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    extraDataTracking = {
-        ratelimitRemaining: upsertDispositionRes.headers['x-ratelimit-remaining'],
-        ratelimitAmount: upsertDispositionRes.headers['x-ratelimit-limit'],
-        ratelimitReset: upsertDispositionRes.headers['x-ratelimit-reset']
-    };
     return {
         logId: existingClioLogId,
-        extraDataTracking
+        extraDataTracking: {
+            ratelimitRemaining: lastUpdateRes.headers['x-ratelimit-remaining'],
+            ratelimitAmount: lastUpdateRes.headers['x-ratelimit-limit'],
+            ratelimitReset: lastUpdateRes.headers['x-ratelimit-reset']
+        }
     }
 }
 

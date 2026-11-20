@@ -15,6 +15,8 @@ export interface AdminConfigRecord {
 export interface AdminUserMapping {
   crmUserId?: string | number;
   rcExtensionId?: string | number | Array<string | number>;
+  // RingCX agent IDs of each mapped RC extension, keyed by RC extension ID.
+  rcxAgentIds?: Record<string, string[]>;
   [key: string]: any;
 }
 
@@ -39,6 +41,9 @@ export interface RcExtensionInfo {
   lastName?: string;
   email?: string;
   extensionNumber?: string | number;
+  // RingCX agent IDs discovered by the admin console. Omitted when discovery did not run, so the
+  // stored agent IDs are kept.
+  agentIds?: Array<string | number>;
   [key: string]: any;
 }
 
@@ -130,6 +135,8 @@ export interface UserMappingResultItem {
     name: string;
     extensionNumber: string | number;
     email: string;
+    // RingCX agent IDs of this RC user; empty when the user has no RingCX agent.
+    agentIds: string[];
   }>;
 }
 

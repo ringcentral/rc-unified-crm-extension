@@ -78,6 +78,7 @@ const pipedriveUserMappingCase = {
       name: legacyExtension.name,
       extensionNumber: legacyExtension.extensionNumber,
       email: legacyExtension.email,
+      agentIds: [],
     }],
   }],
   expectedReinitializedRead: [{
@@ -87,6 +88,7 @@ const pipedriveUserMappingCase = {
       name: `${currentExtension.firstName} ${currentExtension.lastName}`,
       extensionNumber: currentExtension.extensionNumber,
       email: currentExtension.email,
+      agentIds: [],
     }],
   }],
   expectedPersistedMappings: [{
