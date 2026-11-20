@@ -2,7 +2,7 @@
 
 Screen-pop, also known as "call-pop," refers to the feature in which App Connect will automatically open a user's browser to a contact you are calling or from whom you are receiving a call. This feature helps agents know exactly who they are speaking to before or during a call.
 
-One will find call-pop settings under the "Call-pop" settings area that control under what circumstances App Connect will automatically open your CRM to the contact or person being called, or calling you. 
+If your CRM connector supports screen pops, use the **Call-pop** settings to choose when App Connect opens the matched contact in your CRM.
 
 <figure markdown>
   ![Call pop](../img/calls-pop.png){ .mw-450 }

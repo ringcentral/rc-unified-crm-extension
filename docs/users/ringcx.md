@@ -24,6 +24,8 @@ In the 2.1 beta, agents sign in to RingCX inside App Connect and handle their ca
 
 When a RingCX call ends, App Connect shows the CRM call logging form on the RingCX wrap-up page, so the agent can log the call without leaving wrap-up. If the call log cannot be saved, App Connect shows the error on the wrap-up page.
 
+With one-time logging enabled, RingCX calls save directly from wrap-up. If App Connect has already logged the call, saving from wrap-up updates the title and note on the existing log. App Connect warns you if it could not save a contact change, an additional contact link, or a custom field.
+
 Client-side logging needs the agent to have the extension open. To log calls for every agent, also set up [server-side logging](#setting-up-ringcx-logging).
 
 ## Server-side logging for RingCX
@@ -104,6 +106,8 @@ To assign each call log to the agent, set **Activity record owner** to **Agent/u
 
 If App Connect cannot find a CRM user for the agent, the call log stays with the admin. Assigning call logs to agents also depends on your CRM connector.
 
+In the 2.1 beta extension, search the **User mapping** list by RingCX agent ID to find the mapped CRM user. Use the Admin console to add or change RingCX agent IDs.
+
 ### Adding transcripts and AI summaries
 
 The RingCX call event does not include a transcript or an AI summary. If your account has **RingSense (ACE) for RingCX**, enable RingSense on the RingCX sub-account. When RingSense finishes processing a recorded call, usually several minutes after the call ends, App Connect adds the transcript and summary to the call log it already created, following your admin settings for call log AI notes and transcripts. See [AI Conversation Expert (ACE) logging](ace.md).
@@ -111,6 +115,6 @@ The RingCX call event does not include a transcript or an AI summary. If your ac
 ### Limitations
 
 * **Per-user CRM connections are not supported**: RingCX call logs are always created with the admin's CRM connection, and assigned to the agent when possible.
-* **Dispositions and agent notes**: the agent's disposition and notes are not added to server-side RingCX call logs.
+* **Dispositions and agent notes**: the RingCX call event omits these details. Agents can add notes from the extension's wrap-up form and save custom fields when their CRM supports updating those fields on existing logs.
 * **Transfers**: a transferred call is logged once, owned by the first agent who answered it.
 * **Logging conflicts**: if a call matches no contact, or more than one contact, App Connect follows your unknown-contact and multiple-contact settings. Agents cannot resolve these conflicts for server-side RingCX call logs.

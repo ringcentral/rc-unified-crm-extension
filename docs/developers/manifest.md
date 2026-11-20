@@ -50,6 +50,7 @@ In App Connect 2.0, the Developer Console is the primary place to manage manifes
 | `serverSideLogging` | Optional server-side logging config. |
 | `contactTypes` | Optional list of CRM entity types users can create/select. |
 | `contactPageUrl` | Template for opening a contact page. Supports built-in URL tokens and custom setting tokens. See [URL template tokens](#url-template-tokens). |
+| `disableCallPop` | Optional Boolean in App Connect 2.1 beta. Set to `true` to hide screen-pop settings and the related contact and call log buttons in the extension. |
 | `enableFallbackContactPageUrl` | Enables the fallback contact page URL for call-pop when no existing contact is matched. Defaults to `false`. |
 | `fallbackContactPageUrl` | Optional fixed URL opened by call-pop when fallback is enabled and no existing contact is matched. Supports built-in URL tokens and custom setting tokens. |
 | `logPageUrl` | Template for opening a log/activity page. Supports built-in URL tokens and custom setting tokens. See [URL template tokens](#url-template-tokens). |

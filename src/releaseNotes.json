@@ -1,4 +1,92 @@
 {
+    "2.1.7": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "App Connect avoids creating duplicate CRM logs when the same call arrives with different session ID formats."
+            },
+            {
+                "type": "New",
+                "description": "Admins can set up automatic server-side logging for RingCX calls in Universal Logging."
+            },
+            {
+                "type": "Fix",
+                "description": "RingCX calls save from wrap-up when one-time logging is enabled."
+            },
+            {
+                "type": "Fix",
+                "description": "When a RingCX call is already logged, wrap-up updates the existing log and warns agents about changes it could not save."
+            },
+            {
+                "type": "Better",
+                "description": "Admins can search user mappings by RingCX agent ID. Editing a mapping preserves its saved agent IDs."
+            },
+            {
+                "type": "Better",
+                "description": "Connectors can hide screen-pop settings and the related contact and call log buttons."
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "When saving an already logged call in Bullhorn, you can copy the note to the contact comments. App Connect warns you if the copy fails."
+            }
+        ],
+        "clio": [
+            {
+                "type": "Fix",
+                "description": "Clio updates the matter and billable status on the existing time entry when you save an already logged call."
+            }
+        ],
+        "insightly": [
+            {
+                "type": "Fix",
+                "description": "Insightly call logs save the selected organization and avoid duplicate links to organizations, opportunities, and projects."
+            }
+        ],
+        "vinsolutions": [
+            {
+                "type": "Fix",
+                "description": "VinSolutions applies the selected lead to the existing call record when you save an already logged call."
+            }
+        ]
+    },
+    "2.0.7": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "App Connect avoids creating duplicate CRM logs when the same call arrives with different session ID formats."
+            },
+            {
+                "type": "Fix",
+                "description": "The in-call note button and drawer stay accessible above the dialer in the extension popup."
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "When saving an already logged call in Bullhorn, you can copy the note to the contact comments. App Connect warns you if the copy fails."
+            }
+        ],
+        "clio": [
+            {
+                "type": "Fix",
+                "description": "Clio updates the matter and billable status on the existing time entry when you save an already logged call."
+            }
+        ],
+        "insightly": [
+            {
+                "type": "Fix",
+                "description": "Insightly call logs save the selected organization and avoid duplicate links to organizations, opportunities, and projects."
+            }
+        ],
+        "vinsolutions": [
+            {
+                "type": "Fix",
+                "description": "VinSolutions applies the selected lead to the existing call record when you save an already logged call."
+            }
+        ]
+    },
     "2.1.6": {
         "global": [
             {
