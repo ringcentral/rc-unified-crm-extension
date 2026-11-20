@@ -9,6 +9,8 @@ const logger = require('@app-connect/core/lib/logger');
 const { CacheModel } = require('@app-connect/core/models/cacheModel');
 const supportAuth = require('../src/support/auth');
 const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
+const { UserModel } = require('@app-connect/core/models/userModel');
+const { recordDealerConnection } = require('../src/connectors/vinsolutions/dealerUsage');
 const { getServer } = require('../src/index');
 
 async function historyData(dealerId) {
@@ -83,6 +85,8 @@ function mockRemove(apiKey, accessToken, dealerId, status = 200) {
 const BOTH_SERVICES = { services: ['leadManagement', 'callTracking'] };
 const dealerA = { DealerId: 12617, Name: 'Data Gateway Motors', City: 'Mission', State: 'KS' };
 const dealerB = { DealerId: 6946, Name: 'Gordon Chevrolet of Orange Park', City: 'Orange Park', State: 'FL' };
+const usageTestUserIds = [412, 413, 414].map(userId => `${userId}-${dealerA.DealerId}-vinsolutions`)
+  .concat(`415-${dealerB.DealerId}-vinsolutions`);
 
 function api() {
   return request(getServer());
@@ -98,9 +102,11 @@ describe('Support console CRM routes', () => {
 
   beforeAll(async () => {
     await AccountDataModel.sync();
+    await UserModel.destroy({ where: { id: { [Op.in]: usageTestUserIds } } });
   });
 
-  afterAll(() => {
+  afterAll(async () => {
+    await UserModel.destroy({ where: { id: { [Op.in]: usageTestUserIds } } });
     if (originalDisableSyncDbTable === undefined) {
       delete process.env.DISABLE_SYNC_DB_TABLE;
     } else {
@@ -170,6 +176,7 @@ describe('Support console CRM routes', () => {
           details: { city: 'Orange Park', state: 'FL' },
           services: { leadManagement: 'active', callTracking: 'inactive' },
           allowlisted: true,
+          usage: { rcAccountIds: [], connectedUserCount: 0, lastConnectedAt: null },
         },
         {
           id: '12617',
@@ -177,6 +184,7 @@ describe('Support console CRM routes', () => {
           details: { city: 'Mission', state: 'KS' },
           services: { leadManagement: 'active', callTracking: 'active' },
           allowlisted: false,
+          usage: { rcAccountIds: [], connectedUserCount: 0, lastConnectedAt: null },
         },
       ],
     });
@@ -185,6 +193,65 @@ describe('Support console CRM routes', () => {
     expect(Object.keys(record.services)).toEqual(['leadManagement']);
     expect(record.services.leadManagement.firstSeenAt).toEqual(record.services.leadManagement.lastSeenAt);
     expect(record.firstSeenAt).toEqual(record.services.leadManagement.firstSeenAt);
+  });
+
+  test('reports dealer account IDs, connected users, and the latest successful login after logout', async () => {
+    const dealerId = dealerA.DealerId;
+    const crmUserId = 412;
+    const currentUserId = `${crmUserId}-${dealerId}-vinsolutions`;
+    const accountId = '91000000000000001';
+    const otherAccountId = '91000000000000002';
+    await UserModel.bulkCreate([
+      { id: `413-${dealerId}-vinsolutions`, platform: 'vinsolutions', rcAccountId: accountId,
+        accessToken: 'vinsolutions-connected', platformAdditionalInfo: { dealerId: String(dealerId) } },
+      { id: `414-${dealerId}-vinsolutions`, platform: 'vinsolutions', rcAccountId: otherAccountId,
+        accessToken: '', platformAdditionalInfo: { dealerId } },
+      { id: '415-6946-vinsolutions', platform: 'vinsolutions', rcAccountId: '91000000000000003',
+        accessToken: 'vinsolutions-connected', platformAdditionalInfo: { dealerId: dealerB.DealerId } },
+    ]);
+    const beforeLogin = new Date();
+    await recordDealerConnection(String(dealerId), new Date('2025-01-01T00:00:00.000Z'));
+    nock(RC_SERVER)
+      .get('/restapi/v1.0/account/~/extension/~')
+      .matchHeader('authorization', 'Bearer dealer-token')
+      .reply(200, { id: '412', account: { id: accountId } });
+    mockToken('lm-client', 'lm-token');
+    mockToken('ct-client', 'ct-token');
+    mockDealers('lm-api-key', 'lm-token', [dealerA]);
+    nock(VIN_API)
+      .get(`/gateway/v1/tenant/user/id/${crmUserId}`)
+      .query({ dealerId: String(dealerId) })
+      .reply(200, { UserId: crmUserId, FullName: 'Dealer user' });
+
+    const login = await api().post('/apiKeyLogin').set('X-RC-Access-Token', 'dealer-token').send({
+      platform: 'vinsolutions',
+      additionalInfo: { dealerId, crmUserId },
+    });
+    expect(login.status).toBe(200);
+    expect((await UserModel.findByPk(currentUserId)).rcAccountId).toBe(accountId);
+    await recordDealerConnection(String(dealerId), new Date('2025-06-01T00:00:00.000Z'));
+
+    mockToken('lm-client', 'lm-token');
+    mockToken('ct-client', 'ct-token');
+    mockDealers('lm-api-key', 'lm-token', [dealerA]);
+    mockDealers('ct-api-key', 'ct-token', [dealerA]);
+    const listing = await withStaff(api().get('/support/crm/vinsolutions/integrations'));
+    expect(listing.status).toBe(200);
+    const usage = listing.body.integrations[0].usage;
+    expect(usage).toEqual({
+      rcAccountIds: [accountId, otherAccountId],
+      connectedUserCount: 2,
+      lastConnectedAt: expect.any(String),
+    });
+    expect(new Date(usage.lastConnectedAt).getTime()).toBeGreaterThanOrEqual(beforeLogin.getTime());
+
+    const logout = await api().post('/unAuthorize').query({ jwtToken: login.body.jwtToken }).send({});
+    expect(logout.status).toBe(200);
+    mockDealers('lm-api-key', 'lm-token', [dealerA]);
+    mockDealers('ct-api-key', 'ct-token', [dealerA]);
+    const afterLogout = await withStaff(api().get('/support/crm/vinsolutions/integrations'));
+    expect(afterLogout.body.integrations[0].usage).toEqual({ ...usage, connectedUserCount: 1 });
+    expect(nock.isDone()).toBe(true);
   });
 
   test('reuses the cached service token and mints a new one when VinSolutions rejects it', async () => {

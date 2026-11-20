@@ -5,6 +5,7 @@ const { Op } = /** @type {any} */ (require('sequelize'));
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { AccountDataModel } = /** @type {any} */ (require('@app-connect/core/models/accountDataModel'));
 const vinsolutions = /** @type {any} */ (require('./vinsolutions'));
+const { listDealerUsage } = require('../../connectors/vinsolutions/dealerUsage');
 
 /**
  * A provider manages one CRM's integrations: the units a CRM enables for RingCentral
@@ -200,7 +201,13 @@ async function listIntegrations(platform) {
         provider.listIntegrations(),
         getAllowlistedIds(platform),
     ]);
-    await recordSeenIntegrations(platform, result.integrations);
+    const [usage] = await Promise.all([
+        listDealerUsage(result.integrations.map(integration => integration.id)).catch(error => {
+            logger.warn('Could not load VinSolutions dealer usage', { errorName: error?.name });
+            return null;
+        }),
+        recordSeenIntegrations(platform, result.integrations),
+    ]);
     return {
         platform,
         services: result.services,
@@ -208,6 +215,7 @@ async function listIntegrations(platform) {
         integrations: result.integrations.map((integration) => ({
             ...integration,
             allowlisted: allowlistedIds.has(integration.id),
+            usage: usage?.get(integration.id) ?? null,
         })),
     };
 }

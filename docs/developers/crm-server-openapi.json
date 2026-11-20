@@ -4427,7 +4427,7 @@
         ],
         "summary": "List enabled CRM integrations",
         "operationId": "listSupportCrmIntegrations",
-        "description": "Fetches the dealers that enabled RingCentral in each VinSolutions service, merges them by dealer ID, flags allowlisted ones, and records them in the Support console history. Nothing is cached; every call reads VinSolutions.",
+        "description": "Fetches the dealers that enabled RingCentral in each VinSolutions service, merges them by dealer ID, adds App Connect usage and allowlist status, and records them in the Support console history. Every call reads VinSolutions and the App Connect database.",
         "parameters": [
           {
             "name": "platform",
@@ -9112,7 +9112,8 @@
           "name",
           "details",
           "services",
-          "allowlisted"
+          "allowlisted",
+          "usage"
         ],
         "properties": {
           "id": {
@@ -9146,6 +9147,35 @@
           "allowlisted": {
             "type": "boolean",
             "description": "True when the integration is on the Support console allowlist."
+          },
+          "usage": {
+            "type": "object",
+            "nullable": true,
+            "description": "App Connect usage for this dealer, or null when usage could not be loaded.",
+            "required": [
+              "rcAccountIds",
+              "connectedUserCount",
+              "lastConnectedAt"
+            ],
+            "properties": {
+              "rcAccountIds": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": { "type": "string" },
+                "description": "Distinct RingCentral account IDs on file for this dealer."
+              },
+              "connectedUserCount": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of distinct VinSolutions users with a saved App Connect connection marked connected."
+              },
+              "lastConnectedAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "Most recent recorded successful VinSolutions connection, or null when no event has been recorded."
+              }
+            }
           }
         }
       },

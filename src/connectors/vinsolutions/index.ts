@@ -12,6 +12,7 @@ const { findMappedCrmUserIdBySubmission } = /** @type {any} */ (require('@app-co
 const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
 const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/lib/errorHandler'));
+const { CONNECTED_SENTINEL, recordDealerConnection } = require('./dealerUsage');
 
 const API_BASE_URL = 'https://api.vinsolutions.com';
 const VINSOLUTIONS_TOKEN_URI = 'https://authentication.vinsolutions.com/connect/token';
@@ -20,8 +21,6 @@ const GATEWAY_JSON = 'application/json';
 const LEAD_MANAGEMENT_V3 = 'application/vnd.coxauto.v3+json';
 const CALL_TRACKING_V1 = 'application/vnd.coxauto.v1+json';
 const TOKEN_EXPIRY_BUFFER_MINUTES = 5;
-/** Core requires user.accessToken to be set; VinSolutions API tokens live in platformAdditionalInfo only. */
-const CONNECTED_SENTINEL = 'vinsolutions-connected';
 
 /**
  * OAuth token profiles for VinSolutions.
@@ -595,6 +594,7 @@ async function getUserInfo({ additionalInfo }) {
 }
 
 async function postSaveUserInfo({ userInfo }) {
+    const connectedAt = new Date();
     const user = await UserModel.findByPk(userInfo.id);
     if (!user) {
         return userInfo;
@@ -608,6 +608,15 @@ async function postSaveUserInfo({ userInfo }) {
     }
     catch (error) {
         handleDatabaseError(error, 'Error saving VinSolutions platformAdditionalInfo');
+    }
+    const dealerId = String(user.platformAdditionalInfo?.dealerId ?? '');
+    if (/^[1-9][0-9]*$/.test(dealerId)) {
+        try {
+            await recordDealerConnection(dealerId, connectedAt);
+        }
+        catch (error) {
+            handleDatabaseError(error, 'Error recording a VinSolutions dealer connection');
+        }
     }
     return userInfo;
 }
