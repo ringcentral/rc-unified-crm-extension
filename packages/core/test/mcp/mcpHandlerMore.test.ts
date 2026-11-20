@@ -48,8 +48,7 @@ jest.mock('../../models/llmSessionModel', () => ({
 
 jest.mock('../../models/cacheModel', () => ({
   CacheModel: {
-    findByPk: jest.fn(),
-    upsert: jest.fn(),
+    findOrCreate: jest.fn(),
   },
 }));
 
@@ -127,8 +126,7 @@ describe('MCP Handler additional protocol coverage', () => {
     getTool('widgetOnly').execute.mockResolvedValue({ success: true, data: { widget: true } });
 
     axios.get.mockResolvedValue({ data: { id: 'rc-ext-1' } });
-    CacheModel.findByPk.mockResolvedValue(null);
-    CacheModel.upsert.mockResolvedValue([{}, true]);
+    CacheModel.findOrCreate.mockImplementation(async ({ defaults }) => [defaults, true]);
     LlmSessionModel.findByPk.mockResolvedValue(null);
     LlmSessionModel.destroy.mockResolvedValue(1);
     LlmSessionModel.upsert.mockResolvedValue([{}, true]);
@@ -228,11 +226,8 @@ describe('MCP Handler additional protocol coverage', () => {
     readFileSpy.mockRestore();
   });
 
-  test('injects cached rc extension and valid CRM jwt into tool calls', async () => {
-    CacheModel.findByPk.mockResolvedValue({
-      data: { rcExtensionId: 'rc-ext-cached' },
-      expiry: new Date(Date.now() + 60000),
-    });
+  test('accepts a refreshed token for the same extension and injects its CRM jwt', async () => {
+    CacheModel.findOrCreate.mockResolvedValue([{ data: { rcExtensionId: 'rc-ext-1' } }, false]);
     LlmSessionModel.findByPk.mockResolvedValue({
       jwtToken: 'cached-jwt',
       expiry: new Date(Date.now() + 60000),
@@ -249,12 +244,14 @@ describe('MCP Handler additional protocol coverage', () => {
       { headers: { authorization: 'Bearer rc-access-token' } }
     ), res);
 
-    expect(axios.get).not.toHaveBeenCalled();
+    expect(axios.get).toHaveBeenCalledWith(expect.any(String), {
+      headers: { Authorization: 'Bearer rc-access-token' },
+    });
     expect(getTool('simpleTool').execute).toHaveBeenCalledWith(expect.objectContaining({
       value: 1,
       rcAccessToken: 'rc-access-token',
       openaiSessionId: 'openai-session-1',
-      rcExtensionId: 'rc-ext-cached',
+      rcExtensionId: 'rc-ext-1',
       jwtToken: 'cached-jwt',
     }));
     expect(res.json.mock.calls[0][0].result).toEqual(expect.objectContaining({
@@ -263,9 +260,20 @@ describe('MCP Handler additional protocol coverage', () => {
     }));
   });
 
-  test('continues tool calls when extension cache lookup fails and RC has no extension id', async () => {
-    const logger = require('../../lib/logger');
-    CacheModel.findByPk.mockRejectedValueOnce(new Error('cache unavailable'));
+  test('rejects a conversation binding owned by a different extension', async () => {
+    CacheModel.findOrCreate.mockResolvedValue([{ data: { rcExtensionId: 'rc-ext-other' } }, false]);
+    const res = mockResponse();
+    await handleMcpRequest(makeRequest('tools/call', {
+      name: 'simpleTool',
+      _meta: { 'openai/session': 'bound-session' },
+    }, { headers: { authorization: 'Bearer rc-token' } }), res);
+
+    expect(LlmSessionModel.findByPk).not.toHaveBeenCalled();
+    expect(getTool('simpleTool').execute).not.toHaveBeenCalled();
+    expect(res.json.mock.calls[0][0].result.structuredContent.error).toBe('mcp_session_identity_mismatch');
+  });
+
+  test('stops before looking up the binding when RingCentral returns no extension id', async () => {
     axios.get.mockResolvedValueOnce({ data: {} });
 
     const res = mockResponse();
@@ -279,13 +287,23 @@ describe('MCP Handler additional protocol coverage', () => {
       { headers: { authorization: 'Bearer rc-token' } }
     ), res);
 
-    expect(logger.warn).toHaveBeenCalledWith('CacheModel lookup failed:', { message: 'cache unavailable' });
-    expect(CacheModel.upsert).not.toHaveBeenCalled();
-    expect(getTool('simpleTool').execute).toHaveBeenCalledWith(expect.objectContaining({
-      rcAccessToken: 'rc-token',
-      openaiSessionId: 'openai-session-cache-fail',
-    }));
-    expect(getTool('simpleTool').execute.mock.calls.at(-1)[0]).not.toHaveProperty('rcExtensionId');
+    expect(CacheModel.findOrCreate).not.toHaveBeenCalled();
+    expect(LlmSessionModel.findByPk).not.toHaveBeenCalled();
+    expect(getTool('simpleTool').execute).not.toHaveBeenCalled();
+    expect(res.json.mock.calls[0][0].result.isError).toBe(true);
+  });
+
+  test('stops tool execution when the conversation binding store is unavailable', async () => {
+    CacheModel.findOrCreate.mockRejectedValueOnce(new Error('cache unavailable'));
+    const res = mockResponse();
+    await handleMcpRequest(makeRequest('tools/call', {
+      name: 'simpleTool',
+      _meta: { 'openai/session': 'bound-session' },
+    }, { headers: { authorization: 'Bearer rc-token' } }), res);
+
+    expect(LlmSessionModel.findByPk).not.toHaveBeenCalled();
+    expect(getTool('simpleTool').execute).not.toHaveBeenCalled();
+    expect(res.json.mock.calls[0][0].error.code).toBe(-32603);
   });
 
   test('preserves caller-provided CRM jwt and skips LLM session lookup', async () => {
@@ -305,6 +323,17 @@ describe('MCP Handler additional protocol coverage', () => {
       jwtToken: 'provided-jwt',
       rcExtensionId: 'rc-ext-1',
     }));
+  });
+
+  test('only forwards the session id checked by the handler', async () => {
+    const res = mockResponse();
+    await handleMcpRequest(makeRequest('tools/call', {
+      name: 'simpleTool',
+      arguments: { openaiSessionId: 'unverified-session' },
+    }, { headers: { authorization: 'Bearer rc-token' } }), res);
+
+    expect(CacheModel.findOrCreate).not.toHaveBeenCalled();
+    expect(getTool('simpleTool').execute.mock.calls[0][0]).not.toHaveProperty('openaiSessionId');
   });
 
   test('does not inject fallback or generated jwt when no valid CRM user is available', async () => {
@@ -331,6 +360,9 @@ describe('MCP Handler additional protocol coverage', () => {
   });
 
   test('refreshes rc extension, removes expired sessions, and reuses fallback session jwt', async () => {
+    UserModel.findByPk.mockResolvedValue({
+      id: 'user-1', accessToken: 'crm-token', hashedRcExtensionId: 'hashed-rc-ext-1',
+    });
     LlmSessionModel.findByPk
       .mockResolvedValueOnce({
         jwtToken: 'expired-jwt',
@@ -356,11 +388,10 @@ describe('MCP Handler additional protocol coverage', () => {
       'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
       { headers: { Authorization: 'Bearer live-rc-token' } }
     );
-    expect(CacheModel.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'openai-session-2-rcExtensionId',
-      data: { rcExtensionId: 'rc-ext-1' },
-      status: 'resolved',
-    }));
+    expect(CacheModel.findOrCreate).toHaveBeenCalledWith({
+      where: { id: 'openai-session-2-rcExtensionId' },
+      defaults: expect.objectContaining({ data: { rcExtensionId: 'rc-ext-1' } }),
+    });
     expect(LlmSessionModel.destroy).toHaveBeenCalledWith({ where: { id: 'rc-ext-1' } });
     expect(LlmSessionModel.upsert).toHaveBeenCalledWith(expect.objectContaining({
       id: 'rc-ext-1',
@@ -370,6 +401,21 @@ describe('MCP Handler additional protocol coverage', () => {
       rcExtensionId: 'rc-ext-1',
       jwtToken: 'fallback-jwt',
     }));
+  });
+
+  test('does not migrate a legacy CRM session without matching RingCentral ownership', async () => {
+    LlmSessionModel.findByPk.mockResolvedValueOnce(null).mockResolvedValueOnce({ jwtToken: 'legacy-jwt' });
+    UserModel.findByPk.mockResolvedValue({
+      id: 'user-1', accessToken: 'crm-token', hashedRcExtensionId: 'different-owner',
+    });
+    const res = mockResponse();
+    await handleMcpRequest(makeRequest('tools/call', {
+      name: 'simpleTool',
+      _meta: { 'openai/session': 'legacy-session' },
+    }, { headers: { authorization: 'Bearer rc-token' } }), res);
+
+    expect(LlmSessionModel.upsert).not.toHaveBeenCalled();
+    expect(getTool('simpleTool').execute.mock.calls[0][0]).not.toHaveProperty('jwtToken');
   });
 
   test('creates a new llm session from the latest CRM user when no session exists', async () => {
@@ -408,14 +454,15 @@ describe('MCP Handler additional protocol coverage', () => {
 
   test('returns JSON-RPC errors for unknown or failed tools and handles request failures', async () => {
     const missingRes = mockResponse();
-    await handleMcpRequest(makeRequest('tools/call', { name: 'missingTool', arguments: {} }), missingRes);
+    const auth = { headers: { authorization: 'Bearer rc-token' } };
+    await handleMcpRequest(makeRequest('tools/call', { name: 'missingTool', arguments: {} }, auth), missingRes);
     expect(missingRes.json.mock.calls[0][0].error).toEqual(expect.objectContaining({
       code: -32603,
       message: 'Tool execution failed: Tool not found: missingTool',
     }));
 
     const throwRes = mockResponse();
-    await handleMcpRequest(makeRequest('tools/call', { name: 'throwTool', arguments: {} }), throwRes);
+    await handleMcpRequest(makeRequest('tools/call', { name: 'throwTool', arguments: {} }, auth), throwRes);
     expect(throwRes.json.mock.calls[0][0].error).toEqual(expect.objectContaining({
       code: -32603,
       message: 'Tool execution failed: boom',
@@ -447,6 +494,8 @@ describe('MCP Handler additional protocol coverage', () => {
     ), res);
 
     expect(getTool('simpleTool').execute).not.toHaveBeenCalled();
+    expect(CacheModel.findOrCreate).not.toHaveBeenCalled();
+    expect(LlmSessionModel.findByPk).not.toHaveBeenCalled();
     expect(res.json.mock.calls[0][0].result).toEqual(expect.objectContaining({
       isError: true,
       structuredContent: expect.objectContaining({

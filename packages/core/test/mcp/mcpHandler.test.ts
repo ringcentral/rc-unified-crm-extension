@@ -1,4 +1,10 @@
 const { handleMcpRequest } = require('../../mcp/mcpHandler');
+const axios = require('axios');
+
+jest.mock('axios', () => ({ get: jest.fn() }));
+jest.mock('../../models/llmSessionModel', () => ({
+  LlmSessionModel: { findByPk: jest.fn().mockResolvedValue(null) },
+}));
 
 function mockResponse() {
   return {
@@ -39,6 +45,7 @@ describe('MCP Handler', () => {
   });
 
   test('tools/call returns structuredContent matching the tool output', async () => {
+    axios.get.mockResolvedValue({ data: { id: 'rc-extension' } });
     const req = {
       body: {
         jsonrpc: '2.0',
@@ -49,7 +56,7 @@ describe('MCP Handler', () => {
           arguments: {},
         },
       },
-      headers: {},
+      headers: { authorization: 'Bearer rc-token' },
     };
     const res = mockResponse();
 

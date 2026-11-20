@@ -3,7 +3,7 @@
  *
  * Stateless hand-rolled JSON-RPC handler — no SDK, no SSE, no sessions Map.
  * Fully compatible with stateless deployments (AWS Lambda, etc.).
- * All auth context is resolved per-request; rcExtensionId is cached in CacheModel.
+ * Each tool call verifies its RingCentral identity against the conversation binding.
  */
 
 // @ts-check
@@ -204,37 +204,14 @@ async function resolveRcExtensionId(rcAccessToken) {
 }
 
 /**
- * Resolve rcExtensionId for the current request.
- * Checks CacheModel first (avoids RC API call on Lambda cold starts),
- * falls back to a live RC API verification and persists the result.
+ * Verify the current request before checking or creating its conversation binding.
  */
 async function resolveSessionContext(rcAccessToken, openaiSessionId) {
-    if (!rcAccessToken) return { rcExtensionId: null };
-
-    if (openaiSessionId) {
-        try {
-            const cached = await CacheModel.findByPk(`${openaiSessionId}-${RC_EXTENSION_CACHE_KEY}`);
-            if (cached?.data?.rcExtensionId && (!cached.expiry || cached.expiry > new Date())) {
-                return { rcExtensionId: cached.data.rcExtensionId };
-            }
-        } catch (err) {
-            logger.warn('CacheModel lookup failed:', { message: err.message });
-        }
-    }
+    if (!rcAccessToken) return { rcTokenError: buildMcpOAuthError() };
 
     let rcExtensionId = null;
     try {
         rcExtensionId = await resolveRcExtensionId(rcAccessToken);
-        if (openaiSessionId && rcExtensionId) {
-            await CacheModel.upsert({
-                id: `${openaiSessionId}-${RC_EXTENSION_CACHE_KEY}`,
-                userId: openaiSessionId,
-                cacheKey: RC_EXTENSION_CACHE_KEY,
-                data: { rcExtensionId },
-                status: RC_EXTENSION_CACHE_STATUS,
-                expiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h TTL
-            });
-        }
     } catch (err) {
         logger.warn('Failed to resolve RC extension ID:', { message: err.message });
         return {
@@ -244,6 +221,29 @@ async function resolveSessionContext(rcAccessToken, openaiSessionId) {
                 errorDetails: err.message,
             }),
         };
+    }
+
+    if (!rcExtensionId) return { rcTokenError: buildMcpOAuthError() };
+
+    if (openaiSessionId) {
+        const [binding] = await CacheModel.findOrCreate({
+            where: { id: `${openaiSessionId}-${RC_EXTENSION_CACHE_KEY}` },
+            defaults: {
+                userId: openaiSessionId,
+                cacheKey: RC_EXTENSION_CACHE_KEY,
+                data: { rcExtensionId },
+                status: RC_EXTENSION_CACHE_STATUS,
+                expiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            },
+        });
+        if (binding.data?.rcExtensionId !== rcExtensionId) {
+            return {
+                rcTokenError: buildMcpOAuthError({
+                    error: 'mcp_session_identity_mismatch',
+                    message: 'This MCP conversation belongs to a different RingCentral identity. Start a new conversation.',
+                }),
+            };
+        }
     }
 
     return { rcExtensionId };
@@ -306,8 +306,9 @@ async function handleMcpRequest(req, res) {
         const { method, params, id } = req.body;
         logger.info('Received MCP request:', { method });
 
-        const rcAccessToken = req.headers['authorization']?.split('Bearer ')?.[1];
-        const openaiSessionId = params?._meta?.['openai/session'] ?? null;
+        const rcAccessToken = /^Bearer +([^\s,]+)$/i.exec(req.headers['authorization'] ?? '')?.[1];
+        const sessionId = params?._meta?.['openai/session'];
+        const openaiSessionId = typeof sessionId === 'string' && sessionId ? sessionId : null;
 
         let response;
 
@@ -344,6 +345,7 @@ async function handleMcpRequest(req, res) {
 
                 if (rcAccessToken) toolArgs.rcAccessToken = rcAccessToken;
                 if (openaiSessionId) toolArgs.openaiSessionId = openaiSessionId;
+                else delete toolArgs.openaiSessionId;
 
                 const { rcExtensionId, rcTokenError } = await resolveSessionContext(rcAccessToken, openaiSessionId);
                 if (rcTokenError) {
@@ -363,19 +365,22 @@ async function handleMcpRequest(req, res) {
                             llmSession = null;
                         }
                         if (!llmSession?.jwtToken && openaiSessionId) {
-                            const fallback = await LlmSessionModel.findByPk(openaiSessionId);
-                            if (fallback?.jwtToken) {
+                            const hashedRcExtensionId = getHashValue(rcExtensionId, process.env.HASH_KEY);
+                            const fallback = openaiSessionId !== rcExtensionId
+                                ? await LlmSessionModel.findByPk(openaiSessionId)
+                                : null;
+                            if (fallback?.jwtToken && (!fallback.expiry || fallback.expiry > new Date())) {
                                 const { id: fallbackUserId } = jwt.decodeJwt(fallback.jwtToken);
                                 const fallbackUser = fallbackUserId
                                     ? await UserModel.findByPk(fallbackUserId)
                                     : null;
-                                if (fallbackUser?.accessToken) {
+                                if (hashedRcExtensionId && fallbackUser?.accessToken
+                                    && fallbackUser.hashedRcExtensionId === hashedRcExtensionId) {
                                     await LlmSessionModel.upsert({ id: rcExtensionId, jwtToken: fallback.jwtToken, expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
                                     llmSession = fallback;
                                 }
                             }
                             if (!llmSession?.jwtToken) {
-                                const hashedRcExtensionId = getHashValue(rcExtensionId, process.env.HASH_KEY);
                                 const user = await UserModel.findOne({
                                     where: {
                                         hashedRcExtensionId,

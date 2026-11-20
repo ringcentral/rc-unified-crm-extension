@@ -65,8 +65,8 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 - Defines `outputSchema` (JSON Schema) for AI-visible tools so clients can understand and validate structured results
 - Defines `inputSchema` (JSON Schema) for every tool that takes parameters — required so ChatGPT forwards arguments
 - Injects `rcAccessToken`, `openaiSessionId`, and `rcExtensionId` into every `tools/call` request
-- Verifies the RC access token against the RC API and caches `rcExtensionId` in `CacheModel` keyed by `openaiSessionId` (24h TTL) — subsequent requests hit the cache instead of the RC API
-- Automatically looks up and injects `jwtToken` from `LlmSessionModel` using `rcExtensionId` (or `openaiSessionId` as a fallback), only when the linked `User` row still has a CRM `accessToken`
+- Verifies the current RC access token on every tool call and checks its extension against the conversation binding in `CacheModel`
+- Looks up `jwtToken` by the verified `rcExtensionId` and injects it only while the linked user has a CRM access token
 - Stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']` at response time
 - Returns `structuredContent` for schema-bearing tool calls and includes serialized JSON text content for backwards compatibility
 - Serves the widget HTML via `resources/read`
@@ -76,7 +76,7 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 **Request Flow:**
 1. Receives `POST /mcp` with a JSON-RPC body
 2. Extracts `rcAccessToken` from `Authorization` header and `openaiSessionId` from `params._meta['openai/session']`
-3. On `tools/call`: checks `CacheModel` for a cached `rcExtensionId`; if missing, verifies via RC API and persists to cache
+3. On `tools/call`: verifies the Bearer token with RingCentral, then checks or creates the conversation binding when a conversation ID is present
 4. Injects server-side context (`rcAccessToken`, `openaiSessionId`, `rcExtensionId`, `jwtToken`) into tool args
 5. Routes to the appropriate tool handler via a `switch` on `method`
 6. Returns a JSON-RPC response immediately — no streaming, no SSE
@@ -123,10 +123,10 @@ Tools are split into two registries in `tools/index.ts`:
 |---|---|---|
 | `rcAccessToken` | `Authorization` request header | RingCentral API calls |
 | `openaiSessionId` | `params._meta['openai/session']` | Stable ChatGPT conversation ID |
-| `rcExtensionId` | RC API (`/extension/~`), verified once and cached in `sessionContext` | Cryptographically verified RC identity; used as `LlmSessionModel` key |
-| `jwtToken` | `LlmSessionModel.findByPk(rcExtensionId)` (fallback: `findByPk(openaiSessionId)`) | CRM auth token (after OAuth) |
+| `rcExtensionId` | RingCentral API verification of the current Bearer token | Verified RC identity used as the `LlmSessionModel` key |
+| `jwtToken` | `LlmSessionModel` by verified extension ID, with an ownership-checked legacy fallback | CRM auth token after OAuth |
 
-Tools do **not** need ChatGPT to pass `jwtToken` explicitly — it is resolved from the session automatically. The `rcExtensionId` is verified via the RC API on the **first tool call** of each session and cached for all subsequent calls within the same conversation (0 additional API calls after that). If the user has logged out or the CRM token was cleared, `jwtToken` is not injected even when a stale row exists in `LlmSessionModel`.
+The server resolves `jwtToken` automatically while the CRM connection is active. A legacy session keyed by conversation ID is migrated only when it is still valid and its CRM user record has the hash of the verified RingCentral extension.
 
 New or refreshed LLM session JWTs are written only when the user record has an `accessToken`, so disconnected users are not issued a new tool JWT.
 
@@ -382,7 +382,7 @@ X-App-Connect-Widget-Token: <widgetSessionToken from getPublicConnectors>
 | Header | Value |
 |--------|-------|
 | `Content-Type` | `application/json` |
-| `Authorization` | `Bearer <RC_ACCESS_TOKEN>` (optional, for RingCentral API calls) |
+| `Authorization` | `Bearer <RC_ACCESS_TOKEN>` (required for tool calls) |
 
 ## Supported Platforms
 
@@ -392,20 +392,13 @@ Currently supported for MCP integration:
 ## Security Considerations
 
 1. **JWT Tokens**: Stored server-side in `LlmSessionModel`, **keyed by `rcExtensionId`** (a cryptographically verified RingCentral identity). Tools receive the JWT via server injection — it is never sent back to ChatGPT as a visible parameter.
-2. **RC Identity Verification**: On the first tool call of each session, `mcpHandler.ts` calls `GET /restapi/v1.0/extension/~` with the Bearer token from the request. If the RC token is invalid, the call throws and `rcExtensionId` remains `null`. The result is cached in `sessionContext` so at most **one RC API call** is made per conversation.
-3. **Session key binding**: The sessions Map is keyed on the stable `openai/session` ID so the same `sessionContext` (and its verified `rcExtensionId`) is reused for all tool calls within a ChatGPT conversation. A session can only access credentials stored under its own verified `rcExtensionId`.
-4. **Session Management**: MCP sessions are server-side and automatically cleaned up on transport close.
+2. **RC Identity Verification**: For every tool call, `mcpHandler.ts` calls `GET /restapi/v1.0/account/~/extension/~` with the current Bearer token. A missing or invalid token or a response without an extension ID stops the call before CRM session lookup.
+3. **Session binding**: The first verified extension that uses an `openai/session` value establishes its binding in `CacheModel`. Later calls must verify as that extension while the binding exists. A refreshed token for the same extension is accepted.
+4. **Session cleanup**: Conversation bindings are eligible for cache cleanup 24 hours after creation.
 5. **OAuth Flows**: CRM connector OAuth still uses server-side callback handling. MCP RingCentral OAuth uses a public PKCE client (`RINGCENTRAL_MCP_CLIENT_ID`), advertises `code_challenge_methods_supported: ["S256"]`, and does not expose `RINGCENTRAL_CLIENT_SECRET` to MCP clients.
 6. **RC Account ID**: Resolved server-side via RC API and passed to the widget — never requires exposing secrets to the browser.
 7. **Widget session token**: `getPublicConnectors` issues a short-lived signed token after RC identity resolution. `/mcp/widget-tool-call` requires that token and injects the verified `rcExtensionId`; it does not trust widget-provided identity values.
 8. **CORS**: Widget calls `appconnect.labs.ringcentral.com` directly; the developer portal public API supports browser fetch.
-
-| | Before | After |
-|---|---|---|
-| Identity proof | `openai/session` (unverified, from request body) | `rcExtensionId` (verified via RC API) |
-| RC token verified? | No | Yes — first tool call per conversation |
-| API calls per session | 0 (no verify) | 1 (cached after first call) |
-| `LlmSessionModel` key | arbitrary session ID | stable, verified RC extension ID |
 
 ## Error Handling
 
@@ -436,6 +429,6 @@ A typical conversation flow:
 9. **Widget**: Auth completes → jwtToken stored in `LlmSessionModel[rcExtensionId]` server-side → widget fires `updateModelContext` without jwtToken → shows success banner
 10. **AI**: "You're now connected! What would you like to do?"
 11. **User**: "Find contacts named Test"
-12. **AI**: Calls `findContactByName(name="Test")` — server injects jwtToken automatically using cached `rcExtensionId` as lookup key → returns results
+12. **AI**: Calls `findContactByName(name="Test")` → server verifies the RingCentral identity and loads its CRM JWT → returns results
 
 Steps 3–9 happen entirely within the widget iframe. The AI assistant is not involved until authentication is complete.
