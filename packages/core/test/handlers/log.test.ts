@@ -1270,6 +1270,7 @@ describe('Log Handler', () => {
         result: 'Completed',
         voicemailLink: 'https://ringcentral.github.io/ringcentral-media-reader/?media=voicemail-content',
         voicemailMessageId: 'voicemail-123',
+        ringcx: { disposition: { name: 'Resolved' }, queue: { name: 'Support' } },
         activityCompletionReady: false
       };
 
@@ -1292,7 +1293,8 @@ describe('Log Handler', () => {
         activityCompletionReady: false
       }));
       expect(composeCallLog).toHaveBeenCalledWith(expect.objectContaining({
-        voicemailLink: incomingData.voicemailLink
+        voicemailLink: incomingData.voicemailLink,
+        callLog: expect.objectContaining({ ringcx: incomingData.ringcx })
       }));
     });
   });

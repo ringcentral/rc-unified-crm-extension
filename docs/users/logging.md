@@ -70,10 +70,14 @@ There is a lot of potential information about a call that can be logged. Dependi
 * **Date/time** - the start and end date/time of the call
 * **Duration** - the duration of the call
 * **Call result** - what did RingCentral observe as the result of the call, e.g. "call connected," "voicemail," "missed," etc. 
+* **RingCX disposition (beta)** - the disposition selected for the call during RingCX wrap-up.
+* **RingCX queue/campaign (beta)** - the queue name, or the campaign name when the call has no queue name.
 * **Recording** - if there is a call recording or a voicemail linked to the call, a RingCentral Media Reader link will be embedded
 * **AI notes/summary** - AI-generated summary of the call
 * **Transcript** - A transcript of the call
 * **Call journey (Server-side logging only)** - Provides details on how calls are routed within the RingCentral phone system (e.g., IVR menus, call queue transfers). Manual call transfers performed by users are not included. This information is available only in Admin Settings and requires server-side logging to be enabled.
+
+The RingCX options appear in **Call log details** for users with RingCX access and are off by default. Administrators with RingCX access can set the account defaults in **Managed settings**. App Connect includes these details when the RingCX wrap-up form supplies them, including when wrap-up updates an existing log.
 
 --8<-- "docs/_snippets/ai-artifacts-free-period.md"
 

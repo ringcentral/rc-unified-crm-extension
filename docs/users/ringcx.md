@@ -24,7 +24,7 @@ In the 2.1 beta, agents sign in to RingCX inside App Connect and handle their ca
 
 When a RingCX call ends, App Connect shows the CRM call logging form on the RingCX wrap-up page, so the agent can log the call without leaving wrap-up. If the call log cannot be saved, App Connect shows the error on the wrap-up page.
 
-With one-time logging enabled, RingCX calls save directly from wrap-up. If App Connect has already logged the call, saving from wrap-up updates the title and note on the existing log. App Connect warns you if it could not save a contact change, an additional contact link, or a custom field.
+With one-time logging enabled, RingCX calls save directly from wrap-up. If App Connect has already logged the call, saving from wrap-up updates the title and note on the existing log. App Connect also saves the disposition and queue or campaign when their [Call log details](logging.md#controlling-what-information-gets-logged) settings are enabled and wrap-up provides those values. App Connect warns you if it could not save a contact change, an additional contact link, or a custom field.
 
 Client-side logging needs the agent to have the extension open. To log calls for every agent, also set up [server-side logging](#setting-up-ringcx-logging).
 

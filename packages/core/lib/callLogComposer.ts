@@ -1,4 +1,5 @@
-import type { ComposeCallLogParams } from '../types';
+import type { ComposeCallLogParams, LogDetailsFormatType } from '../types';
+import { escapeHtml } from './sharedSMSComposer';
 
 const moment = require('moment-timezone');
 const { secondsToHoursMinutesSeconds } = require('./util');
@@ -100,6 +101,19 @@ function composeCallLog(params: ComposeCallLogParams): string {
 
     if (result && (userSettings?.addCallLogResult?.value ?? true)) {
         body = upsertCallResult({ body, result, logFormat });
+    }
+
+    const ringCX = callLog?.ringcx;
+    if (ringCX) {
+        const disposition = getCallDetailName(ringCX.disposition?.name);
+        if (disposition && userSettings.addRingCXDisposition?.value === true) {
+            body = upsertRingCXDetail(body, 'Disposition', disposition, logFormat);
+        }
+        const queue = getCallDetailName(ringCX.queue?.name);
+        const queueOrCampaign = queue || getCallDetailName(ringCX.campaign?.name) || getCallDetailName(ringCX.dialGroup?.name);
+        if (queueOrCampaign && userSettings.addRingCXQueueOrCampaign?.value === true) {
+            body = upsertRingCXDetail(body, queue ? 'Queue' : 'Campaign', queueOrCampaign, logFormat);
+        }
     }
 
     if (recordingLink && (userSettings?.addCallLogRecording?.value ?? true)) {
@@ -474,6 +488,38 @@ function upsertCallResult({ body, result, logFormat }) {
             break;
     }
     return bodyResult;
+}
+
+function getCallDetailName(name: unknown): string {
+    return typeof name === 'string' ? name.replace(/[\r\n]+/g, ' ').trim() : '';
+}
+
+function upsertRingCXDetail(body: string, label: 'Disposition' | 'Queue' | 'Campaign', name: string, logFormat: LogDetailsFormatType): string {
+    const labelPattern = label === 'Disposition' ? label : '(?:Queue|Campaign)';
+    let pattern: RegExp;
+    let field: string;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            pattern = new RegExp(`<li><b>${labelPattern}</b>: [^<]*</li>`);
+            field = `<li><b>${label}</b>: ${escapeHtml(name)}</li>`;
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            pattern = new RegExp(`^\\*\\*${labelPattern}\\*\\*: [^\\r\\n]*`, 'm');
+            field = `**${label}**: ${name.replace(/[\\\x60*_{}\[\]<>~&]/g, '\\$&')}`;
+            break;
+        default:
+            pattern = new RegExp(`^- ${labelPattern}: [^\\r\\n]*`, 'm');
+            field = `- ${label}: ${name}`;
+            break;
+    }
+    if (pattern.test(body)) {
+        return body.replace(pattern, () => field);
+    }
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
+        return body + field;
+    }
+    const separator = body && !body.endsWith('\n') ? '\n' : '';
+    return `${body}${separator}${field}\n`;
 }
 
 function upsertCallRecording({ body, recordingLink, logFormat }) {

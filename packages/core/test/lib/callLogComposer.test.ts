@@ -105,6 +105,40 @@ describe('callLogComposer', () => {
       expect(result).toContain('**Result**:');
     });
 
+    test.each([
+      [LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT, '- Disposition: Resolved', '- Queue: Support', '- Campaign: Renewals'],
+      [LOG_DETAILS_FORMAT_TYPE.HTML, '<b>Disposition</b>: Resolved', '<b>Queue</b>: Support', '<b>Campaign</b>: Renewals'],
+      [LOG_DETAILS_FORMAT_TYPE.MARKDOWN, '**Disposition**: Resolved', '**Queue**: Support', '**Campaign**: Renewals'],
+    ])('formats and updates RingCX details for %s', (logFormat, disposition, queue, campaign) => {
+      const params = {
+        logFormat,
+        user: { userSettings: { addRingCXDisposition: { value: true }, addRingCXQueueOrCampaign: { value: true } } },
+        callLog: {
+          ringcx: { disposition: { name: 'Resolved' }, queue: { name: 'Support' }, campaign: { name: 'Renewals' } },
+        },
+      };
+      const created = composeCallLog(params);
+      expect(created).toContain(disposition);
+      expect(created).toContain(queue);
+      expect(created).not.toContain(campaign);
+
+      const updated = composeCallLog({
+        ...params,
+        existingBody: created,
+        callLog: { ringcx: { disposition: { name: 'Resolved' }, queue: { name: ' ' }, campaign: { name: 'Renewals' } } },
+      });
+      expect(updated).toBe(created.replace(queue, campaign));
+    });
+
+    test('uses the dial group as a campaign fallback and respects each opt-in separately', () => {
+      const callLog = { ringcx: { disposition: { name: 'Resolved' }, dialGroup: { name: 'Renewals' } } };
+      expect(composeCallLog({ callLog, user: { userSettings: {} } })).toBe('');
+      expect(composeCallLog({ callLog, user: { userSettings: { addRingCXQueueOrCampaign: { value: true } } } }))
+        .toBe('- Campaign: Renewals\n');
+      expect(composeCallLog({ callLog, user: { userSettings: { addRingCXDisposition: { value: true } } } }))
+        .toBe('- Disposition: Resolved\n');
+    });
+
     test('should respect user settings to disable fields', async () => {
       const result = await composeCallLog({
         ...baseParams,

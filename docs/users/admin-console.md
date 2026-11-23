@@ -49,6 +49,8 @@ The following areas are available in both the admin console and the browser exte
 
 **[Managed settings](managed-settings.md)** let admins set and lock down preferences on behalf of their users. A locked setting shows as "Locked for all users," while settings left open show as "Editable by users."
 
+Admins with RingCX access can set defaults for **RingCX disposition** and **RingCX queue/campaign** under **Managed settings → Logging & records → Call log details**. Both options are off by default. See [RingCX call logging](ringcx.md#logging-ringcx-calls-from-the-extension).
+
 <figure markdown>
   ![Managed settings in the admin console](../img/admin-console-settings.png)
   <figcaption>Locking a setting for all users from the admin console</figcaption>

@@ -996,6 +996,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                         from: incomingData.from,
                         to: incomingData.to,
                         legs: incomingData.legs || [],
+                        ringcx: incomingData.ringcx,
                     },
                     contactInfo: null, // Not needed for updates
                     user,

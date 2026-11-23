@@ -95,6 +95,12 @@ export interface RingCentralCallLog {
   duration?: number;
   result?: string;
   legs?: JsonObject[];
+  ringcx?: {
+    disposition?: { name?: string };
+    queue?: { name?: string };
+    campaign?: { name?: string };
+    dialGroup?: { name?: string };
+  };
   [key: string]: unknown;
 }
 
