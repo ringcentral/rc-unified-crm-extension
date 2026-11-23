@@ -10,7 +10,7 @@ This hook handles OAuth token refresh specifically. For session-token validation
 ## Signature
 
 ```js
-async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20, skipLock = false)
+async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
 ```
 
 ## Input parameters
@@ -20,11 +20,10 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20,
 | `oauthApp`         | The OAuth application instance (from the framework) used to exchange refresh tokens for new access tokens. |
 | `user`             | The user object stored in the database, including the current `accessToken`, `refreshToken`, and expiry. |
 | `tokenLockTimeout` | (Optional) Time in seconds to wait for a distributed lock when multiple concurrent requests attempt to refresh. Default: `20`. |
-| `skipLock`         | (Optional) Boolean. When `true`, skips the distributed lock acquisition. Useful for internal retry calls. Default: `false`. |
 
 ## Return value(s)
 
-The updated user object with refreshed `accessToken`, `refreshToken`, and expiry fields written back to the database.
+The updated user object, or `null` if a usable session could not be established. Bullhorn saves newly rotated OAuth tokens under the lock before REST login. If REST login fails temporarily, the next request can restore the REST session with the saved access token.
 
 **Example**
 ```js

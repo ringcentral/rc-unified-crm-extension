@@ -3,6 +3,7 @@
 
 const axios = /** @type {any} */ (require('axios'));
 const moment = /** @type {any} */ (require('moment'));
+const { Condition } = require('dynamoose');
 const oauth = /** @type {any} */ (require('@app-connect/core/lib/oauth'));
 const { parsePhoneNumber } = /** @type {any} */ (require('awesome-phonenumber'));
 const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
@@ -330,169 +331,168 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
     }
 }
 
-async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, skipLock = false) {
-    let newLock;
-    try {
-        if (!skipLock) {
-            // Try to atomically create lock only if it doesn't exist
-            try {
-                newLock = await Lock.create(
-                    {
-                        userId: user.id,
-                        ttl: dateNow.unix() + 30
-                    },
-                    {
-                        overwrite: false
-                    }
-                );
-            } catch (e) {
-                // If creation failed due to condition, a lock exists
-                if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
-                    let lock = await Lock.get({ userId: user.id });
-                    if (!!lock?.ttl && moment(lock.ttl).unix() < dateNow.unix()) {
-                        // Try to delete expired lock and create a new one atomically
-                        try {
-                            logger.info('Bullhorn lock expired.')
-                            await lock.delete();
-                            newLock = await Lock.create(
-                                {
-                                    userId: user.id,
-                                    ttl: dateNow.unix() + 30
-                                },
-                                {
-                                    overwrite: false
-                                }
-                            );
-                        } catch (e2) {
-                            if (e2.name === 'ConditionalCheckFailedException' || e2.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
-                                // Another process created a lock between our delete and create
-                                lock = await Lock.get({ userId: user.id });
-                            } else {
-                                throw e2;
-                            }
-                        }
-                    }
+const BULLHORN_OAUTH_ERROR_CODES = new Set([
+    'invalid_grant',
+    'invalid_client',
+    'invalid_request',
+    'unauthorized_client',
+    'unsupported_grant_type',
+    'invalid_scope',
+    'server_error',
+    'temporarily_unavailable',
+]);
 
-                    if (lock && !newLock) {
-                        let processTime = 0;
-                        let delay = 500; // Start with 500ms
-                        const maxDelay = 8000; // Cap at 8 seconds
-                        while (!!lock && processTime < tokenLockTimeout) {
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            processTime += delay / 1000; // Convert to seconds for comparison
-                            delay = Math.min(delay * 2, maxDelay); // Exponential backoff with cap
-                            lock = await Lock.get({ userId: user.id });
-                        }
-                        // Timeout -> let users try another time
-                        if (processTime >= tokenLockTimeout) {
-                            throw new Error('Bullhorn Token lock timeout');
-                        }
-                        user = await UserModel.findByPk(user.id);
-                        logger.info('Bullhron locked. bypass')
-                        return user;
-                    }
-                } else {
-                    throw e;
-                }
-            }
-        }
-        const startRefreshTime = moment();
-        logger.info('Bullhorn token refreshing...')
-        let authData;
-        try {
-            const tokenUrl = oauth.requireBullhornTokenUrl(user.platformAdditionalInfo.tokenUrl);
-            const refreshTokenResponse = await axios.post(
-                tokenUrl.href,
-                new URLSearchParams({
-                    grant_type: 'refresh_token',
-                    refresh_token: user.refreshToken,
-                    client_id: process.env.BULLHORN_CLIENT_ID ?? '',
-                    client_secret: process.env.BULLHORN_CLIENT_SECRET ?? ''
-                }),
-                {
-                    ...oauth.bullhornTokenRedirectOptions(),
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                }
-            );
-            authData = refreshTokenResponse.data;
-        } catch (e) {
-            const serverLoggingSettings = await getServerLoggingSettings({ user });
-            if (serverLoggingSettings.apiUsername && serverLoggingSettings.apiPassword) {
-                authData = await bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings);
-            } else {
-                throw e;
-            }
-        }
-        const { access_token: accessToken, refresh_token: refreshToken, expires_in: expires } = authData;
-        user.accessToken = accessToken;
-        user.refreshToken = refreshToken;
-        const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
-        const { BhRestToken, restUrl } = userLoginResponse.data;
-        let updatedPlatformAdditionalInfo = user.platformAdditionalInfo;
-        updatedPlatformAdditionalInfo.bhRestToken = BhRestToken;
-        updatedPlatformAdditionalInfo.restUrl = restUrl;
-        // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
-        user.platformAdditionalInfo = {};
-        user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
-        user.tokenExpiry = getTokenExpiryDate(expires);
-        logger.info('Bullhorn token refreshing finished')
-        if (newLock) {
-            const deletionStartTime = moment();
-            await newLock.delete();
-            const deletionEndTime = moment();
-            logger.info(`Bullhorn lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
-        }
-        const endRefreshTime = moment();
-        logger.info(`Bullhorn token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
-    }
-    catch (e) {
-        if (newLock) {
-            await newLock.delete();
-        }
-        // do not log error message, it will expose password
-        logger.error('Bullhorn token refreshing failed', { stack: e.stack });
-        return null;
-    }
-    return user;
+function isRefreshLockConflict(error) {
+    return error.name === 'ConditionalCheckFailedException'
+        || error.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException';
 }
 
-async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20, skipLock = false) {
+async function releaseBullhornRefreshLock(userId, ttl) {
+    try {
+        await Lock.delete({ userId }, { condition: new Condition('ttl').eq(ttl) });
+    } catch (error) {
+        if (!isRefreshLockConflict(error)) {
+            throw error;
+        }
+    }
+}
+
+async function acquireBullhornRefreshLock(userId, timeoutSeconds) {
+    const deadline = Date.now() + timeoutSeconds * 1000;
+    let delay = 500;
+    do {
+        const ttl = Math.floor(Date.now() / 1000) + 60;
+        try {
+            await Lock.create({ userId, ttl }, { overwrite: false });
+            return ttl;
+        } catch (error) {
+            if (!isRefreshLockConflict(error)) {
+                throw error;
+            }
+        }
+        const lock = await Lock.get({ userId }, { consistent: true });
+        const currentTtl = lock?.ttl instanceof Date ? Math.floor(lock.ttl.getTime() / 1000) : lock?.ttl;
+        if (currentTtl && currentTtl <= Date.now() / 1000) {
+            await releaseBullhornRefreshLock(userId, currentTtl);
+        }
+        const remaining = deadline - Date.now();
+        if (remaining > 0) {
+            await new Promise(resolve => setTimeout(resolve, Math.min(delay, remaining)));
+            delay = Math.min(delay * 2, 8000);
+        }
+    } while (Date.now() < deadline);
+    throw new Error('Bullhorn Token lock timeout');
+}
+
+async function rotateBullhornOAuthToken(user, oauthApp) {
+    try {
+        const tokenUrl = oauth.requireBullhornTokenUrl(user.platformAdditionalInfo.tokenUrl);
+        const response = await axios.post(
+            tokenUrl.href,
+            new URLSearchParams({
+                grant_type: 'refresh_token',
+                refresh_token: user.refreshToken,
+                client_id: process.env.BULLHORN_CLIENT_ID ?? '',
+                client_secret: process.env.BULLHORN_CLIENT_SECRET ?? ''
+            }),
+            {
+                ...oauth.bullhornTokenRedirectOptions(),
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        const code = error.response?.data?.error;
+        logger.warn('Bullhorn OAuth token exchange failed', {
+            status: error.response?.status,
+            oauthError: BULLHORN_OAUTH_ERROR_CODES.has(code) ? code : undefined,
+        });
+        const settings = await getServerLoggingSettings({ user });
+        if (!settings.apiUsername || !settings.apiPassword) {
+            throw error;
+        }
+        return bullhornPasswordAuthorize(user, oauthApp, settings);
+    }
+}
+
+async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20) {
     if (!user || !user.accessToken || !user.refreshToken) {
         return user;
     }
-    const dateNow = moment();
-    const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
-    try {
-        const pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}ping`, {
-            headers: {
-                'BhRestToken': user.platformAdditionalInfo.bhRestToken,
-            },
-        });
-        // Session expired
-        if (moment(pingResponse.data.sessionExpires - expiryBuffer).isBefore(dateNow)) {
-            user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, skipLock);
-        }
-        // Session not expired
-        else {
-            return user;
+
+    const previousRestToken = user.platformAdditionalInfo?.bhRestToken;
+    if (previousRestToken) {
+        try {
+            const { data } = await axios.get(user.platformAdditionalInfo.restUrl + 'ping', {
+                headers: { BhRestToken: previousRestToken },
+            });
+            if (new Date(data.sessionExpires).getTime() > Date.now() + 120_000) {
+                return user;
+            }
+        } catch (error) {
+            logger.warn('Error checking Bullhorn REST session', { status: error.response?.status });
         }
     }
-    catch (e) {
-        logger.warn('Error checking and refreshing access token', { stack: e.stack });
-        // Session expired
-        user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, skipLock);
-    }
-    if (!user) {
-        return null;
-    }
+
+    let lockTtl;
+    let phase = 'lock';
     try {
-        await user.save();
-    }
-    catch (error) {
-        handleDatabaseError(error, 'Error saving user');
+        lockTtl = await acquireBullhornRefreshLock(user.id, tokenLockTimeout);
+        phase = 'read_user';
+        const currentUser = await UserModel.findByPk(user.id);
+        if (!currentUser?.accessToken || !currentUser.refreshToken || !currentUser.platformAdditionalInfo) {
+            return null;
+        }
+        const currentRestToken = currentUser.platformAdditionalInfo.bhRestToken;
+        if (currentRestToken && (currentRestToken !== previousRestToken || currentUser.refreshToken !== user.refreshToken)) {
+            return currentUser;
+        }
+
+        phase = 'rest_login';
+        if (!currentRestToken && new Date(currentUser.tokenExpiry).getTime() > Date.now()) {
+            try {
+                return await refreshSessionToken(currentUser);
+            } catch (error) {
+                if (!isAuthError(error.response?.status)) {
+                    throw error;
+                }
+            }
+        }
+
+        phase = 'oauth_exchange';
+        logger.info('Bullhorn token refreshing...');
+        const authData = await rotateBullhornOAuthToken(currentUser, oauthApp);
+        if (!authData?.access_token || !authData.refresh_token) {
+            throw new Error('Bullhorn OAuth did not return both tokens');
+        }
+
+        // A successful exchange consumes the old refresh token. Persist the new pair
+        // and mark REST login pending before making another Bullhorn request.
+        phase = 'save_oauth_tokens';
+        currentUser.accessToken = authData.access_token;
+        currentUser.refreshToken = authData.refresh_token;
+        currentUser.tokenExpiry = getTokenExpiryDate(authData.expires_in);
+        currentUser.platformAdditionalInfo = { ...currentUser.platformAdditionalInfo, bhRestToken: null };
+        await currentUser.save({ fields: ['accessToken', 'refreshToken', 'tokenExpiry', 'platformAdditionalInfo'] });
+
+        phase = 'rest_login';
+        const refreshedUser = await refreshSessionToken(currentUser);
+        if (refreshedUser) {
+            logger.info('Bullhorn token refreshing finished');
+        }
+        return refreshedUser;
+    } catch (error) {
+        logger.error('Bullhorn token refreshing failed', { phase, status: error.response?.status });
         return null;
+    } finally {
+        if (lockTtl) {
+            try {
+                await releaseBullhornRefreshLock(user.id, lockTtl);
+            } catch {
+                logger.warn('Failed to release Bullhorn token refresh lock');
+            }
+        }
     }
-    return user;
 }
 
 async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
@@ -1866,14 +1866,12 @@ async function getCallLog({ user, callLogId }) {
 async function refreshSessionToken(user) {
     const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
     const { BhRestToken, restUrl } = userLoginResponse.data;
-    let updatedPlatformAdditionalInfo = user.platformAdditionalInfo;
-    updatedPlatformAdditionalInfo.bhRestToken = BhRestToken;
-    updatedPlatformAdditionalInfo.restUrl = restUrl;
-    // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
-    user.platformAdditionalInfo = {};
-    user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
+    if (!BhRestToken || !restUrl) {
+        throw new Error('Bullhorn REST login did not return a usable session');
+    }
+    user.platformAdditionalInfo = { ...user.platformAdditionalInfo, bhRestToken: BhRestToken, restUrl };
     try {
-        await user.save();
+        await user.save({ fields: ['platformAdditionalInfo'] });
     }
     catch (error) {
         handleDatabaseError(error, 'Error saving user');
@@ -2432,7 +2430,10 @@ async function fetchBullhornUserProfile({ user }) {
         const oauthApp = oauth.getOAuthApp(await getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
         let currentUser = user;
         if (checkAndRefreshAccessToken) {
-            currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser, 20, true);
+            currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser);
+        }
+        if (!currentUser) {
+            return { email: '' };
         }
         const masterUserId = currentUser.id.replace('-bullhorn', '');
         const resp = await axios.get(

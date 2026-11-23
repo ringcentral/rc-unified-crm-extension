@@ -17,7 +17,7 @@ async function fetchBullhornUserProfile({ user }) {
         const oauthApp = oauth.getOAuthApp(await getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
         let currentUser = user;
         if (checkAndRefreshAccessToken) {
-            currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser, 20, true);
+            currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser);
         }
         if (!currentUser) {
             return { email: '', name: '', lookupStatus: LOOKUP_STATUS.TOKEN_INVALID };

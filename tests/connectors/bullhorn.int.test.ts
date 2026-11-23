@@ -47,7 +47,8 @@ jest.mock('@app-connect/core/lib/encode', () => ({
 jest.mock('@app-connect/core/models/dynamo/lockSchema', () => ({
     Lock: {
         create: jest.fn(),
-        get: jest.fn()
+        get: jest.fn(),
+        delete: jest.fn(),
     }
 }));
 
@@ -3125,8 +3126,10 @@ describe('Bullhorn Connector', () => {
     describe('checkAndRefreshAccessToken with expired session', () => {
         beforeEach(() => {
             // Reset the Lock mocks
-            Lock.create.mockReset();
+            Lock.create.mockReset().mockImplementation(async lock => ({ ...lock, ttl: new Date(Date.now() + 60_000) }));
             Lock.get.mockReset();
+            Lock.delete.mockReset().mockResolvedValue(undefined);
+            UserModel.findByPk.mockReset();
         });
 
         it('rejects an unapproved saved token URL without sending a refresh request', async () => {
@@ -3141,9 +3144,61 @@ describe('Bullhorn Connector', () => {
             const ping = nock(restUrl.slice(0, -1)).get('/ping').reply(401);
             const outside = nock('https://other.example.test').post('/oauth/token').reply(400);
 
-            expect(await bullhorn.checkAndRefreshAccessToken({}, user, 20, true)).toBeNull();
+            UserModel.findByPk.mockResolvedValue(user);
+            expect(await bullhorn.checkAndRefreshAccessToken({}, user)).toBeNull();
             ping.done();
             expect(outside.isDone()).toBe(false);
+        });
+
+        it('persists the rotated OAuth token before REST login and retries login after a 503', async () => {
+            const user = createMockUser({
+                ...mockUser,
+                platformAdditionalInfo: { ...mockUser.platformAdditionalInfo },
+            });
+            let saved;
+            user.save.mockImplementation(async () => {
+                saved = {
+                    accessToken: user.accessToken,
+                    refreshToken: user.refreshToken,
+                    tokenExpiry: user.tokenExpiry,
+                    platformAdditionalInfo: { ...user.platformAdditionalInfo },
+                };
+            });
+            UserModel.findByPk.mockResolvedValue(user);
+
+            const oldSession = nock(restUrl.slice(0, -1)).get('/ping').reply(401);
+            const rotation = nock('https://auth.bullhornstaffing.com')
+                .post('/oauth/token', body => body.refresh_token === user.refreshToken)
+                .reply(200, {
+                    access_token: 'rotated-access-token',
+                    refresh_token: 'rotated-refresh-token',
+                    expires_in: 3600,
+                });
+            const login = nock(loginUrl).post('/login')
+                .query({ version: '2.0', access_token: 'rotated-access-token' })
+                .reply(503);
+
+            expect(await bullhorn.checkAndRefreshAccessToken({}, user)).toBeNull();
+            oldSession.done();
+            rotation.done();
+            login.done();
+            expect(user.save.mock.invocationCallOrder[0]).toBeLessThan(Lock.delete.mock.invocationCallOrder[0]);
+            expect(saved).toMatchObject({
+                accessToken: 'rotated-access-token',
+                refreshToken: 'rotated-refresh-token',
+                platformAdditionalInfo: { bhRestToken: null },
+            });
+
+            const reloaded = createMockUser({ ...mockUser, ...saved, save: jest.fn() });
+            UserModel.findByPk.mockResolvedValue(reloaded);
+            const retry = nock(loginUrl).post('/login')
+                .query({ version: '2.0', access_token: 'rotated-access-token' })
+                .reply(200, { BhRestToken: 'new-session', restUrl });
+            const result = await bullhorn.checkAndRefreshAccessToken({}, reloaded);
+
+            retry.done();
+            expect(result.platformAdditionalInfo.bhRestToken).toBe('new-session');
+            expect(result.refreshToken).toBe('rotated-refresh-token');
         });
 
         it('should refresh token when session is about to expire', async () => {
@@ -3169,10 +3224,7 @@ describe('Bullhorn Connector', () => {
                     sessionExpires: expiringDate
                 }, mockBullhornRateLimitHeaders);
 
-            // Mock Lock to allow immediate creation
-            Lock.create.mockResolvedValue({
-                delete: jest.fn().mockResolvedValue({})
-            });
+            UserModel.findByPk.mockResolvedValue(userWithToken);
 
             // Mock token refresh
             nock('https://auth.bullhornstaffing.com')
@@ -3195,53 +3247,33 @@ describe('Bullhorn Connector', () => {
             const result = await bullhorn.checkAndRefreshAccessToken({}, userWithToken);
 
             expect(result).not.toBeNull();
-            expect(result.accessToken).toBeDefined();
+            expect(result.accessToken).toBe('new-access-token');
+            expect(userWithToken.save).toHaveBeenCalledTimes(2);
+            expect(userWithToken.save.mock.invocationCallOrder[1]).toBeLessThan(Lock.delete.mock.invocationCallOrder[0]);
         });
 
-        it('should skip refresh when using skipLock parameter', async () => {
-            const userWithToken = createMockUser({
-                id: '12345-bullhorn',
-                hostname,
-                accessToken: 'valid-access-token',
-                refreshToken: 'valid-refresh-token',
-                platformAdditionalInfo: {
-                    ...mockUser.platformAdditionalInfo,
-                    tokenUrl: 'https://auth.bullhornstaffing.com/oauth/token'
-                }
+        it('rotates the saved refresh token when pending REST login has an expired access token', async () => {
+            const user = createMockUser({
+                ...mockUser,
+                accessToken: 'expired-access-token',
+                refreshToken: 'saved-refresh-token',
+                tokenExpiry: new Date(Date.now() - 60_000),
+                platformAdditionalInfo: { ...mockUser.platformAdditionalInfo, bhRestToken: null },
             });
+            UserModel.findByPk.mockResolvedValue(user);
+            const rotation = nock('https://auth.bullhornstaffing.com')
+                .post('/oauth/token', body => body.refresh_token === 'saved-refresh-token')
+                .reply(200, { access_token: 'new-access-token', refresh_token: 'new-refresh-token', expires_in: 600 });
+            const login = nock(loginUrl).post('/login')
+                .query({ version: '2.0', access_token: 'new-access-token' })
+                .reply(200, { BhRestToken: 'new-session', restUrl });
 
-            // Session is about to expire
-            const expiringDate = new Date(Date.now() + 60000).toISOString();
+            const result = await bullhorn.checkAndRefreshAccessToken({}, user);
 
-            nock(restUrl.slice(0, -1))
-                .get('/ping')
-                .reply(200, {
-                    sessionExpires: expiringDate
-                }, mockBullhornRateLimitHeaders);
-
-            // Mock token refresh
-            nock('https://auth.bullhornstaffing.com')
-                .post('/oauth/token')
-                .reply(200, {
-                    access_token: 'new-access-token',
-                    refresh_token: 'new-refresh-token',
-                    expires_in: 3600
-                });
-
-            // Mock login after refresh
-            nock(loginUrl)
-                .post('/login')
-                .query(true)
-                .reply(200, {
-                    BhRestToken: 'new-bh-rest-token',
-                    restUrl: restUrl
-                });
-
-            // Call with skipLock = true
-            const result = await bullhorn.checkAndRefreshAccessToken({}, userWithToken, 20, true);
-
-            // Lock.create should not be called when skipLock is true
-            expect(Lock.create).not.toHaveBeenCalled();
+            rotation.done();
+            login.done();
+            expect(result.refreshToken).toBe('new-refresh-token');
+            expect(Lock.create).toHaveBeenCalledTimes(1);
         });
 
         it('should handle token refresh failure gracefully', async () => {
@@ -3264,13 +3296,20 @@ describe('Bullhorn Connector', () => {
             // Token refresh fails
             nock('https://auth.bullhornstaffing.com')
                 .post('/oauth/token')
-                .reply(401, { error: 'Invalid refresh token' });
+                .reply(400, { error: 'invalid_grant', error_description: 'untrusted provider text' });
 
-            // Call with skipLock = true to avoid lock complexity
-            const result = await bullhorn.checkAndRefreshAccessToken({}, userWithToken, 20, true);
-
-            // A failed refresh must not be treated as a usable Bullhorn session.
-            expect(result).toBeNull();
+            UserModel.findByPk.mockResolvedValue(userWithToken);
+            const logger = require('@app-connect/core/lib/logger');
+            const warn = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+            try {
+                expect(await bullhorn.checkAndRefreshAccessToken({}, userWithToken)).toBeNull();
+                expect(warn).toHaveBeenCalledWith('Bullhorn OAuth token exchange failed', {
+                    status: 400,
+                    oauthError: 'invalid_grant',
+                });
+            } finally {
+                warn.mockRestore();
+            }
         });
 
         it('should wait for lock and return refreshed user when lock exists', async () => {
@@ -3293,28 +3332,26 @@ describe('Bullhorn Connector', () => {
             // Simulate lock already exists (ConditionalCheckFailedException)
             const mockError = new Error('Conditional Check Failed');
             mockError.name = 'ConditionalCheckFailedException';
-            Lock.create.mockRejectedValue(mockError);
+            Lock.create.mockRejectedValueOnce(mockError);
 
-            // Lock.get returns a lock that is not expired, then null (simulating lock release)
-            let callCount = 0;
-            Lock.get.mockImplementation(() => {
-                callCount++;
-                if (callCount === 1) {
-                    return { ttl: Date.now() / 1000 + 30 }; // Valid lock
-                }
-                return null; // Lock released
-            });
+            Lock.get.mockResolvedValueOnce({ ttl: new Date(Date.now() + 30_000) });
 
             // Mock UserModel.findByPk to return refreshed user
             UserModel.findByPk.mockResolvedValue({
                 ...userWithToken,
                 accessToken: 'refreshed-by-other-process',
+                refreshToken: 'refresh-token-by-other-process',
+                platformAdditionalInfo: { ...userWithToken.platformAdditionalInfo, bhRestToken: 'session-by-other-process' },
                 save: jest.fn()
             });
 
             const result = await bullhorn.checkAndRefreshAccessToken({}, userWithToken, 2);
 
-            expect(result).toBeDefined();
+            expect(result.accessToken).toBe('refreshed-by-other-process');
+            expect(result.platformAdditionalInfo.bhRestToken).toBe('session-by-other-process');
+            expect(result.save).not.toHaveBeenCalled();
+            expect(Lock.create).toHaveBeenCalledTimes(2);
+            expect(Lock.delete).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -3963,16 +4000,15 @@ describe('Bullhorn Connector', () => {
             mockError.name = 'ConditionalCheckFailedException';
             Lock.create
                 .mockRejectedValueOnce(mockError)  // First attempt fails
-                .mockResolvedValueOnce({  // Second attempt after deleting expired lock
-                    delete: jest.fn().mockResolvedValue({})
-                });
+                .mockResolvedValueOnce({ ttl: new Date(Date.now() + 60_000) });
 
             // Lock.get returns an expired lock, then succeeds
             const expiredLock = {
-                ttl: (Date.now() / 1000) - 60,  // Expired 60 seconds ago
-                delete: jest.fn().mockResolvedValue({})
+                ttl: new Date(Date.now() - 60_000),
             };
             Lock.get.mockResolvedValueOnce(expiredLock);
+            Lock.delete.mockResolvedValue(undefined);
+            UserModel.findByPk.mockResolvedValue(userWithToken);
 
             // Token refresh succeeds
             nock('https://auth.bullhornstaffing.com')
@@ -3994,7 +4030,8 @@ describe('Bullhorn Connector', () => {
 
             const result = await bullhorn.checkAndRefreshAccessToken({}, userWithToken, 20);
 
-            expect(result).toBeDefined();
+            expect(result.accessToken).toBe('new-access-token');
+            expect(Lock.delete).toHaveBeenCalledTimes(2);
         });
     });
 
