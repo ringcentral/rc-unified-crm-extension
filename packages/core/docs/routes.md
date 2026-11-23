@@ -86,10 +86,10 @@ This page documents the non-MCP HTTP routes defined in `index.ts`.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/calldown` | Schedules a call-down item |
+| `POST` | `/calldown` | Schedules a call-down item and optionally calls connector `syncCallback` |
 | `GET` | `/calldown` | Lists the current user's call-down items |
-| `DELETE` | `/calldown/:id` | Removes a call-down item |
-| `PATCH` | `/calldown/:id` | Updates or marks a call-down item |
+| `DELETE` | `/calldown/:id` | Removes a call-down item and optionally calls connector `syncCallback` |
+| `PATCH` | `/calldown/:id` | Updates or marks a call-down item and optionally calls connector `syncCallback` |
 
 ## Plugin And Debug Routes
 

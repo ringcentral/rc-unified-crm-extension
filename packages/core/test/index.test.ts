@@ -264,6 +264,7 @@ describe('Core Router implementedInterfaces contract', () => {
       refreshAppointment: false,
       confirmAppointment: false,
       cancelAppointment: false,
+      syncCallback: false,
       unAuthorize: false,
       upsertCallDisposition: false,
       findContactWithName: true,

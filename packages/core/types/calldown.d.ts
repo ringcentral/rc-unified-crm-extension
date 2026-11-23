@@ -8,7 +8,6 @@ export interface CallDownJwtData {
 export interface CallDownScheduleBody {
   contactId?: string | number | null;
   contactType?: string | null;
-  contactName?: string | null;
   phoneNumber?: string | null;
   scheduledAt?: string | number | Date | null;
   [key: string]: unknown;
@@ -22,6 +21,33 @@ export interface CallDownScheduleParams {
 
 export interface CallDownScheduleResult {
   id: string;
+  returnMessage?: ReturnMessage;
+}
+
+export interface CallDownSnapshot {
+  id: string;
+  contactId: string | number | null;
+  contactType: string | null;
+  phoneNumber?: string;
+  status: string | null;
+  scheduledAt: string | null;
+  lastCallAt: string | null;
+}
+
+export type CallDownSyncEvent = 'created' | 'updated' | 'called' | 'deleted';
+
+export interface CallDownSyncParams {
+  user: unknown;
+  authHeader: string;
+  proxyConfig?: unknown | null;
+  event: CallDownSyncEvent;
+  callback: CallDownSnapshot;
+  previous: CallDownSnapshot | null;
+}
+
+export interface CallDownSyncResult {
+  successful?: boolean;
+  returnMessage?: ReturnMessage;
 }
 
 export interface CallDownListParams {

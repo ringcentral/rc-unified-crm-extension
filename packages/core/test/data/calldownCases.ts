@@ -2,8 +2,9 @@ const scheduledCalldownCase = {
   body: {
     contactId: 12345,
     contactType: 'Lead',
-    contactName: 'Ignored By Current Schema',
+    contactName: 'Jane Smith',
     phoneNumber: '+15551234567',
+    note: 'Call after lunch',
     scheduledAt: '2026-07-02T13:00:00.000Z',
   },
   expectedRecord: {

@@ -5,6 +5,7 @@
  */
 
 const nock = require('nock');
+const logger = require('@app-connect/core/lib/logger');
 const clio = require('../../src/connectors/clio');
 const { mockRateLimitHeaders, createMockUser, createMockContact, createMockCallLog, createMockMessage, createMockExistingCallLog, createMockExistingMessageLog } = require('../fixtures/connectorMocks');
 
@@ -2693,6 +2694,56 @@ describe('Clio Connector', () => {
             });
 
             expect(result.successful).toBe(true);
+        });
+    });
+
+    describe('syncCallback', () => {
+        const callback = {
+            id: 'callback-1',
+            contactId: '101',
+            contactType: 'Person',
+            contactName: 'Ada Lovelace',
+            phoneNumber: '+14155551234',
+            note: 'Call after lunch',
+            status: 'scheduled',
+            scheduledAt: '2026-07-02T13:00:00.000Z',
+            lastCallAt: null,
+        };
+
+        it('logs the callback payload and does not call Clio', async () => {
+            const info = jest.spyOn(logger, 'info').mockImplementation(() => undefined);
+
+            const created = await clio.syncCallback({
+                user: mockUser,
+                authHeader,
+                event: 'created',
+                callback,
+                previous: null,
+            });
+            const deleted = await clio.syncCallback({
+                user: mockUser,
+                authHeader,
+                event: 'deleted',
+                callback,
+                previous: callback,
+            });
+
+            expect(created).toEqual({});
+            expect(deleted).toEqual({});
+            expect(info).toHaveBeenNthCalledWith(1, 'Clio syncCallback received', {
+                userId: mockUser.id,
+                event: 'created',
+                callback,
+                previous: null,
+            });
+            expect(info).toHaveBeenNthCalledWith(2, 'Clio syncCallback received', {
+                userId: mockUser.id,
+                event: 'deleted',
+                callback,
+                previous: callback,
+            });
+            expect(nock.pendingMocks()).toEqual([]);
+            info.mockRestore();
         });
     });
 });

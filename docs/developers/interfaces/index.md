@@ -64,6 +64,14 @@ These interfaces power App Connect's built-in appointment scheduling panel. Impl
 | [`cancelAppointment`](cancelAppointment.md)       | Cancels or deletes an appointment in the CRM.                                        |
 | [`confirmAppointment`](confirmAppointment.md)     | Marks an appointment as confirmed (implement only if the CRM supports this status).  |
 
+## Call-backs
+
+The call-back list stays inside App Connect. This optional interface runs after a local save so a connector can add its own CRM logic.
+
+| Interface | Description |
+| --- | --- |
+| [`syncCallback`](syncCallback.md) | Receives `created`, `updated`, `called`, and `deleted` call-back events after App Connect stores them. |
+
 ## Lifecycle hooks
 
 Lifecycle hooks allow connectors to intercept and customize key framework operations. Unlike standard interfaces, lifecycle hooks are optional and connector-specific — implement only the ones your CRM requires.

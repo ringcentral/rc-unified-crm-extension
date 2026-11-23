@@ -16,6 +16,10 @@ describe('CallDownListModel', () => {
     expect(attributes.userId.type.key).toBe('STRING');
     expect(attributes.contactId.type.key).toBe('STRING');
     expect(attributes.contactType.type.key).toBe('STRING');
+    expect(attributes.contactName).toBeUndefined();
+    expect(attributes.phoneNumber).toBeUndefined();
+    expect(attributes.note).toBeUndefined();
+    expect(attributes.crmCallbackId).toBeUndefined();
     expect(attributes.status.type.key).toBe('STRING');
     expect(attributes.scheduledAt.type.key).toBe('DATE');
     expect(attributes.lastCallAt.type.key).toBe('DATE');

@@ -81,6 +81,33 @@ describe('Calldown Routes', () => {
     expect(calldown.schedule).not.toHaveBeenCalled();
   });
 
+  test('POST /calldown forwards a CRM sync warning', async () => {
+    calldown.schedule.mockResolvedValue({
+      id: 'call-down-id',
+      returnMessage: {
+        message: 'Callback saved in App Connect. CRM sync failed.',
+        messageType: 'warning',
+        ttl: 5000,
+      },
+    });
+
+    const response = await request(app)
+      .post('/calldown')
+      .query({ jwtToken: 'crm-jwt' })
+      .send({ contactId: 'contact-1' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      successful: true,
+      id: 'call-down-id',
+      returnMessage: {
+        message: 'Callback saved in App Connect. CRM sync failed.',
+        messageType: 'warning',
+        ttl: 5000,
+      },
+    });
+  });
+
   test('POST /calldown maps scheduling errors to a 400 response', async () => {
     calldown.schedule.mockRejectedValue(new Error('Database unavailable'));
 
@@ -179,6 +206,31 @@ describe('Calldown Routes', () => {
     }));
   });
 
+  test('DELETE /calldown/:id forwards a CRM sync warning', async () => {
+    calldown.remove.mockResolvedValue({
+      successful: true,
+      returnMessage: {
+        message: 'CRM rejected the delete',
+        messageType: 'warning',
+        ttl: 3000,
+      },
+    });
+
+    const response = await request(app)
+      .delete('/calldown/call-down-id')
+      .query({ jwtToken: 'crm-jwt' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      successful: true,
+      returnMessage: {
+        message: 'CRM rejected the delete',
+        messageType: 'warning',
+        ttl: 3000,
+      },
+    });
+  });
+
   test('DELETE /calldown/:id rejects missing CRM auth token', async () => {
     const response = await request(app)
       .delete('/calldown/call-down-id');
@@ -218,6 +270,32 @@ describe('Calldown Routes', () => {
       interfaceName: 'markCallDownCalled',
       success: true,
     }));
+  });
+
+  test('PATCH /calldown/:id forwards a CRM sync warning', async () => {
+    calldown.update.mockResolvedValue({
+      successful: true,
+      returnMessage: {
+        message: 'CRM rejected the update',
+        messageType: 'warning',
+        ttl: 3000,
+      },
+    });
+
+    const response = await request(app)
+      .patch('/calldown/call-down-id')
+      .query({ jwtToken: 'crm-jwt' })
+      .send({ note: 'Updated note' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      successful: true,
+      returnMessage: {
+        message: 'CRM rejected the update',
+        messageType: 'warning',
+        ttl: 3000,
+      },
+    });
   });
 
   test('PATCH /calldown/:id maps handler errors to a 400 error body', async () => {
