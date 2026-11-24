@@ -306,7 +306,11 @@ describe('Calldown Handler', () => {
     expect(record.status).toBe('scheduled');
   });
 
-  function registerCallbackConnector(interfaces, auth = {}) {
+  function registerCallbackConnector(interfaces, auth: {
+    getAuthType?: (...args: any[]) => any;
+    getBasicAuth?: (...args: any[]) => any;
+    getOauthInfo?: (...args: any[]) => any;
+  } = {}) {
     connectorRegistry.registerConnector('testCRM', {
       getAuthType: auth.getAuthType || (() => 'apiKey'),
       getBasicAuth: auth.getBasicAuth || (() => 'encoded-key'),
@@ -459,10 +463,10 @@ describe('Calldown Handler', () => {
 
   test('sends update and delete through their own interfaces with the stored CRM id', async () => {
     await createUser('user-1');
-    const createCallback = jest.fn(async () => ({ thirdPartyId: 'crm-task-9' }));
-    const updateCallback = jest.fn(async () => ({}));
-    const markCalledCallback = jest.fn(async () => ({}));
-    const deleteCallback = jest.fn(async () => ({}));
+    const createCallback = jest.fn(async (_payload) => ({ thirdPartyId: 'crm-task-9' }));
+    const updateCallback = jest.fn(async (_payload) => ({}));
+    const markCalledCallback = jest.fn(async (_payload) => ({}));
+    const deleteCallback = jest.fn(async (_payload) => ({}));
     registerCallbackConnector({ createCallback, updateCallback, markCalledCallback, deleteCallback });
 
     const created = await calldown.schedule({
