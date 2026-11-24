@@ -23,6 +23,8 @@ describe('CallDownListModel', () => {
     expect(attributes.status.type.key).toBe('STRING');
     expect(attributes.scheduledAt.type.key).toBe('DATE');
     expect(attributes.lastCallAt.type.key).toBe('DATE');
+    expect(attributes.platform.type.key).toBe('STRING');
+    expect(attributes.thirdPartyId.type.key).toBe('STRING');
     expect(CallDownListModel.options.timestamps).toBe(true);
     expect(CallDownListModel.options.indexes).toEqual(expect.arrayContaining([
       expect.objectContaining({ fields: ['userId'] }),
@@ -42,6 +44,8 @@ describe('CallDownListModel', () => {
       contactType: 'Lead',
       status: 'Pending',
       scheduledAt,
+      platform: 'testCRM',
+      thirdPartyId: 'crm-callback-1',
     });
 
     const record = await CallDownListModel.findByPk('call-down-1');
@@ -52,6 +56,8 @@ describe('CallDownListModel', () => {
       contactId: 'contact-1',
       contactType: 'Lead',
       status: 'Pending',
+      platform: 'testCRM',
+      thirdPartyId: 'crm-callback-1',
     });
     expect(record.scheduledAt.toISOString()).toBe('2026-07-02T10:00:00.000Z');
     expect(record.lastCallAt).toBeNull();
@@ -69,6 +75,8 @@ describe('CallDownListModel', () => {
     expect(record.status).toBeNull();
     expect(record.scheduledAt).toBeNull();
     expect(record.lastCallAt).toBeNull();
+    expect(record.platform).toBeNull();
+    expect(record.thirdPartyId).toBeNull();
   });
 
   test('updates callback status and last call time', async () => {

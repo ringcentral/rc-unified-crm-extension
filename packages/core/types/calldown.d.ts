@@ -36,17 +36,32 @@ export interface CallDownSnapshot {
 
 export type CallDownSyncEvent = 'created' | 'updated' | 'called' | 'deleted';
 
-export interface CallDownSyncParams {
+export interface CallDownCallbackParams {
   user: unknown;
   authHeader: string;
   proxyConfig?: unknown | null;
-  event: CallDownSyncEvent;
   callback: CallDownSnapshot;
+}
+
+export interface CreateCallbackParams extends CallDownCallbackParams {}
+
+export interface UpdateCallbackParams extends CallDownCallbackParams {
   previous: CallDownSnapshot | null;
+  thirdPartyId: string | null;
+}
+
+export interface MarkCalledCallbackParams extends CallDownCallbackParams {
+  previous: CallDownSnapshot | null;
+  thirdPartyId: string | null;
+}
+
+export interface DeleteCallbackParams extends CallDownCallbackParams {
+  thirdPartyId: string | null;
 }
 
 export interface CallDownSyncResult {
   successful?: boolean;
+  thirdPartyId?: string | number | null;
   returnMessage?: ReturnMessage;
 }
 

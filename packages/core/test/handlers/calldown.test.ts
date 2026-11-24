@@ -65,6 +65,8 @@ describe('Calldown Handler', () => {
     expect(record).toMatchObject({
       id: result.id,
       ...scheduledCalldownCase.expectedRecord,
+      platform: 'testCRM',
+      thirdPartyId: null,
     });
     expect(record.scheduledAt.toISOString()).toBe(scheduledCalldownCase.body.scheduledAt);
     expect(record.lastCallAt).toBeNull();
@@ -304,18 +306,21 @@ describe('Calldown Handler', () => {
     expect(record.status).toBe('scheduled');
   });
 
-  function registerSyncConnector(syncCallback, auth = {}) {
+  function registerCallbackConnector(interfaces, auth = {}) {
     connectorRegistry.registerConnector('testCRM', {
       getAuthType: auth.getAuthType || (() => 'apiKey'),
       getBasicAuth: auth.getBasicAuth || (() => 'encoded-key'),
       getOauthInfo: auth.getOauthInfo || jest.fn(),
       createCallLog: jest.fn(),
       updateCallLog: jest.fn(),
-      syncCallback,
+      createCallback: interfaces.createCallback,
+      updateCallback: interfaces.updateCallback,
+      markCalledCallback: interfaces.markCalledCallback,
+      deleteCallback: interfaces.deleteCallback,
     });
   }
 
-  test('schedule does not call CRM when syncCallback is absent', async () => {
+  test('schedule does not call CRM when createCallback is absent', async () => {
     await createUser('user-1');
     connectorRegistry.registerConnector('testCRM', {
       getAuthType: () => 'apiKey',
@@ -330,18 +335,22 @@ describe('Calldown Handler', () => {
 
     expect(result).toEqual({ id: result.id });
     expect(result.returnMessage).toBeUndefined();
+    const record = await CallDownListModel.findByPk(result.id);
+    expect(record.platform).toBe('testCRM');
+    expect(record.thirdPartyId).toBeNull();
   });
 
-  test('schedule forwards request details to syncCallback without storing them', async () => {
+  test('schedule forwards request details to createCallback and stores the CRM id', async () => {
     await createUser('user-1');
-    const syncCallback = jest.fn().mockResolvedValue({
+    const createCallback = jest.fn().mockResolvedValue({
+      thirdPartyId: 88001,
       returnMessage: {
         message: 'Task created',
         messageType: 'success',
         ttl: 3000,
       },
     });
-    registerSyncConnector(syncCallback);
+    registerCallbackConnector({ createCallback });
 
     const result = await calldown.schedule({
       jwtToken: tokenFor('user-1'),
@@ -352,17 +361,17 @@ describe('Calldown Handler', () => {
     expect(record.contactName).toBeUndefined();
     expect(record.phoneNumber).toBeUndefined();
     expect(record.note).toBeUndefined();
+    expect(record.platform).toBe('testCRM');
+    expect(record.thirdPartyId).toBe('88001');
     expect(result.returnMessage).toEqual({
       message: 'Task created',
       messageType: 'success',
       ttl: 3000,
     });
-    expect(syncCallback).toHaveBeenCalledWith({
+    expect(createCallback).toHaveBeenCalledWith({
       user: expect.objectContaining({ id: 'user-1', platform: 'testCRM' }),
       authHeader: 'Basic encoded-key',
       proxyConfig: null,
-      event: 'created',
-      previous: null,
       callback: {
         id: result.id,
         contactId: '12345',
@@ -377,15 +386,16 @@ describe('Calldown Handler', () => {
 
   test('keeps the local entry and returns the connector warning when CRM sync fails', async () => {
     await createUser('user-1');
-    const syncCallback = jest.fn().mockResolvedValue({
+    const createCallback = jest.fn().mockResolvedValue({
       successful: false,
+      thirdPartyId: 'should-not-store',
       returnMessage: {
         message: 'CRM rejected the task',
         messageType: 'warning',
         ttl: 3000,
       },
     });
-    registerSyncConnector(syncCallback);
+    registerCallbackConnector({ createCallback });
 
     const result = await calldown.schedule({
       jwtToken: tokenFor('user-1'),
@@ -399,13 +409,14 @@ describe('Calldown Handler', () => {
     });
     const record = await CallDownListModel.findByPk(result.id);
     expect(record.status).toBe('scheduled');
+    expect(record.thirdPartyId).toBeNull();
     expect(record.contactName).toBeUndefined();
   });
 
   test('keeps the local entry when the connector throws', async () => {
     await createUser('user-1');
-    const syncCallback = jest.fn().mockRejectedValue(new Error('crm down'));
-    registerSyncConnector(syncCallback);
+    const createCallback = jest.fn().mockRejectedValue(new Error('crm down'));
+    registerCallbackConnector({ createCallback });
 
     const result = await calldown.schedule({
       jwtToken: tokenFor('user-1'),
@@ -414,16 +425,18 @@ describe('Calldown Handler', () => {
 
     expect(result.id).toEqual(expect.any(String));
     expect(result.returnMessage).toEqual(expect.objectContaining({
-      message: 'Error performing syncCallback',
+      message: 'Error performing createCallback',
       messageType: 'warning',
     }));
-    await expect(CallDownListModel.findByPk(result.id)).resolves.not.toBeNull();
+    const record = await CallDownListModel.findByPk(result.id);
+    expect(record).not.toBeNull();
+    expect(record.thirdPartyId).toBeNull();
   });
 
   test('keeps the local entry when the CRM session cannot be refreshed', async () => {
     await createUser('user-1');
-    const syncCallback = jest.fn();
-    registerSyncConnector(syncCallback, {
+    const createCallback = jest.fn();
+    registerCallbackConnector({ createCallback }, {
       getAuthType: async () => 'oauth',
       getOauthInfo: async () => ({ clientId: 'client' }),
     });
@@ -435,7 +448,7 @@ describe('Calldown Handler', () => {
       body: { contactId: 'contact-1' },
     });
 
-    expect(syncCallback).not.toHaveBeenCalled();
+    expect(createCallback).not.toHaveBeenCalled();
     expect(result.returnMessage).toEqual({
       message: 'Callback saved in App Connect. CRM session expired.',
       messageType: 'warning',
@@ -444,10 +457,13 @@ describe('Calldown Handler', () => {
     await expect(CallDownListModel.findByPk(result.id)).resolves.not.toBeNull();
   });
 
-  test('sends updated, called, and deleted events using the request details and App Connect id', async () => {
+  test('sends update and delete through their own interfaces with the stored CRM id', async () => {
     await createUser('user-1');
-    const syncCallback = jest.fn(async () => ({}));
-    registerSyncConnector(syncCallback);
+    const createCallback = jest.fn(async () => ({ thirdPartyId: 'crm-task-9' }));
+    const updateCallback = jest.fn(async () => ({}));
+    const markCalledCallback = jest.fn(async () => ({}));
+    const deleteCallback = jest.fn(async () => ({}));
+    registerCallbackConnector({ createCallback, updateCallback, markCalledCallback, deleteCallback });
 
     const created = await calldown.schedule({
       jwtToken: tokenFor('user-1'),
@@ -482,18 +498,11 @@ describe('Calldown Handler', () => {
     });
     expect(removed).toEqual({ successful: true });
 
-    const events = syncCallback.mock.calls.map(([payload]) => payload.event);
-    expect(events).toEqual(['created', 'updated', 'called', 'deleted']);
-    expect(syncCallback.mock.calls[0][0].callback).toEqual({
-      id: created.id,
-      contactId: 'contact-1',
-      contactType: 'contact',
-      phoneNumber: '+15550001111',
-      status: 'scheduled',
-      scheduledAt: '2026-07-02T13:00:00.000Z',
-      lastCallAt: null,
-    });
-    expect(syncCallback.mock.calls[1][0].callback).toEqual({
+    expect(createCallback).toHaveBeenCalledTimes(1);
+    expect(updateCallback).toHaveBeenCalledTimes(1);
+    expect(markCalledCallback).toHaveBeenCalledTimes(1);
+    expect(deleteCallback).toHaveBeenCalledTimes(1);
+    expect(updateCallback.mock.calls[0][0].callback).toEqual({
       id: created.id,
       contactId: 'contact-1',
       contactType: 'contact',
@@ -502,7 +511,8 @@ describe('Calldown Handler', () => {
       scheduledAt: '2026-07-03T13:00:00.000Z',
       lastCallAt: null,
     });
-    expect(syncCallback.mock.calls[1][0].previous).toEqual({
+    expect(updateCallback.mock.calls[0][0].thirdPartyId).toBe('crm-task-9');
+    expect(updateCallback.mock.calls[0][0].previous).toEqual({
       id: created.id,
       contactId: 'contact-1',
       contactType: 'contact',
@@ -510,7 +520,7 @@ describe('Calldown Handler', () => {
       scheduledAt: '2026-07-02T13:00:00.000Z',
       lastCallAt: null,
     });
-    expect(syncCallback.mock.calls[2][0].callback).toEqual({
+    expect(markCalledCallback.mock.calls[0][0].callback).toEqual({
       id: created.id,
       contactId: 'contact-1',
       contactType: 'contact',
@@ -518,7 +528,12 @@ describe('Calldown Handler', () => {
       scheduledAt: '2026-07-03T13:00:00.000Z',
       lastCallAt: '2026-07-02T14:30:00.000Z',
     });
-    expect(syncCallback.mock.calls[3][0].callback).toEqual({
+    expect(markCalledCallback.mock.calls[0][0].thirdPartyId).toBe('crm-task-9');
+    expect(markCalledCallback.mock.calls[0][0].previous).toEqual(expect.objectContaining({
+      id: created.id,
+      status: 'scheduled',
+    }));
+    expect(deleteCallback.mock.calls[0][0].callback).toEqual({
       id: created.id,
       contactId: 'contact-1',
       contactType: 'contact',
@@ -526,17 +541,66 @@ describe('Calldown Handler', () => {
       scheduledAt: '2026-07-03T13:00:00.000Z',
       lastCallAt: '2026-07-02T14:30:00.000Z',
     });
-    expect(syncCallback.mock.calls[3][0].previous.phoneNumber).toBeUndefined();
+    expect(deleteCallback.mock.calls[0][0].thirdPartyId).toBe('crm-task-9');
+    expect(deleteCallback.mock.calls[0][0].callback.phoneNumber).toBeUndefined();
     await expect(CallDownListModel.findByPk(created.id)).resolves.toBeNull();
   });
 
-  test('uses called when an update changes the status to called', async () => {
+  test('passes null thirdPartyId when createCallback does not return one', async () => {
     await createUser('user-1');
-    const syncCallback = jest.fn().mockResolvedValue({});
-    registerSyncConnector(syncCallback);
+    const createCallback = jest.fn(async () => ({}));
+    const updateCallback = jest.fn(async () => ({}));
+    const markCalledCallback = jest.fn(async () => ({}));
+    const deleteCallback = jest.fn(async () => ({}));
+    registerCallbackConnector({ createCallback, updateCallback, markCalledCallback, deleteCallback });
+
+    const created = await calldown.schedule({
+      jwtToken: tokenFor('user-1'),
+      body: { contactId: 'contact-1', scheduledAt: '2026-07-02T13:00:00.000Z' },
+    });
+
+    const record = await CallDownListModel.findByPk(created.id);
+    expect(record.thirdPartyId).toBeNull();
+
+    await calldown.update({
+      jwtToken: tokenFor('user-1'),
+      id: created.id,
+      updateData: { scheduledAt: '2026-07-03T13:00:00.000Z' },
+    });
+    await calldown.markCalled({
+      jwtToken: tokenFor('user-1'),
+      id: created.id,
+      lastCallAt: '2026-07-02T14:30:00.000Z',
+    });
+    await calldown.remove({
+      jwtToken: tokenFor('user-1'),
+      id: created.id,
+    });
+
+    expect(updateCallback).toHaveBeenCalledWith(expect.objectContaining({
+      thirdPartyId: null,
+      callback: expect.objectContaining({ id: created.id }),
+    }));
+    expect(markCalledCallback).toHaveBeenCalledWith(expect.objectContaining({
+      thirdPartyId: null,
+      callback: expect.objectContaining({ id: created.id, status: 'called' }),
+    }));
+    expect(deleteCallback).toHaveBeenCalledWith(expect.objectContaining({
+      thirdPartyId: null,
+      callback: expect.objectContaining({ id: created.id }),
+    }));
+  });
+
+  test('uses markCalledCallback when an update changes the status to called', async () => {
+    await createUser('user-1');
+    const updateCallback = jest.fn().mockResolvedValue({});
+    const markCalledCallback = jest.fn().mockResolvedValue({});
+    registerCallbackConnector({ updateCallback, markCalledCallback });
     await CallDownListModel.create({
       id: 'status-change',
       userId: 'user-1',
+      platform: 'testCRM',
+      thirdPartyId: 'crm-task-4',
       status: 'scheduled',
     });
 
@@ -546,8 +610,9 @@ describe('Calldown Handler', () => {
       updateData: { status: 'called' },
     });
 
-    expect(syncCallback).toHaveBeenCalledWith(expect.objectContaining({
-      event: 'called',
+    expect(updateCallback).not.toHaveBeenCalled();
+    expect(markCalledCallback).toHaveBeenCalledWith(expect.objectContaining({
+      thirdPartyId: 'crm-task-4',
       previous: expect.objectContaining({ id: 'status-change', status: 'scheduled' }),
       callback: expect.objectContaining({ id: 'status-change', status: 'called' }),
     }));

@@ -1703,17 +1703,6 @@ async function uploadFaxToClio({ user, authHeader, faxDownloadLink, faxDocLink, 
     }
 }
 
-// Test hook only. Logs the payload App Connect passes in and does not call Clio.
-async function syncCallback({ user, event, callback, previous }) {
-    logger.info('Clio syncCallback received', {
-        userId: user?.id,
-        event,
-        callback,
-        previous: previous ?? null,
-    });
-    return {};
-}
-
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
@@ -1735,6 +1724,5 @@ exports.createAppointment = createAppointment;
 exports.updateAppointment = updateAppointment;
 exports.refreshAppointment = refreshAppointment;
 exports.cancelAppointment = cancelAppointment;
-exports.syncCallback = syncCallback;
 
 export { };

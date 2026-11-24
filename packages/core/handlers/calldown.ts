@@ -10,6 +10,10 @@
 /** @typedef {import('../types').CallDownSnapshot} CallDownSnapshot */
 /** @typedef {import('../types').CallDownSyncEvent} CallDownSyncEvent */
 /** @typedef {import('../types').CallDownSyncResult} CallDownSyncResult */
+/** @typedef {import('../types').CreateCallbackParams} CreateCallbackParams */
+/** @typedef {import('../types').UpdateCallbackParams} UpdateCallbackParams */
+/** @typedef {import('../types').MarkCalledCallbackParams} MarkCalledCallbackParams */
+/** @typedef {import('../types').DeleteCallbackParams} DeleteCallbackParams */
 /** @typedef {import('../types').CallDownUpdateParams} CallDownUpdateParams */
 /** @typedef {import('../types').ReturnMessage} ReturnMessage */
 
@@ -23,6 +27,7 @@ const jwt = /** @type {any} */ (require('../lib/jwt'));
 const oauth = /** @type {any} */ (require('../lib/oauth'));
 const connectorRegistry = /** @type {any} */ (require('../connector/registry'));
 const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
+const logger = require('../lib/logger');
 
 const PERSISTED_FIELDS = ['contactId', 'contactType', 'status', 'scheduledAt', 'lastCallAt'];
 
@@ -58,6 +63,26 @@ function canonicalContactId(value) {
     if (value == null || value === '') return null;
     const text = String(value).trim();
     return text.replace(/^(\d+)\.0$/, '$1');
+}
+
+/**
+ * CRM record ids are stored as strings, matching call-log thirdPartyLogId.
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function canonicalThirdPartyId(value) {
+    if (value == null || value === '') return null;
+    const text = String(value).trim();
+    return text || null;
+}
+
+/**
+ * @param {any} record
+ * @returns {string | null}
+ */
+function readThirdPartyId(record) {
+    const value = typeof record?.get === 'function' ? record.get('thirdPartyId') : record?.thirdPartyId;
+    return canonicalThirdPartyId(value);
 }
 
 /**
@@ -161,12 +186,24 @@ async function resolveSyncAuth(user, platformModule) {
 }
 
 /**
+ * @param {CallDownSyncEvent} event
+ * @returns {'createCallback' | 'updateCallback' | 'markCalledCallback' | 'deleteCallback'}
+ */
+function callbackInterfaceName(event) {
+    if (event === 'created') return 'createCallback';
+    if (event === 'called') return 'markCalledCallback';
+    if (event === 'deleted') return 'deleteCallback';
+    return 'updateCallback';
+}
+
+/**
  * @param {{ user: any, event: CallDownSyncEvent, callbackRecord: any, previousRecord: any, requestFields?: any }} params
- * @returns {Promise<{ skipped: boolean, returnMessage?: ReturnMessage }>}
+ * @returns {Promise<{ skipped: boolean, returnMessage?: ReturnMessage, thirdPartyId?: string | null }>}
  */
 async function notifyCrm({ user, event, callbackRecord, previousRecord, requestFields = undefined }) {
     if (!user?.platform) return { skipped: true };
 
+    const interfaceName = callbackInterfaceName(event);
     /** @type {any} */
     let platformModule;
     try {
@@ -175,7 +212,7 @@ async function notifyCrm({ user, event, callbackRecord, previousRecord, requestF
     catch (error) {
         return { skipped: true };
     }
-    if (typeof platformModule.syncCallback !== 'function') {
+    if (typeof platformModule[interfaceName] !== 'function') {
         return { skipped: true };
     }
 
@@ -185,15 +222,39 @@ async function notifyCrm({ user, event, callbackRecord, previousRecord, requestF
             return { skipped: false, returnMessage: auth.returnMessage };
         }
 
-        const result = /** @type {CallDownSyncResult | null | undefined} */ (
-            await platformModule.syncCallback({
+        const callback = serializeCallback(callbackRecord, requestFields);
+        /** @type {CreateCallbackParams | UpdateCallbackParams | MarkCalledCallbackParams | DeleteCallbackParams} */
+        let payload;
+        if (event === 'created') {
+            payload = {
                 user: auth.user,
                 authHeader: auth.authHeader,
                 proxyConfig: auth.proxyConfig,
-                event,
-                callback: serializeCallback(callbackRecord, requestFields),
+                callback,
+            };
+        }
+        else if (event === 'deleted') {
+            payload = {
+                user: auth.user,
+                authHeader: auth.authHeader,
+                proxyConfig: auth.proxyConfig,
+                callback,
+                thirdPartyId: readThirdPartyId(callbackRecord),
+            };
+        }
+        else {
+            payload = {
+                user: auth.user,
+                authHeader: auth.authHeader,
+                proxyConfig: auth.proxyConfig,
+                callback,
                 previous: previousRecord ? serializeCallback(previousRecord) : null,
-            })
+                thirdPartyId: readThirdPartyId(callbackRecord),
+            };
+        }
+
+        const result = /** @type {CallDownSyncResult | null | undefined} */ (
+            await platformModule[interfaceName](payload)
         );
         if (result && typeof result === 'object' && result.successful === false) {
             return {
@@ -205,10 +266,11 @@ async function notifyCrm({ user, event, callbackRecord, previousRecord, requestF
         return {
             skipped: false,
             returnMessage: result?.returnMessage,
+            thirdPartyId: event === 'created' ? canonicalThirdPartyId(result?.thirdPartyId) : null,
         };
     }
     catch (error) {
-        const handled = handleApiError(/** @type {any} */ (error), user.platform, 'syncCallback', { userId: user.id });
+        const handled = handleApiError(/** @type {any} */ (error), user.platform, interfaceName, { userId: user.id });
         return {
             skipped: false,
             returnMessage: handled.returnMessage || CRM_SYNC_FAILED_MESSAGE,
@@ -243,7 +305,9 @@ async function schedule({ jwtToken, body }) {
         contactType: body.contactType ?? 'contact',
         status: 'scheduled',
         scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
-        lastCallAt: null
+        lastCallAt: null,
+        platform: user.platform ?? null,
+        thirdPartyId: null,
     };
     const record = await CallDownListModel.create(payload);
     const syncResult = await notifyCrm({
@@ -253,6 +317,16 @@ async function schedule({ jwtToken, body }) {
         previousRecord: null,
         requestFields: body,
     });
+    if (syncResult.thirdPartyId) {
+        await CallDownListModel.update(
+            { thirdPartyId: syncResult.thirdPartyId },
+            { where: { id: recordId } },
+        );
+        logger.info('Stored call-back thirdPartyId', {
+            id: recordId,
+            thirdPartyId: syncResult.thirdPartyId,
+        });
+    }
     return withSyncResult({ id: recordId }, syncResult);
 }
 
@@ -331,7 +405,7 @@ async function update({ jwtToken, id, updateData }) {
     /** @type {Record<string, unknown>} */
     const updateObject = {};
     
-    // Personal fields stay on the request and are forwarded to syncCallback only.
+    // Personal fields stay on the request and are forwarded only when this edit calls updateCallback.
     Object.keys(updateData).forEach(key => {
         if (PERSISTED_FIELDS.includes(key)) {
             let value = updateData[key];

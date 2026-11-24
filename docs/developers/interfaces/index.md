@@ -66,11 +66,14 @@ These interfaces power App Connect's built-in appointment scheduling panel. Impl
 
 ## Call-backs
 
-The call-back list stays inside App Connect. This optional interface runs after a local save so a connector can add its own CRM logic.
+The call-back list stays inside App Connect. These optional interfaces run after a local save so a connector can add its own CRM logic.
 
 | Interface | Description |
 | --- | --- |
-| [`syncCallback`](syncCallback.md) | Receives `created`, `updated`, `called`, and `deleted` call-back events after App Connect stores them. |
+| [`createCallback`](createCallback.md) | Creates a CRM record when a user schedules a call-back. App Connect stores the returned `thirdPartyId`. |
+| [`updateCallback`](updateCallback.md) | Updates that CRM record when a call-back is edited. |
+| [`markCalledCallback`](markCalledCallback.md) | Updates that CRM record when a call-back is marked called. |
+| [`deleteCallback`](deleteCallback.md) | Deletes that CRM record when a user removes a call-back. |
 
 ## Lifecycle hooks
 

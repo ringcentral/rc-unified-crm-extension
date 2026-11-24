@@ -269,7 +269,10 @@ nav:
         - 'cancelAppointment': developers/interfaces/cancelAppointment.md
         - 'confirmAppointment': developers/interfaces/confirmAppointment.md
       - 'Call-backs':
-        - 'syncCallback': developers/interfaces/syncCallback.md
+        - 'createCallback': developers/interfaces/createCallback.md
+        - 'updateCallback': developers/interfaces/updateCallback.md
+        - 'markCalledCallback': developers/interfaces/markCalledCallback.md
+        - 'deleteCallback': developers/interfaces/deleteCallback.md
       - 'Lifecycle hooks':
         - 'authValidation': developers/interfaces/authValidation.md
         - 'checkAndRefreshAccessToken': developers/interfaces/checkAndRefreshAccessToken.md

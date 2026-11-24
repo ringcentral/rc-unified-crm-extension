@@ -88,6 +88,7 @@ const pluginCore = /** @type {any} */ (require('./handlers/plugin'));
 const { sequelize } = /** @type {any} */ (require('./models/sequelize'));
 const { runCallLogsSchemaMigration } = /** @type {any} */ (require('./lib/migrateCallLogsSchema'));
 const { migrateMessageLogsSchema } = /** @type {any} */ (require('./lib/migrateMessageLogsSchema'));
+const { migrateCallDownListSchema } = /** @type {any} */ (require('./lib/migrateCallDownListSchema'));
 const { handleDatabaseError } = /** @type {any} */ (require('./lib/errorHandler'));
 const { claimAuthSession, updateAuthSession } = require('./lib/authSession');
 const managedAuthCore = /** @type {any} */ (require('./handlers/managedAuth'));
@@ -140,6 +141,7 @@ async function initDB() {
         await AdminConfigModel.sync();
         await CacheModel.sync();
         await CallDownListModel.sync();
+        await migrateCallDownListSchema(sequelize);
         await AccountDataModel.sync();
     }
 }
@@ -380,7 +382,10 @@ function createCoreRouter() {
                     refreshAppointment: !!platformModule.refreshAppointment,
                     confirmAppointment: !!platformModule.confirmAppointment,
                     cancelAppointment: !!platformModule.cancelAppointment,
-                    syncCallback: !!platformModule.syncCallback,
+                    createCallback: !!platformModule.createCallback,
+                    updateCallback: !!platformModule.updateCallback,
+                    markCalledCallback: !!platformModule.markCalledCallback,
+                    deleteCallback: !!platformModule.deleteCallback,
                     unAuthorize: !!platformModule.unAuthorize,
                     upsertCallDisposition: !!platformModule.upsertCallDisposition,
                     findContactWithName: !!platformModule.findContactWithName,

@@ -184,7 +184,10 @@
                       "refreshAppointment": false,
                       "confirmAppointment": false,
                       "cancelAppointment": false,
-                      "syncCallback": false,
+                      "createCallback": false,
+                      "updateCallback": false,
+                      "markCalledCallback": false,
+                      "deleteCallback": false,
                       "unAuthorize": true,
                       "upsertCallDisposition": true,
                       "findContactWithName": true,
@@ -3068,7 +3071,7 @@
             "$ref": "#/components/responses/BadRequest"
           }
         },
-        "description": "Creates a server-owned call-back entry for the current App Connect user with status scheduled and a generated identifier. contactId, contactType, and scheduledAt are persisted. phoneNumber is forwarded to syncCallback when the client sends it and is not stored. When the connector implements syncCallback, App Connect calls it after the local save. A CRM sync failure keeps the entry and adds a warning returnMessage."
+        "description": "Creates a server-owned call-back entry for the current App Connect user with status scheduled and a generated identifier. contactId, contactType, scheduledAt, and the user platform are persisted. phoneNumber is forwarded to createCallback when the client sends it and is not stored. When the connector implements createCallback, App Connect calls it after the local save and stores the returned thirdPartyId. A CRM sync failure keeps the entry and adds a warning returnMessage."
       }
     },
     "/calldown/{id}": {
@@ -3114,7 +3117,7 @@
             "$ref": "#/components/responses/BadRequest"
           }
         },
-        "description": "Updates allowed fields on a call-back entry owned by the current App Connect user. status, scheduledAt, lastCallAt, contactId, and contactType are persisted. phoneNumber is forwarded to syncCallback when the client sends it and is not stored. Delete and called events do not include a phone number. When the connector implements syncCallback, App Connect calls it after the local save. A CRM sync failure keeps the entry and adds a warning returnMessage."
+        "description": "Updates allowed fields on a call-back entry owned by the current App Connect user. status, scheduledAt, lastCallAt, contactId, and contactType are persisted. phoneNumber is forwarded to updateCallback when the client sends it and is not stored. When status changes to called, App Connect calls markCalledCallback instead of updateCallback and does not include a phone number. Both calls receive the thirdPartyId stored from createCallback. A CRM sync failure keeps the entry and adds a warning returnMessage."
       },
       "delete": {
         "tags": [
@@ -3155,7 +3158,7 @@
             "$ref": "#/components/responses/BadRequest"
           }
         },
-        "description": "Deletes the identified call-back entry only when it belongs to the current App Connect user. A missing or foreign identifier is returned as a bad request with a not-found error. When the connector implements syncCallback, App Connect calls it after the local delete. A CRM sync failure keeps the deletion and adds a warning returnMessage."
+        "description": "Deletes the identified call-back entry only when it belongs to the current App Connect user. A missing or foreign identifier is returned as a bad request with a not-found error. When the connector implements deleteCallback, App Connect calls it after the local delete and passes the stored thirdPartyId. A CRM sync failure keeps the deletion and adds a warning returnMessage."
       }
     },
     "/plugin/register": {
@@ -7360,9 +7363,21 @@
             "type": "boolean",
             "description": "Whether the connector implements cancelAppointment."
           },
-          "syncCallback": {
+          "createCallback": {
             "type": "boolean",
-            "description": "Whether the connector implements syncCallback for call-back events."
+            "description": "Whether the connector implements createCallback for a newly scheduled call-back."
+          },
+          "updateCallback": {
+            "type": "boolean",
+            "description": "Whether the connector implements updateCallback for call-back edits."
+          },
+          "markCalledCallback": {
+            "type": "boolean",
+            "description": "Whether the connector implements markCalledCallback when a call-back is marked called."
+          },
+          "deleteCallback": {
+            "type": "boolean",
+            "description": "Whether the connector implements deleteCallback when a call-back is removed."
           },
           "unAuthorize": {
             "type": "boolean",
@@ -7421,7 +7436,10 @@
           "refreshAppointment",
           "confirmAppointment",
           "cancelAppointment",
-          "syncCallback",
+          "createCallback",
+          "updateCallback",
+          "markCalledCallback",
+          "deleteCallback",
           "unAuthorize",
           "upsertCallDisposition",
           "findContactWithName",
@@ -8870,6 +8888,16 @@
             "nullable": true,
             "description": "Most recent call time after the entry is marked called."
           },
+          "platform": {
+            "type": "string",
+            "nullable": true,
+            "description": "CRM platform for the App Connect user who owns the entry."
+          },
+          "thirdPartyId": {
+            "type": "string",
+            "nullable": true,
+            "description": "CRM record id returned by createCallback. Null when the connector did not return one."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -8909,7 +8937,7 @@
           },
           "phoneNumber": {
             "type": "string",
-            "description": "Callback phone number sent by the client. It is forwarded to syncCallback on this request and is not stored."
+            "description": "Callback phone number sent by the client. It is forwarded to createCallback on this request and is not stored."
           }
         },
         "additionalProperties": true
@@ -8952,7 +8980,7 @@
           },
           "phoneNumber": {
             "type": "string",
-            "description": "Callback phone number sent by the client. It is forwarded to syncCallback on this request and is not stored."
+            "description": "Callback phone number sent by the client. It is forwarded to updateCallback when this request edits the call-back and is not stored. A request that marks the call-back called does not include a phone number."
           }
         },
         "additionalProperties": false

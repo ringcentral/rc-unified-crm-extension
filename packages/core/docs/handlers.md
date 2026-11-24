@@ -112,8 +112,11 @@ Rules implemented here:
 - decodes the JWT directly
 - keeps operations scoped to the authenticated user
 - supports schedule, list, remove, mark-as-called, and partial update flows
-- after a local schedule, update, mark-as-called, or remove, calls optional connector `syncCallback`
-- `syncCallback` receives the stored call-back plus `phoneNumber` only when the current request sent one; it does not receive a contact name or note
+- after a local schedule, calls optional connector `createCallback` and stores the returned `thirdPartyId` with the user's `platform`
+- after an edit, calls optional connector `updateCallback` with that stored `thirdPartyId`
+- after mark-as-called, calls optional connector `markCalledCallback` with that stored `thirdPartyId`
+- after a remove, calls optional connector `deleteCallback` with that stored `thirdPartyId`
+- callback payloads include `phoneNumber` only when the current request sent one; they do not include a contact name or note
 - keeps the App Connect entry when CRM sync fails and returns that failure as `returnMessage`
 
 `plugin.ts`:

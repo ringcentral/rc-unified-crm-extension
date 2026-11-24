@@ -71,6 +71,9 @@ exports.findContactWithName = require('./interfaces/findContactWithName');
 exports.getContactWidget = require('./interfaces/getContactWidget');
 
 // Optional
-// Sync App Connect call-back events into the CRM. Leave this unwired until the CRM
-// has its own task or activity logic. See ./interfaces/syncCallback.ts.
-// exports.syncCallback = require('./interfaces/syncCallback');
+// Sync App Connect call-backs into the CRM. Leave these unwired until the CRM
+// has its own task or activity logic.
+// exports.createCallback = require('./interfaces/createCallback');
+// exports.updateCallback = require('./interfaces/updateCallback');
+// exports.markCalledCallback = require('./interfaces/markCalledCallback');
+// exports.deleteCallback = require('./interfaces/deleteCallback');
