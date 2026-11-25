@@ -1,9 +1,16 @@
+jest.mock('../../models/dynamo/connectorSchema', () => ({
+  Connector: {
+    getProxyConfig: jest.fn(),
+  },
+}));
+
 const calldown = require('../../handlers/calldown');
 const { generateJwt } = require('../../lib/jwt');
 const oauth = require('../../lib/oauth');
 const connectorRegistry = require('../../connector/registry');
 const { CallDownListModel } = require('../../models/callDownListModel');
 const { UserModel } = require('../../models/userModel');
+const { Connector } = require('../../models/dynamo/connectorSchema');
 const {
   scheduledCalldownCase,
   calldownListRecords,
@@ -660,6 +667,231 @@ describe('Calldown Handler', () => {
     })).rejects.toThrow('db down');
 
     expect(deleteCallback).not.toHaveBeenCalled();
+  });
+
+  test('refreshes oauth and forwards proxy config before saving the CRM id', async () => {
+    await UserModel.create({
+      id: 'user-1',
+      platform: 'testCRM',
+      accessToken: 'old-token',
+      hostname: 'crm.example',
+      platformAdditionalInfo: {
+        proxyId: 'proxy-1',
+        tokenUrl: 'https://crm.example/token',
+      },
+    });
+    const proxyConfig = { id: 'proxy-1' };
+    Connector.getProxyConfig.mockResolvedValue(proxyConfig);
+    const createCallback = jest.fn(async () => ({ thirdPartyId: 'crm-oauth-1' }));
+    registerCallbackConnector({ createCallback }, {
+      getAuthType: async () => 'oauth',
+      getOauthInfo: async () => ({ clientId: 'client' }),
+    });
+    const refreshedUser = { id: 'user-1', platform: 'testCRM', accessToken: 'fresh-token' };
+    jest.spyOn(oauth, 'getOAuthApp').mockReturnValue({ name: 'app' });
+    jest.spyOn(oauth, 'checkAndRefreshAccessToken').mockResolvedValue(refreshedUser);
+
+    const result = await calldown.schedule({
+      jwtToken: tokenFor('user-1'),
+      body: { contactId: 'contact-1', phoneNumber: '' },
+    });
+
+    expect(Connector.getProxyConfig).toHaveBeenCalledWith('proxy-1');
+    expect(createCallback).toHaveBeenCalledWith({
+      user: refreshedUser,
+      authHeader: 'Bearer fresh-token',
+      proxyConfig,
+      callback: {
+        id: result.id,
+        contactId: 'contact-1',
+        contactType: 'contact',
+        status: 'scheduled',
+        scheduledAt: null,
+        lastCallAt: null,
+      },
+    });
+    const record = await CallDownListModel.findByPk(result.id);
+    expect(record.thirdPartyId).toBe('crm-oauth-1');
+  });
+
+  test('saves only the local entry when the user has no CRM platform', async () => {
+    await UserModel.create({
+      id: 'user-1',
+      platform: null,
+      accessToken: 'token',
+    });
+    const createCallback = jest.fn();
+    registerCallbackConnector({ createCallback });
+
+    const result = await calldown.schedule({
+      jwtToken: tokenFor('user-1'),
+      body: { contactId: 'contact-1' },
+    });
+
+    expect(createCallback).not.toHaveBeenCalled();
+    expect(result.returnMessage).toBeUndefined();
+    const record = await CallDownListModel.findByPk(result.id);
+    expect(record.platform).toBeNull();
+    expect(record.thirdPartyId).toBeNull();
+  });
+
+  test('uses the generic warning when CRM sync fails without a message', async () => {
+    await createUser('user-1');
+    const createCallback = jest.fn().mockResolvedValue({
+      successful: false,
+      thirdPartyId: 'should-not-store',
+    });
+    registerCallbackConnector({ createCallback });
+
+    const result = await calldown.schedule({
+      jwtToken: tokenFor('user-1'),
+      body: { contactId: 'contact-1' },
+    });
+
+    expect(result.returnMessage).toEqual({
+      message: 'Callback saved in App Connect. CRM sync failed.',
+      messageType: 'warning',
+      ttl: 5000,
+    });
+    const record = await CallDownListModel.findByPk(result.id);
+    expect(record.thirdPartyId).toBeNull();
+  });
+
+  test('does not store a blank CRM id', async () => {
+    await createUser('user-1');
+    const createCallback = jest.fn().mockResolvedValue({ thirdPartyId: '   ' });
+    registerCallbackConnector({ createCallback });
+
+    const result = await calldown.schedule({
+      jwtToken: tokenFor('user-1'),
+      body: { contactId: 'contact-1' },
+    });
+
+    const record = await CallDownListModel.findByPk(result.id);
+    expect(record.thirdPartyId).toBeNull();
+    expect(result.returnMessage).toBeUndefined();
+  });
+
+  test('sends a null contact type when the stored callback has none', async () => {
+    await createUser('user-1');
+    await CallDownListModel.create({
+      id: 'no-type',
+      userId: 'user-1',
+      platform: 'testCRM',
+      thirdPartyId: 'crm-1',
+      status: 'scheduled',
+      contactType: null,
+    });
+    const updateCallback = jest.fn(async () => ({}));
+    registerCallbackConnector({ updateCallback });
+
+    await calldown.update({
+      jwtToken: tokenFor('user-1'),
+      id: 'no-type',
+      updateData: { scheduledAt: '2026-07-03T13:00:00.000Z' },
+    });
+
+    expect(updateCallback).toHaveBeenCalledWith(expect.objectContaining({
+      thirdPartyId: 'crm-1',
+      callback: expect.objectContaining({
+        id: 'no-type',
+        contactType: null,
+        scheduledAt: '2026-07-03T13:00:00.000Z',
+      }),
+    }));
+  });
+
+  test('remove reports not found when the row disappears before delete', async () => {
+    await createUser('user-1');
+    await CallDownListModel.create({
+      id: 'vanishing-delete',
+      userId: 'user-1',
+      status: 'scheduled',
+    });
+    jest.spyOn(CallDownListModel, 'destroy').mockResolvedValueOnce(0);
+
+    await expect(calldown.remove({
+      jwtToken: tokenFor('user-1'),
+      id: 'vanishing-delete',
+    })).rejects.toThrow('Not found');
+  });
+
+  test('markCalled returns the database warning when the row disappears before the write', async () => {
+    await createUser('user-1');
+    await CallDownListModel.create({
+      id: 'vanishing-called',
+      userId: 'user-1',
+      status: 'scheduled',
+    });
+    jest.spyOn(CallDownListModel, 'update').mockResolvedValueOnce([0]);
+
+    const result = await calldown.markCalled({
+      jwtToken: tokenFor('user-1'),
+      id: 'vanishing-called',
+    });
+
+    expect(result).toEqual({
+      successful: false,
+      returnMessage: {
+        message: 'Database operation failed',
+        messageType: 'warning',
+        ttl: 5000,
+      },
+    });
+  });
+
+  test('serializes string and invalid callback times for the CRM payload', async () => {
+    await createUser('user-1');
+    await CallDownListModel.create({
+      id: 'string-dates',
+      userId: 'user-1',
+      platform: 'testCRM',
+      thirdPartyId: 'crm-1',
+      status: 'scheduled',
+      contactType: 'contact',
+    });
+    const stored = await CallDownListModel.findByPk('string-dates');
+    stored.setDataValue('scheduledAt', '2026-07-04T13:00:00.000Z');
+    stored.setDataValue('lastCallAt', 'not-a-date');
+    stored.setDataValue('status', null);
+    jest.spyOn(CallDownListModel, 'findOne').mockResolvedValue(stored);
+    jest.spyOn(CallDownListModel, 'update').mockResolvedValueOnce([1]);
+    const updateCallback = jest.fn(async () => ({}));
+    registerCallbackConnector({ updateCallback });
+
+    await calldown.update({
+      jwtToken: tokenFor('user-1'),
+      id: 'string-dates',
+      updateData: { contactId: 'contact-9' },
+    });
+
+    expect(updateCallback).toHaveBeenCalledWith(expect.objectContaining({
+      callback: expect.objectContaining({
+        scheduledAt: '2026-07-04T13:00:00.000Z',
+        lastCallAt: null,
+        status: null,
+      }),
+      previous: expect.objectContaining({
+        scheduledAt: '2026-07-04T13:00:00.000Z',
+        lastCallAt: null,
+      }),
+    }));
+  });
+
+  test('update reports not found when the row disappears before the write', async () => {
+    await createUser('user-1');
+    await CallDownListModel.create({
+      id: 'vanishing-update',
+      userId: 'user-1',
+      status: 'scheduled',
+    });
+    jest.spyOn(CallDownListModel, 'update').mockResolvedValueOnce([0]);
+
+    await expect(calldown.update({
+      jwtToken: tokenFor('user-1'),
+      id: 'vanishing-update',
+      updateData: { status: 'called' },
+    })).rejects.toThrow('Not found');
   });
 });
 

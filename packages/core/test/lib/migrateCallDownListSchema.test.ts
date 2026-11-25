@@ -68,6 +68,13 @@ describe('migrateCallDownListSchema', () => {
       getQueryInterface: () => queryInterface,
     })).rejects.toBe(migrationError);
   });
+
+  test('uses the application database when no sequelize instance is passed', async () => {
+    const { CallDownListModel } = require('../../models/callDownListModel');
+    await CallDownListModel.sync();
+
+    await expect(migrateCallDownListSchema()).resolves.toBeUndefined();
+  });
 });
 
 export {};
