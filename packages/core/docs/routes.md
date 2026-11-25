@@ -86,7 +86,7 @@ This page documents the non-MCP HTTP routes defined in `index.ts`.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/calldown` | Schedules a call-down item and optionally calls connector `createCallback` |
+| `POST` | `/calldown` | Schedules a call-down item. `createCallback` runs before the local save when the connector implements it |
 | `GET` | `/calldown` | Lists the current user's call-down items |
 | `DELETE` | `/calldown/:id` | Removes a call-down item and optionally calls connector `deleteCallback` |
 | `PATCH` | `/calldown/:id` | Updates a call-down item and optionally calls connector `updateCallback`, or `markCalledCallback` when the status becomes called |

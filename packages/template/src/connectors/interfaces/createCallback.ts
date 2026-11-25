@@ -1,4 +1,5 @@
-// Optional. App Connect keeps the call-back list.
+// Optional. App Connect keeps the call-back list and calls this before the local row is saved.
+// Connectors that do not export it only get the App Connect entry.
 // Export this from the connector only when scheduling a call-back should also create a CRM record.
 //
 // Wire it from the connector entry file:

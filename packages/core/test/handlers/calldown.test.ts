@@ -346,13 +346,17 @@ describe('Calldown Handler', () => {
 
   test('schedule forwards request details to createCallback and stores the CRM id', async () => {
     await createUser('user-1');
-    const createCallback = jest.fn().mockResolvedValue({
-      thirdPartyId: 88001,
-      returnMessage: {
-        message: 'Task created',
-        messageType: 'success',
-        ttl: 3000,
-      },
+    const createCallback = jest.fn(async () => {
+      const rows = await CallDownListModel.findAll({ where: { userId: 'user-1' } });
+      expect(rows).toHaveLength(0);
+      return {
+        thirdPartyId: 88001,
+        returnMessage: {
+          message: 'Task created',
+          messageType: 'success',
+          ttl: 3000,
+        },
+      };
     });
     registerCallbackConnector({ createCallback });
 
@@ -620,6 +624,42 @@ describe('Calldown Handler', () => {
       previous: expect.objectContaining({ id: 'status-change', status: 'scheduled' }),
       callback: expect.objectContaining({ id: 'status-change', status: 'called' }),
     }));
+  });
+
+  test('removes the CRM record when the local save fails after createCallback', async () => {
+    await createUser('user-1');
+    const createCallback = jest.fn(async () => ({ thirdPartyId: 'crm-task-late' }));
+    const deleteCallback = jest.fn(async (_payload) => ({}));
+    registerCallbackConnector({ createCallback, deleteCallback });
+    jest.spyOn(CallDownListModel, 'create').mockRejectedValueOnce(new Error('db down'));
+
+    await expect(calldown.schedule({
+      jwtToken: tokenFor('user-1'),
+      body: { contactId: 'contact-1', scheduledAt: '2026-07-02T13:00:00.000Z' },
+    })).rejects.toThrow('db down');
+
+    expect(createCallback).toHaveBeenCalledTimes(1);
+    expect(deleteCallback).toHaveBeenCalledTimes(1);
+    expect(deleteCallback).toHaveBeenCalledWith(expect.objectContaining({
+      thirdPartyId: 'crm-task-late',
+      callback: expect.objectContaining({ contactId: 'contact-1', status: 'scheduled' }),
+    }));
+    await expect(CallDownListModel.findOne({ where: { userId: 'user-1' } })).resolves.toBeNull();
+  });
+
+  test('leaves the CRM untouched when the local save fails and createCallback returned no id', async () => {
+    await createUser('user-1');
+    const createCallback = jest.fn(async () => ({}));
+    const deleteCallback = jest.fn(async (_payload) => ({}));
+    registerCallbackConnector({ createCallback, deleteCallback });
+    jest.spyOn(CallDownListModel, 'create').mockRejectedValueOnce(new Error('db down'));
+
+    await expect(calldown.schedule({
+      jwtToken: tokenFor('user-1'),
+      body: { contactId: 'contact-1' },
+    })).rejects.toThrow('db down');
+
+    expect(deleteCallback).not.toHaveBeenCalled();
   });
 });
 

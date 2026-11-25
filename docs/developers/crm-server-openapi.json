@@ -3071,7 +3071,7 @@
             "$ref": "#/components/responses/BadRequest"
           }
         },
-        "description": "Creates a server-owned call-back entry for the current App Connect user with status scheduled and a generated identifier. contactId, contactType, scheduledAt, and the user platform are persisted. phoneNumber is forwarded to createCallback when the client sends it and is not stored. When the connector implements createCallback, App Connect calls it after the local save and stores the returned thirdPartyId. A CRM sync failure keeps the entry and adds a warning returnMessage."
+        "description": "Creates a server-owned call-back entry for the current App Connect user with status scheduled and a generated identifier. contactId, contactType, scheduledAt, and the user platform are persisted. phoneNumber is forwarded to createCallback when the client sends it and is not stored. When the connector implements createCallback, App Connect calls it before the local save and stores the returned thirdPartyId on that save. Connectors that do not implement createCallback only get the local entry. A CRM sync failure still saves the entry without a thirdPartyId and adds a warning returnMessage."
       }
     },
     "/calldown/{id}": {

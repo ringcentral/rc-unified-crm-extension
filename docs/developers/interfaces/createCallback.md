@@ -2,7 +2,7 @@
 
 Creates one CRM record when a user schedules a call-back. The call-back list stays in App Connect. Implement this only when the CRM should also receive the new call-back, for example as a task, activity, or reminder.
 
-App Connect calls `createCallback` after the local save succeeds. Connectors that do not export it keep the existing App Connect-only list.
+App Connect calls `createCallback` before saving the local call-back. Connectors that do not export it only get the App Connect entry.
 
 ## Signature
 
@@ -31,7 +31,7 @@ async function createCallback({
 | `user` | Connected CRM user. |
 | `authHeader` | Prepared CRM auth header. OAuth connectors receive a refreshed bearer token. API-key connectors receive `Basic` auth. |
 | `proxyConfig` | Proxy connector configuration when the user connected through proxy mode. Code connectors can ignore it. |
-| `callback` | The call-back after the local write. |
+| `callback` | The call-back being scheduled. It is not in the database yet. |
 
 ### Callback object
 

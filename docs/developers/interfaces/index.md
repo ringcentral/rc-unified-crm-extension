@@ -66,7 +66,7 @@ These interfaces power App Connect's built-in appointment scheduling panel. Impl
 
 ## Call-backs
 
-The call-back list stays inside App Connect. These optional interfaces run after a local save so a connector can add its own CRM logic.
+The call-back list stays inside App Connect. `createCallback` runs before the local row is saved. `updateCallback`, `markCalledCallback`, and `deleteCallback` run after the local change. Connectors that do not export these interfaces keep an App Connect-only list.
 
 | Interface | Description |
 | --- | --- |

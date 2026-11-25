@@ -27,7 +27,6 @@ const jwt = /** @type {any} */ (require('../lib/jwt'));
 const oauth = /** @type {any} */ (require('../lib/oauth'));
 const connectorRegistry = /** @type {any} */ (require('../connector/registry'));
 const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
-const logger = require('../lib/logger');
 
 const PERSISTED_FIELDS = ['contactId', 'contactType', 'status', 'scheduledAt', 'lastCallAt'];
 
@@ -298,7 +297,7 @@ async function schedule({ jwtToken, body }) {
     if (!user) throw new Error('User not found');
     const crypto = require('crypto');
     const recordId = crypto.randomBytes(16).toString('hex');
-    const payload = {
+    const draft = {
         id: recordId,
         userId: user.id,
         contactId: canonicalContactId(body.contactId),
@@ -309,23 +308,28 @@ async function schedule({ jwtToken, body }) {
         platform: user.platform ?? null,
         thirdPartyId: null,
     };
-    const record = await CallDownListModel.create(payload);
+    // Most connectors do not implement createCallback. notifyCrm skips them and the local row is still saved.
     const syncResult = await notifyCrm({
         user,
         event: 'created',
-        callbackRecord: record,
+        callbackRecord: draft,
         previousRecord: null,
         requestFields: body,
     });
-    if (syncResult.thirdPartyId) {
-        await CallDownListModel.update(
-            { thirdPartyId: syncResult.thirdPartyId },
-            { where: { id: recordId } },
-        );
-        logger.info('Stored call-back thirdPartyId', {
-            id: recordId,
-            thirdPartyId: syncResult.thirdPartyId,
-        });
+    const thirdPartyId = syncResult.thirdPartyId ?? null;
+    try {
+        await CallDownListModel.create({ ...draft, thirdPartyId });
+    }
+    catch (error) {
+        if (thirdPartyId) {
+            await notifyCrm({
+                user,
+                event: 'deleted',
+                callbackRecord: { ...draft, thirdPartyId },
+                previousRecord: null,
+            });
+        }
+        throw error;
     }
     return withSyncResult({ id: recordId }, syncResult);
 }
