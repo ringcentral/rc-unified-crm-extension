@@ -24,7 +24,13 @@ const CallDownListModel = sequelize.define('callDownLists', {
     },
     lastCallAt: {
         type: Sequelize.DATE,
-    }
+    },
+    platform: {
+        type: Sequelize.STRING,
+    },
+    thirdPartyId: {
+        type: Sequelize.STRING,
+    },
 }, {
     timestamps: true,
     indexes: [

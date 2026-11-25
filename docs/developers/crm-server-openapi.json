@@ -184,6 +184,10 @@
                       "refreshAppointment": false,
                       "confirmAppointment": false,
                       "cancelAppointment": false,
+                      "createCallback": false,
+                      "updateCallback": false,
+                      "markCalledCallback": false,
+                      "deleteCallback": false,
                       "unAuthorize": true,
                       "upsertCallDisposition": true,
                       "findContactWithName": true,
@@ -3067,7 +3071,7 @@
             "$ref": "#/components/responses/BadRequest"
           }
         },
-        "description": "Creates a server-owned call-back entry for the current App Connect user with status scheduled and a generated identifier. contactId, contactType, and scheduledAt are persisted. Current browser clients also send contactName, phoneNumber, and note, but the current data model does not retain those fields."
+        "description": "Creates a server-owned call-back entry for the current App Connect user with status scheduled and a generated identifier. contactId, contactType, scheduledAt, and the user platform are persisted. phoneNumber is forwarded to createCallback when the client sends it and is not stored. When the connector implements createCallback, App Connect calls it before the local save and stores the returned thirdPartyId on that save. Connectors that do not implement createCallback only get the local entry. A CRM sync failure still saves the entry without a thirdPartyId and adds a warning returnMessage."
       }
     },
     "/calldown/{id}": {
@@ -3113,7 +3117,7 @@
             "$ref": "#/components/responses/BadRequest"
           }
         },
-        "description": "Updates allowed fields on a call-back entry owned by the current App Connect user. status, scheduledAt, lastCallAt, contactId, and contactType are persisted. Current browser clients also send contactName, phoneNumber, and note, but the current data model does not retain those fields."
+        "description": "Updates allowed fields on a call-back entry owned by the current App Connect user. status, scheduledAt, lastCallAt, contactId, and contactType are persisted. phoneNumber is forwarded to updateCallback when the client sends it and is not stored. When status changes to called, App Connect calls markCalledCallback instead of updateCallback and does not include a phone number. Both calls receive the thirdPartyId stored from createCallback. A CRM sync failure keeps the entry and adds a warning returnMessage."
       },
       "delete": {
         "tags": [
@@ -3154,7 +3158,7 @@
             "$ref": "#/components/responses/BadRequest"
           }
         },
-        "description": "Deletes the identified call-back entry only when it belongs to the current App Connect user. A missing or foreign identifier is returned as a bad request with a not-found error."
+        "description": "Deletes the identified call-back entry only when it belongs to the current App Connect user. A missing or foreign identifier is returned as a bad request with a not-found error. When the connector implements deleteCallback, App Connect calls it after the local delete and passes the stored thirdPartyId. A CRM sync failure keeps the deletion and adds a warning returnMessage."
       }
     },
     "/plugin/register": {
@@ -7359,6 +7363,22 @@
             "type": "boolean",
             "description": "Whether the connector implements cancelAppointment."
           },
+          "createCallback": {
+            "type": "boolean",
+            "description": "Whether the connector implements createCallback for a newly scheduled call-back."
+          },
+          "updateCallback": {
+            "type": "boolean",
+            "description": "Whether the connector implements updateCallback for call-back edits."
+          },
+          "markCalledCallback": {
+            "type": "boolean",
+            "description": "Whether the connector implements markCalledCallback when a call-back is marked called."
+          },
+          "deleteCallback": {
+            "type": "boolean",
+            "description": "Whether the connector implements deleteCallback when a call-back is removed."
+          },
           "unAuthorize": {
             "type": "boolean",
             "description": "Whether the connector implements unAuthorize."
@@ -7416,6 +7436,10 @@
           "refreshAppointment",
           "confirmAppointment",
           "cancelAppointment",
+          "createCallback",
+          "updateCallback",
+          "markCalledCallback",
+          "deleteCallback",
           "unAuthorize",
           "upsertCallDisposition",
           "findContactWithName",
@@ -8860,6 +8884,16 @@
             "nullable": true,
             "description": "Most recent call time after the entry is marked called."
           },
+          "platform": {
+            "type": "string",
+            "nullable": true,
+            "description": "CRM platform for the App Connect user who owns the entry."
+          },
+          "thirdPartyId": {
+            "type": "string",
+            "nullable": true,
+            "description": "CRM record id returned by createCallback. Null when the connector did not return one."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -8897,17 +8931,9 @@
             "format": "date-time",
             "description": "Requested callback time."
           },
-          "contactName": {
-            "type": "string",
-            "description": "Contact display name sent by the current browser client but not retained by the current persistence model."
-          },
           "phoneNumber": {
             "type": "string",
-            "description": "Callback phone number sent by the current browser client but not retained by the current persistence model."
-          },
-          "note": {
-            "type": "string",
-            "description": "Callback note sent by the current browser client but not retained by the current persistence model."
+            "description": "Callback phone number sent by the client. It is forwarded to createCallback on this request and is not stored."
           }
         },
         "additionalProperties": true
@@ -8948,17 +8974,9 @@
             "nullable": true,
             "description": "Replacement last-call time."
           },
-          "contactName": {
-            "type": "string",
-            "description": "Replacement contact display name accepted by the handler but not retained by the current persistence model."
-          },
           "phoneNumber": {
             "type": "string",
-            "description": "Replacement callback phone number accepted by the handler but not retained by the current persistence model."
-          },
-          "note": {
-            "type": "string",
-            "description": "Replacement callback note accepted by the handler but not retained by the current persistence model."
+            "description": "Callback phone number sent by the client. It is forwarded to updateCallback when this request edits the call-back and is not stored. A request that marks the call-back called does not include a phone number."
           }
         },
         "additionalProperties": false
@@ -8981,6 +8999,14 @@
           "id": {
             "type": "string",
             "description": "Generated call-back entry identifier."
+          },
+          "returnMessage": {
+            "description": "Present when CRM sync returns a message. The local entry is still saved when sync fails.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReturnMessage"
+              }
+            ]
           }
         },
         "additionalProperties": false
@@ -9023,6 +9049,14 @@
               true
             ],
             "description": "Whether the requested mutation completed."
+          },
+          "returnMessage": {
+            "description": "Present when CRM sync returns a message. The local change is kept when sync fails.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReturnMessage"
+              }
+            ]
           }
         },
         "additionalProperties": false

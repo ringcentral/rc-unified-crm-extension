@@ -88,6 +88,7 @@ const pluginCore = /** @type {any} */ (require('./handlers/plugin'));
 const { sequelize } = /** @type {any} */ (require('./models/sequelize'));
 const { runCallLogsSchemaMigration } = /** @type {any} */ (require('./lib/migrateCallLogsSchema'));
 const { migrateMessageLogsSchema } = /** @type {any} */ (require('./lib/migrateMessageLogsSchema'));
+const { migrateCallDownListSchema } = /** @type {any} */ (require('./lib/migrateCallDownListSchema'));
 const { handleDatabaseError } = /** @type {any} */ (require('./lib/errorHandler'));
 const { claimAuthSession, updateAuthSession } = require('./lib/authSession');
 const managedAuthCore = /** @type {any} */ (require('./handlers/managedAuth'));
@@ -140,6 +141,7 @@ async function initDB() {
         await AdminConfigModel.sync();
         await CacheModel.sync();
         await CallDownListModel.sync();
+        await migrateCallDownListSchema(sequelize);
         await AccountDataModel.sync();
     }
 }
@@ -380,6 +382,10 @@ function createCoreRouter() {
                     refreshAppointment: !!platformModule.refreshAppointment,
                     confirmAppointment: !!platformModule.confirmAppointment,
                     cancelAppointment: !!platformModule.cancelAppointment,
+                    createCallback: !!platformModule.createCallback,
+                    updateCallback: !!platformModule.updateCallback,
+                    markCalledCallback: !!platformModule.markCalledCallback,
+                    deleteCallback: !!platformModule.deleteCallback,
                     unAuthorize: !!platformModule.unAuthorize,
                     upsertCallDisposition: !!platformModule.upsertCallDisposition,
                     findContactWithName: !!platformModule.findContactWithName,
@@ -3025,9 +3031,13 @@ function createCoreRouter() {
                 res.status(400).send(wrapDebugResponse(tracer, 'Please go to Settings and authorize CRM platform'));
                 return;
             }
-            const { id } = await calldown.schedule({ jwtToken, rcAccessToken: getRcAccessTokenFromRequest(req), body: req.body });
+            const scheduleResult = await calldown.schedule({ jwtToken, rcAccessToken: getRcAccessTokenFromRequest(req), body: req.body });
             success = true;
-            res.status(200).send(wrapDebugResponse(tracer, { successful: true, id }));
+            res.status(200).send(wrapDebugResponse(tracer, {
+                successful: true,
+                id: scheduleResult.id,
+                ...(scheduleResult.returnMessage ? { returnMessage: scheduleResult.returnMessage } : {}),
+            }));
         } catch (e) {
             logger.error('Schedule call down failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
@@ -3120,9 +3130,12 @@ function createCoreRouter() {
                 res.status(400).send(wrapDebugResponse(tracer, 'Missing id'));
                 return;
             }
-            await calldown.remove({ jwtToken, id: rid });
+            const removeResult = await calldown.remove({ jwtToken, id: rid });
             success = true;
-            res.status(200).send(wrapDebugResponse(tracer, { successful: true }));
+            res.status(200).send(wrapDebugResponse(tracer, {
+                successful: true,
+                ...(removeResult?.returnMessage ? { returnMessage: removeResult.returnMessage } : {}),
+            }));
         } catch (e) {
             logger.error('Delete call down item failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
@@ -3169,9 +3182,12 @@ function createCoreRouter() {
                 res.status(400).send(wrapDebugResponse(tracer, 'Missing id'));
                 return;
             }
-            await calldown.update({ jwtToken, id, updateData: req.body });
+            const updateResult = await calldown.update({ jwtToken, id, updateData: req.body });
             success = true;
-            res.status(200).send(wrapDebugResponse(tracer, { successful: true }));
+            res.status(200).send(wrapDebugResponse(tracer, {
+                successful: true,
+                ...(updateResult?.returnMessage ? { returnMessage: updateResult.returnMessage } : {}),
+            }));
         } catch (e) {
             logger.error('Mark call down called failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';

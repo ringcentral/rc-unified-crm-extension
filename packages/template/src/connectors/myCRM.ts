@@ -69,3 +69,11 @@ exports.getUserList = require('./interfaces/getUserList');
 // It's where you want to provide additional feature for users to search contact by name
 exports.findContactWithName = require('./interfaces/findContactWithName');
 exports.getContactWidget = require('./interfaces/getContactWidget');
+
+// Optional
+// Sync App Connect call-backs into the CRM. Leave these unwired until the CRM
+// has its own task or activity logic.
+// exports.createCallback = require('./interfaces/createCallback');
+// exports.updateCallback = require('./interfaces/updateCallback');
+// exports.markCalledCallback = require('./interfaces/markCalledCallback');
+// exports.deleteCallback = require('./interfaces/deleteCallback');

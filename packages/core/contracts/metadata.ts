@@ -47,6 +47,18 @@ export const ImplementedInterfacesResponseSchema = z.looseObject({
   refreshAppointment: z.boolean().describe('Whether the connector implements refreshAppointment.'),
   confirmAppointment: z.boolean().describe('Whether the connector implements confirmAppointment.'),
   cancelAppointment: z.boolean().describe('Whether the connector implements cancelAppointment.'),
+  createCallback: z.boolean().describe(
+    'Whether the connector implements createCallback for a newly scheduled call-back.',
+  ),
+  updateCallback: z.boolean().describe(
+    'Whether the connector implements updateCallback for call-back edits.',
+  ),
+  markCalledCallback: z.boolean().describe(
+    'Whether the connector implements markCalledCallback when a call-back is marked called.',
+  ),
+  deleteCallback: z.boolean().describe(
+    'Whether the connector implements deleteCallback when a call-back is removed.',
+  ),
   unAuthorize: z.boolean().describe('Whether the connector implements unAuthorize.'),
   upsertCallDisposition: z.boolean().describe(
     'Whether the connector implements upsertCallDisposition.',
@@ -116,6 +128,10 @@ export const implementedInterfacesResponseExample = {
   refreshAppointment: false,
   confirmAppointment: false,
   cancelAppointment: false,
+  createCallback: false,
+  updateCallback: false,
+  markCalledCallback: false,
+  deleteCallback: false,
   unAuthorize: true,
   upsertCallDisposition: true,
   findContactWithName: true,
