@@ -1181,7 +1181,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
     }
 }
 
-async function getCallLog({ user, callLogId, authHeader }) {
+async function getCallLog({ user, callLogId, contactId: loggedContactId, authHeader }) {
     let extraDataTracking = {};
     const formattedLogId = callLogId.split('.')[0];
     const getLogRes = await axios.get(
@@ -1191,19 +1191,42 @@ async function getCallLog({ user, callLogId, authHeader }) {
         });
     //const note = getLogRes.data.data.body.split('- Note: ')[1]?.split('\n')[0];
     const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- [A-Z][a-zA-Z\s/]*:|\n$|$)/;
-    const note = getLogRes.data.data.body.match(noteRegex)?.[1]?.trim();
-    const contactId = getLogRes.data.data.senders[0].type == 'Person' ?
-        getLogRes.data.data.senders[0].id :
-        getLogRes.data.data.receivers[0].id;
-    const contactRes = await axios.get(
-        `https://${user.hostname}/api/v4/contacts/${contactId}.json?fields=name`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
+    // The communication can be edited in Clio after it was logged, so its body and participants
+    // are not guaranteed to be present.
+    const note = (getLogRes.data.data.body ?? '').match(noteRegex)?.[1]?.trim();
+    // The contact is the first participant that is not a Clio user ('Person' or 'Company' vs
+    // 'User'). If Clio no longer lists one (e.g. the contact was removed from the communication),
+    // fall back to the contact stored when the call was logged.
+
+    const participants = [
+        ...(getLogRes.data.data.senders ?? []),
+        ...(getLogRes.data.data.receivers ?? [])
+    ];
+    const contactId = participants.find(p => p?.id != null && p.type !== 'User')?.id ?? loggedContactId;
+    let contactName = null;
+    let rateLimitHeaders = getLogRes.headers;
+    if (contactId != null && contactId !== '') {
+        try {
+            const contactRes = await axios.get(
+                `https://${user.hostname}/api/v4/contacts/${contactId}.json?fields=name`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+            contactName = contactRes.data.data.name;
+            rateLimitHeaders = contactRes.headers;
+        }
+        catch (e) {
+            // The contact no longer exists in Clio. The log itself is still valid, so return it
+            // without a contact name. Any other failure is a real error and is surfaced.
+            if (e.response?.status !== 404) {
+                throw e;
+            }
+        }
+    }
     extraDataTracking = {
-        ratelimitRemaining: contactRes.headers['x-ratelimit-remaining'],
-        ratelimitAmount: contactRes.headers['x-ratelimit-limit'],
-        ratelimitReset: contactRes.headers['x-ratelimit-reset']
+        ratelimitRemaining: rateLimitHeaders?.['x-ratelimit-remaining'],
+        ratelimitAmount: rateLimitHeaders?.['x-ratelimit-limit'],
+        ratelimitReset: rateLimitHeaders?.['x-ratelimit-reset']
     };
     return {
         callLogInfo: {
@@ -1211,7 +1234,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             note,
             fullBody: getLogRes?.data?.data?.body,
             fullLogResponse: getLogRes.data.data,
-            contactName: contactRes.data.data.name,
+            contactName,
             dispositions: {
                 matters: getLogRes.data.data.matter?.id
             }

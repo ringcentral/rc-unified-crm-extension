@@ -1154,6 +1154,203 @@ describe('Clio Connector', () => {
             expect(result.callLogInfo.subject).toBe('Test Call');
             expect(result.callLogInfo.contactName).toBe('John Doe');
         });
+
+        describe('when Clio no longer lists a contact on the communication', () => {
+            const communicationQuery = { fields: 'subject,body,matter,senders,receivers,id' };
+            const communicationWithoutContact = {
+                data: {
+                    id: 301,
+                    subject: 'Test Call',
+                    body: '- Agent notes: Test note\n- Duration: 5 minutes',
+                    matter: { id: 201 },
+                    // Outbound call: firm user as sender, contact removed from receivers.
+                    // This used to throw "Cannot read properties of undefined (reading 'id')".
+                    senders: [{ id: 12345, type: 'User' }],
+                    receivers: []
+                }
+            };
+
+            it('should return the log without a contact name when there is no stored contact', async () => {
+                const communicationScope = nock(apiUrl)
+                    .get('/api/v4/communications/301.json')
+                    .query(communicationQuery)
+                    .reply(200, communicationWithoutContact, mockRateLimitHeaders);
+
+                const result = await clio.getCallLog({
+                    user: mockUser,
+                    callLogId: '301',
+                    authHeader
+                });
+
+                // No contact request is registered, so any attempt to fetch one fails the test.
+                expect(communicationScope.isDone()).toBe(true);
+                expect(result.callLogInfo.subject).toBe('Test Call');
+                expect(result.callLogInfo.note).toBe('Test note');
+                expect(result.callLogInfo.contactName).toBeNull();
+                expect(result.callLogInfo.dispositions.matters).toBe(201);
+                expect(result.extraDataTracking.ratelimitRemaining).toBe(mockRateLimitHeaders['x-ratelimit-remaining']);
+            });
+
+            it('should fall back to the contact stored when the call was logged', async () => {
+                nock(apiUrl)
+                    .get('/api/v4/communications/301.json')
+                    .query(communicationQuery)
+                    .reply(200, communicationWithoutContact, mockRateLimitHeaders);
+                const contactScope = nock(apiUrl)
+                    .get('/api/v4/contacts/101.json')
+                    .query({ fields: 'name' })
+                    .reply(200, { data: { name: 'John Doe' } }, mockRateLimitHeaders);
+
+                const result = await clio.getCallLog({
+                    user: mockUser,
+                    callLogId: '301',
+                    contactId: '101',
+                    authHeader
+                });
+
+                expect(contactScope.isDone()).toBe(true);
+                expect(result.callLogInfo.contactName).toBe('John Doe');
+            });
+
+            it('should return the log without a contact name when the stored contact was deleted', async () => {
+                nock(apiUrl)
+                    .get('/api/v4/communications/301.json')
+                    .query(communicationQuery)
+                    .reply(200, communicationWithoutContact, mockRateLimitHeaders);
+                nock(apiUrl)
+                    .get('/api/v4/contacts/101.json')
+                    .query({ fields: 'name' })
+                    .reply(404, { error: { type: 'RecordNotFound' } });
+
+                const result = await clio.getCallLog({
+                    user: mockUser,
+                    callLogId: '301',
+                    contactId: '101',
+                    authHeader
+                });
+
+                expect(result.callLogInfo.subject).toBe('Test Call');
+                expect(result.callLogInfo.contactName).toBeNull();
+            });
+
+            it('should still surface contact lookup failures other than not found', async () => {
+                nock(apiUrl)
+                    .get('/api/v4/communications/301.json')
+                    .query(communicationQuery)
+                    .reply(200, communicationWithoutContact, mockRateLimitHeaders);
+                nock(apiUrl)
+                    .get('/api/v4/contacts/101.json')
+                    .query({ fields: 'name' })
+                    .reply(500, { error: 'server error' });
+
+                await expect(clio.getCallLog({
+                    user: mockUser,
+                    callLogId: '301',
+                    contactId: '101',
+                    authHeader
+                })).rejects.toMatchObject({ response: { status: 500 } });
+            });
+
+            it('should prefer the contact on the communication over the stored contact', async () => {
+                nock(apiUrl)
+                    .get('/api/v4/communications/301.json')
+                    .query(communicationQuery)
+                    .reply(200, {
+                        data: {
+                            ...communicationWithoutContact.data,
+                            receivers: [{ id: 101, type: 'Person' }]
+                        }
+                    }, mockRateLimitHeaders);
+                nock(apiUrl)
+                    .get('/api/v4/contacts/101.json')
+                    .query({ fields: 'name' })
+                    .reply(200, { data: { name: 'John Doe' } }, mockRateLimitHeaders);
+
+                const result = await clio.getCallLog({
+                    user: mockUser,
+                    callLogId: '301',
+                    contactId: '999',
+                    authHeader
+                });
+
+                expect(result.callLogInfo.contactName).toBe('John Doe');
+            });
+
+            it('should not throw when senders and receivers are missing entirely', async () => {
+                nock(apiUrl)
+                    .get('/api/v4/communications/301.json')
+                    .query(communicationQuery)
+                    .reply(200, {
+                        data: { id: 301, subject: 'Test Call', body: 'Simple note', matter: null }
+                    }, mockRateLimitHeaders);
+
+                const result = await clio.getCallLog({
+                    user: mockUser,
+                    callLogId: '301',
+                    authHeader
+                });
+
+                expect(result.callLogInfo.contactName).toBeNull();
+                expect(result.callLogInfo.dispositions.matters).toBeUndefined();
+            });
+        });
+
+        it('should not throw when the communication body is empty', async () => {
+            nock(apiUrl)
+                .get('/api/v4/communications/301.json')
+                .query({ fields: 'subject,body,matter,senders,receivers,id' })
+                .reply(200, {
+                    data: {
+                        id: 301,
+                        subject: 'Test Call',
+                        body: null,
+                        matter: null,
+                        senders: [{ id: 12345, type: 'User' }],
+                        receivers: [{ id: 101, type: 'Person' }]
+                    }
+                }, mockRateLimitHeaders);
+            nock(apiUrl)
+                .get('/api/v4/contacts/101.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'John Doe' } }, mockRateLimitHeaders);
+
+            const result = await clio.getCallLog({
+                user: mockUser,
+                callLogId: '301',
+                authHeader
+            });
+
+            expect(result.callLogInfo.note).toBeUndefined();
+            expect(result.callLogInfo.contactName).toBe('John Doe');
+        });
+
+        it('should use a Company sender as the contact instead of the receiving user', async () => {
+            nock(apiUrl)
+                .get('/api/v4/communications/301.json')
+                .query({ fields: 'subject,body,matter,senders,receivers,id' })
+                .reply(200, {
+                    data: {
+                        id: 301,
+                        subject: 'Test Call',
+                        body: 'Simple note',
+                        matter: null,
+                        senders: [{ id: 102, type: 'Company' }],
+                        receivers: [{ id: 12345, type: 'User' }]
+                    }
+                }, mockRateLimitHeaders);
+            nock(apiUrl)
+                .get('/api/v4/contacts/102.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Acme Inc' } }, mockRateLimitHeaders);
+
+            const result = await clio.getCallLog({
+                user: mockUser,
+                callLogId: '301',
+                authHeader
+            });
+
+            expect(result.callLogInfo.contactName).toBe('Acme Inc');
+        });
     });
 
     // ==================== createMessageLog ====================
