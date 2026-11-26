@@ -1,0 +1,44 @@
+@startuml
+actor User as u
+entity Extension as e
+entity Server as s
+entity CRM_API as crm
+
+group CRM Auth
+    group OAuth
+        u -> e: click Connect button and allow auth
+        e -> crm: OAuth request
+        crm -> e: OAuth callback
+        e -> s: callback data (auth code)
+        s -> crm: exchange auth tokens
+        crm -> s: crm auth tokens
+        s -> crm: get user info
+        crm -> s: user info
+        s -> e: jwt (auth token between extension and server)
+        group token refresh
+        note over e, crm: triggered by any CRM API call, contact match here used as example
+            e -> s: contact match request
+            s -> s: check if token expired, if yes
+            s -> crm: refresh token request
+            crm -> s: new tokens
+            s -> crm: contact match request
+            crm -> s: contact info
+            s -> e: contact info
+        end
+    end
+    group API Key
+        u -> e: click Connect button and submit API key
+        e -> s: API key
+        s -> crm: API key
+        crm -> s: user info
+        s -> e: jwt (auth token between extension and server)
+    end
+end
+
+group Contact creating/matching & Call/Message logging
+    e -> s: request data and jwt
+    s -> crm: API request data and accessToken/apiKey
+    crm -> s: response
+    s -> e: data
+end
+@enduml
