@@ -232,7 +232,7 @@ describe('Log Handler', () => {
     test('should not create a second CRM log when the same call arrives with a different sessionId format', async () => {
       await CallLogModel.create({
         id: 'tel-session-123',
-        sessionId: '3561547735011',
+        sessionId: 'tel-session-123',
         platform: 'testCRM',
         thirdPartyLogId: 'third-party-first',
         userId: 'test-user-id'
@@ -245,7 +245,7 @@ describe('Log Handler', () => {
         userId: 'test-user-id',
         incomingData: {
           ...mockIncomingData,
-          logInfo: { ...mockIncomingData.logInfo, sessionId: 'tel-session-123' }
+          logInfo: { ...mockIncomingData.logInfo, sessionId: '3561547735011' }
         },
         hashedAccountId: 'hashed-123',
         isFromSSCL: false
@@ -254,6 +254,119 @@ describe('Log Handler', () => {
       expect(result.successful).toBe(false);
       expect(result.returnMessage.messageType).toBe('warning');
       expect(mockConnector.createCallLog).not.toHaveBeenCalled();
+      expect(await CallLogModel.count({ where: { id: 'tel-session-123' } })).toBe(1);
+    });
+
+    test('rejects a RingEX telephony session ID used as the call-log session ID before claiming the write', async () => {
+      const telephonySessionId = 's-ringex-session';
+      const claimCall = jest.spyOn(CacheModel, 'bulkCreate');
+
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: mockUser.id,
+        incomingData: {
+          ...mockIncomingData,
+          logInfo: { ...mockIncomingData.logInfo, sessionId: telephonySessionId, telephonySessionId }
+        },
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      expect(result).toMatchObject({ successful: false, returnMessage: { messageType: 'warning' } });
+      expect(claimCall).not.toHaveBeenCalled();
+      expect(connectorRegistry.getConnector).not.toHaveBeenCalled();
+      expect(await CallLogModel.count()).toBe(0);
+    });
+
+    test.each([
+      ['RingCX call', { source: 'ringcx' }],
+      ['finalized RingEX conference', { isConferenceCall: true, action: 'Phone Call' }],
+    ])('allows a %s with the same call-log and telephony session IDs', async (_label, callFields) => {
+      await UserModel.create(mockUser);
+      const callId = 's-shared-session';
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createCallLog: jest.fn().mockResolvedValue({ logId: 'crm-log' })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: mockUser.id,
+        incomingData: {
+          ...mockIncomingData,
+          logInfo: { ...mockIncomingData.logInfo, ...callFields, sessionId: callId, telephonySessionId: callId }
+        },
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      expect(result).toMatchObject({ successful: true, logId: 'crm-log' });
+      expect(mockConnector.createCallLog).toHaveBeenCalledTimes(1);
+      expect(await CallLogModel.count({ where: { id: callId, sessionId: callId } })).toBe(1);
+    });
+
+    test('creates one CRM log when the client and server-side logging submit the same call concurrently', async () => {
+      await UserModel.create(mockUser);
+      let notifyCrmStarted!: () => void;
+      let releaseCrm!: () => void;
+      const crmStarted = new Promise<void>(resolve => { notifyCrmStarted = resolve; });
+      const crmCanComplete = new Promise<void>(resolve => { releaseCrm = resolve; });
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createCallLog: jest.fn()
+          .mockImplementationOnce(async () => {
+            notifyCrmStarted();
+            await crmCanComplete;
+            return { logId: 'server-crm-log' };
+          })
+          .mockResolvedValueOnce({ logId: 'client-crm-log' })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      const request = {
+        platform: 'testCRM',
+        userId: mockUser.id,
+        hashedAccountId: 'hashed-123',
+        incomingData: { ...mockIncomingData, hashedExtensionId: 'owner-hash', extensionNumber: '101' },
+      };
+
+      const serverRequest = logHandler.createCallLog({
+        ...request,
+        isFromSSCL: true,
+        incomingData: {
+          ...request.incomingData,
+          logInfo: { ...mockIncomingData.logInfo, sessionId: '3561547735011' },
+        },
+      });
+
+      await crmStarted;
+      let notifyClaimCollision!: () => void;
+      const claimCollision = new Promise<void>(resolve => { notifyClaimCollision = resolve; });
+      const bulkCreateClaims = CacheModel.bulkCreate.bind(CacheModel);
+      jest.spyOn(CacheModel, 'bulkCreate').mockImplementationOnce(async (claims) => {
+        try {
+          return await bulkCreateClaims(claims);
+        } catch (error) {
+          if ((error as Error).name === 'SequelizeUniqueConstraintError') notifyClaimCollision();
+          throw error;
+        }
+      });
+
+      const clientRequest = logHandler.createCallLog({ ...request, isFromSSCL: false });
+      try {
+        await Promise.race([claimCollision, clientRequest]);
+      } finally {
+        releaseCrm();
+      }
+
+      await expect(serverRequest).resolves.toMatchObject({ successful: true, logId: 'server-crm-log' });
+      await expect(clientRequest).resolves.toMatchObject({
+        successful: false,
+        returnMessage: { message: 'Existing log for session session-123', messageType: 'warning' }
+      });
+      expect(mockConnector.createCallLog).toHaveBeenCalledTimes(1);
       expect(await CallLogModel.count({ where: { id: 'tel-session-123' } })).toBe(1);
     });
 

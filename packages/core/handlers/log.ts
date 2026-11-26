@@ -28,7 +28,8 @@ const logger = /** @type {any} */ (require('../lib/logger'));
 const { handleApiError: rawHandleApiError, handleDatabaseError: rawHandleDatabaseError } = require('../lib/errorHandler');
 const handleApiError = /** @type {any} */ (rawHandleApiError);
 const handleDatabaseError = /** @type {any} */ (rawHandleDatabaseError);
-const { randomUUID } = require('crypto');
+const { createHash, randomUUID } = require('crypto');
+const { setTimeout: delay } = require('node:timers/promises');
 const { AccountDataModel: RawAccountDataModel } = require('../models/accountDataModel');
 const AccountDataModel = /** @type {any} */ (RawAccountDataModel);
 const { startPluginExecution, finishPluginExecution, pluginErrorCode } = require('../lib/pluginAnalytics');
@@ -53,6 +54,10 @@ const SELECTED_MESSAGE_LOG_PENDING_ID = '__pending__';
 // A claim older than this is treated as abandoned (e.g. the process died
 // mid-request) and may be taken over.
 const SELECTED_MESSAGE_LOG_PENDING_TTL_MS = 5 * 60 * 1000;
+
+const CALL_LOG_CLAIM_TTL_MS = 5 * 60 * 1000;
+const CALL_LOG_CLAIM_WAIT_MS = 5000;
+const CALL_LOG_CLAIM_RETRY_MS = 100;
 
 const ASYNC_PLUGIN_CACHE_KEY = 'asyncPluginTask';
 const ASYNC_PLUGIN_CALLBACK_PATH = '/plugin/async-callback';
@@ -508,15 +513,48 @@ function isUniqueConstraintError(error) {
     return error?.name === 'SequelizeUniqueConstraintError';
 }
 
+async function claimCallLogCreate({ sessionId, callId }) {
+    const identities = [['session', sessionId], ['call', callId]];
+    const ids = identities
+        .filter(([, id]) => id != null && id !== '')
+        .map(([type, id]) => `callLogCreate-${type}-${createHash('sha256').update(String(id)).digest('hex')}`);
+    const cacheKey = `callLogCreate-${randomUUID()}`;
+    const deadline = Date.now() + CALL_LOG_CLAIM_WAIT_MS;
+
+    // A single insert claims both identities across server instances. The
+    // normal lookup applies extension and legacy identity rules inside the claim.
+    for (;;) {
+        const now = Date.now();
+        try {
+            await CacheModel.bulkCreate(ids.map(id => ({ id, cacheKey, expiry: new Date(now + CALL_LOG_CLAIM_TTL_MS) })));
+            return { ids, cacheKey };
+        }
+        catch (error) {
+            if (!isUniqueConstraintError(error)) throw error;
+            const expired = await CacheModel.destroy({ where: { id: ids, expiry: { [Op.lte]: new Date(now) } } });
+            if (Date.now() >= deadline) return null;
+            if (!expired) await delay(CALL_LOG_CLAIM_RETRY_MS);
+        }
+    }
+}
+
+async function releaseCallLogCreateClaim({ ids, cacheKey }) {
+    try {
+        await CacheModel.destroy({ where: { id: ids, cacheKey } });
+    }
+    catch (error) {
+        logger.error('Error releasing call log creation claim', { stack: error?.stack });
+    }
+}
+
 // Two requests for the same call (e.g. server-side logging and the client) can
-// both pass the existing-log check and write to the CRM. The loser's insert hits
-// the primary key, so report the winner's record instead of a database error.
-async function resolveConcurrentCallLogCreate({ incomingData, extensionNumber, hashedExtensionId, platform, logId, error }) {
+// still collide during a rollout if an older server writes without a claim.
+async function resolveConcurrentCallLogCreate({ sessionId, extensionNumber, hashedExtensionId, platform, logId, error }) {
     let existingCallLog = null;
     try {
         existingCallLog = await CallLogModel.findOne({
             where: buildCallLogSessionWhere({
-                sessionId: incomingData.logInfo.sessionId,
+                sessionId,
                 extensionNumber,
                 hashedExtensionId,
             })
@@ -530,7 +568,7 @@ async function resolveConcurrentCallLogCreate({ incomingData, extensionNumber, h
     }
     logger.warn('Call log was created concurrently; returning the existing record', {
         platform,
-        sessionId: incomingData.logInfo.sessionId,
+        sessionId,
         existingLogId: existingCallLog.thirdPartyLogId,
         duplicateLogId: logId,
     });
@@ -555,21 +593,47 @@ function logConcurrentMessageLogCreate({ platform, messageId, duplicateLogId }) 
 }
 
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL, analyticsIdentity = {} }) {
+    let claim: Awaited<ReturnType<typeof claimCallLogCreate>> = null;
     try {
         const extensionNumber = getCallLogExtensionNumber(incomingData);
         const hashedExtensionId = getCallLogHashedExtensionId(incomingData);
+        const { sessionId, telephonySessionId, id, source, isConferenceCall, action } = incomingData.logInfo;
+        // Embeddable groups finalized conference history by telephony session.
+        const isFinalizedConference = isConferenceCall === true && action !== undefined;
+        if (source !== 'ringcx' && !isFinalizedConference && typeof telephonySessionId === 'string'
+            && telephonySessionId && sessionId === telephonySessionId) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: 'Wait for the RingEX call record before logging this call.',
+                    messageType: 'warning',
+                    ttl: 3000,
+                }
+            };
+        }
+        const callId = telephonySessionId || id;
         let existingCallLog = null;
         try {
+            claim = await claimCallLogCreate({ sessionId, callId });
+            if (!claim) {
+                return {
+                    successful: false,
+                    returnMessage: {
+                        message: 'This call is already being logged. Please try again shortly.',
+                        messageType: 'warning',
+                        ttl: 3000,
+                    }
+                };
+            }
             existingCallLog = await CallLogModel.findOne({
                 where: buildCallLogSessionWhere({
-                    sessionId: incomingData.logInfo.sessionId,
+                    sessionId,
                     extensionNumber,
                     hashedExtensionId,
                 })
             });
             // The same call may arrive with a different sessionId format, so
             // also match on the call's own id (telephonySessionId).
-            const callId = incomingData.logInfo.telephonySessionId || incomingData.logInfo.id;
             if (!existingCallLog && callId) {
                 existingCallLog = await CallLogModel.findOne({
                     where: buildCallLogIdWhere({
@@ -587,7 +651,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             return {
                 successful: false,
                 returnMessage: {
-                    message: `Existing log for session ${incomingData.logInfo.sessionId}`,
+                    message: `Existing log for session ${sessionId}`,
                     messageType: 'warning',
                     ttl: 3000
                 }
@@ -738,8 +802,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         if (logId) {
             try {
                 const createdCallLog = await CallLogModel.create({
-                    id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
-                    sessionId: incomingData.logInfo.sessionId,
+                    id: callId,
+                    sessionId,
                     extensionNumber,
                     hashedExtensionId,
                     platform,
@@ -747,6 +811,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                     userId,
                     contactId
                 });
+                await releaseCallLogCreateClaim(claim);
+                claim = null;
                 if (asyncCallPlugins.length) {
                     await dispatchAsyncCallPlugins({
                         asyncCallPlugins,
@@ -766,7 +832,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                     return handleDatabaseError(error, 'Error creating call log');
                 }
                 return await resolveConcurrentCallLogCreate({
-                    incomingData,
+                    sessionId,
                     extensionNumber,
                     hashedExtensionId,
                     platform,
@@ -789,6 +855,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         }
     } catch (e) {
         return handleApiError(e, platform, 'createCallLog', { userId });
+    } finally {
+        if (claim) await releaseCallLogCreateClaim(claim);
     }
 }
 
