@@ -55,6 +55,8 @@ If your CRM needs a fully custom body, return another format value such as `cust
 
 Recordings and finalized call data can arrive after the first log is created. Expect `updateCallLog` to be called more than once for the same call session.
 
+For RingEX creates, supply the RingEX call-log `sessionId` and the `telephonySessionId` separately. If the live call only has a `telephonySessionId`, wait for the call-log session ID before creating the CRM record. Core uses the telephony session ID for the local call ID and the call-log session ID for the session linkage. Embeddable's finalized RingEX conferences use the telephony session ID as their history key. RingCX uses its own call identifiers.
+
 Use `existingCallLog.thirdPartyLogId` as the CRM log ID. When core can fetch the existing CRM body through `getCallLog`, it passes the full response as `existingCallLogDetails` and the recomposed body as `composedLogDetails`.
 
 ## Avoid Overwriting CRM Edits
